@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ MODEL PATIENT ============
+model Patient {
+  id        Int      @id @default(autoincrement())
+  name      String
+  phone     String?
+  email     String?
+  keluhan   String?   // keluhan awal
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  queues      Queue[]
+}
+
+// ============ MODEL QUEUE ============
+model Queue {
+  id            Int        @id @default(autoincrement())
+  date          DateTime   @db.Date
+  queueNumber   Int
+  patientId     Int
+  status        QueueStatus @default(WAITING)
+  patientCode   String?    @unique
+  codeExpiresAt DateTime?
+  calledAt      DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime   @default(now())
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@unique([date, queueNumber])
+  @@index([date])
+  @@index([status])
+  @@index([patientCode])
+}
+
+enum QueueStatus {
+  WAITING
+  CALLED
+  COMPLETED
+}
+
+// Catatan: Model untuk WebPushSubscription, MedicalVisit, dll akan ditambahkan di fase selanjutnya.
+// Admin tidak perlu model karena disimpan di .env.local
