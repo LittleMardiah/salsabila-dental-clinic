@@ -1,65 +1,125 @@
-import Image from 'next/image';
+'use client';
+
+import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button'; 
+import { Card, CardContent } from '@/components/ui/card';
+import { AdminLoginModal } from '@/components/AdminLoginModal';
 
 export default function Home() {
+  // Hidden trigger state
+  const [clickCount, setClickCount] = useState(0);
+  const [showAdminModal, setShowAdminModal] = useState(false);
+  const clickTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Deteksi klik pada logo sebanyak 5x dalam 3 detik
+  const handleLogoClick = () => {
+    setClickCount((prev) => prev + 1);
+    if (clickTimeout.current) clearTimeout(clickTimeout.current);
+    clickTimeout.current = setTimeout(() => setClickCount(0), 3000);
+  };
+
+  useEffect(() => {
+    if (clickCount === 5) {
+      setShowAdminModal(true);
+      setClickCount(0);
+    }
+  }, [clickCount]);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="border-b py-4 px-6 bg-white shadow-sm">
+        <div className="container mx-auto flex justify-between items-center">
+          <div 
+            onClick={handleLogoClick} 
+            className="cursor-pointer text-2xl font-bold text-primary"
+          >
+            Salsabila Dental Clinic
+          </div>
+          <Link href="/patient/login">
+            <Button variant="outline" className="border-primary text-primary">
+              Cek Antrian
+            </Button>
+          </Link>
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <section className="py-16 px-6 text-center bg-gradient-to-br from-primary/10 to-secondary/20">
+        <div className="container mx-auto">
+          <h1 className="text-4xl md:text-6xl font-bold text-primary mb-6">
+            Senyuman Sehat, Mulai dari Sini
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{' '}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{' '}
-            or the{' '}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{' '}
-            center.
+          <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-8">
+            Layanan dental profesional dengan teknologi antrian digital dan rekam medis elektronik. 
+            Cepat, nyaman, dan aman.
           </p>
+          <Link href="/patient/login">
+            <Button size="lg" className="bg-primary hover:bg-primary/90">
+              Cek Antrian Sekarang
+            </Button>
+          </Link>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {/* Layanan Unggulan */}
+      <section className="py-16 px-6">
+        <div className="container mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-12">Layanan Kami</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <Card className="text-center">
+              <CardContent className="pt-6">
+                <h3 className="font-bold text-xl mb-2">Digital Queue</h3>
+                <p className="text-gray-600">Pantau antrian real-time via HP, dapatkan notifikasi saat giliran tiba.</p>
+              </CardContent>
+            </Card>
+            <Card className="text-center">
+              <CardContent className="pt-6">
+                <h3 className="font-bold text-xl mb-2">EMR Digital</h3>
+                <p className="text-gray-600">Rekam medis elektronik dengan foto, riwayat lengkap, dan follow-up.</p>
+              </CardContent>
+            </Card>
+            <Card className="text-center">
+              <CardContent className="pt-6">
+                <h3 className="font-bold text-xl mb-2">Laporan Keuangan</h3>
+                <p className="text-gray-600">Rekonsiliasi otomatis, laporan harian/bulanan akurat.</p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </main>
+      </section>
+
+      {/* Testimoni */}
+      <section className="py-16 px-6 bg-gray-50">
+        <div className="container mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-12">Apa Kata Pasien?</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Card>
+              <CardContent className="pt-6">
+                <p className="italic">"Gak perlu nunggu lama lagi, notifikasi di HP beneran bunyi pas giliran saya. Kliniknya juga bersih dan dokternya ramah!"</p>
+                <p className="font-bold mt-4">- Budi, 28 tahun</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <p className="italic">"Sistem antriannya gampang banget, saya yang gaptek juga bisa. Adminnya bantuin daftarin, nanti dipanggil lisan."</p>
+                <p className="font-bold mt-4">- Siti, 68 tahun</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-800 text-white py-8 px-6">
+        <div className="container mx-auto text-center">
+          <p>&copy; 2026 Salsabila Dental Clinic. All rights reserved.</p>
+          <p className="text-sm text-gray-400 mt-2">Jl. Contoh No. 123, Kota Contoh | Telp: (021) 1234567</p>
+        </div>
+      </footer>
+
+      {/* Modal Admin (dua lapis) - akan kita buat di bagian B */}
+      <AdminLoginModal open={showAdminModal} onClose={() => setShowAdminModal(false)} />
     </div>
   );
 }
