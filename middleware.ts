@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { verifyAdminToken } from '@/lib/middleware/auth'
+import jwt from 'jsonwebtoken'
 
 // Daftar rute yang perlu dilindungi (admin endpoints)
 const adminRoutes = [
@@ -13,17 +14,14 @@ const adminRoutes = [
   '/api/audit-log',
 ]
 
-// Fungsi untuk mengecek apakah path cocok dengan salah satu pola
 function matchesAdminRoute(pathname: string): boolean {
-  // Untuk pola sederhana seperti '/admin/:path*'
   if (pathname.startsWith('/admin/') || pathname === '/admin') {
     return true
   }
-  // Untuk pola spesifik
   const specificPatterns = [
     '/api/backup',
     '/api/queue/call',
-    '/api/queue/complete', // perhatikan untuk dynamic id, kita cek pattern
+    '/api/queue/complete',
     '/api/patient/emr',
     '/api/finance',
     '/api/audit-log',
@@ -38,6 +36,19 @@ function matchesAdminRoute(pathname: string): boolean {
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
+
+  if (pathname === '/patient/queue') {
+    const patientToken = request.cookies.get('patient_token')?.value
+    if (!patientToken) {
+      return NextResponse.redirect(new URL('/patient/login', request.url))
+    }
+    try {
+      jwt.verify(patientToken, process.env.JWT_SECRET!)
+      return NextResponse.next()
+    } catch {
+      return NextResponse.redirect(new URL('/patient/login', request.url))
+    }
+  }
 
   // Hanya proses untuk rute admin yang perlu dilindungi
   if (!matchesAdminRoute(pathname)) {
@@ -93,5 +104,6 @@ export const config = {
     '/api/patient/:id/emr',
     '/api/finance/:path*',
     '/api/audit-log',
+    '/patient/queue',
   ],
 }
