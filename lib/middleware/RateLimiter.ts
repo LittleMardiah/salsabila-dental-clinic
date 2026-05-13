@@ -6,7 +6,7 @@ type RateLimitStore = {
 }
 
 const store: RateLimitStore = {}
-const WINDOW_MS = 15 * 60 * 1000 // 15 menit
+const WINDOW_MS = 10 * 60 * 1000 // 10 menit
 const MAX_ATTEMPTS = 5 // 5 attempt
 
 export function RateLimit(ip: string): { allowed: boolean; remaining: number; resetAfterSeconds: number } {

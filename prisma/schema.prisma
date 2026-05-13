@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ============ MODEL PATIENT ============
@@ -13,28 +14,37 @@ model Patient {
   name      String
   phone     String?
   email     String?
-  keluhan   String?   // keluhan awal
+  keluhan   String? // keluhan awal
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  queues      Queue[]
+  queues        Queue[]
+  medicalVisits MedicalVisit[]
+  transactions  Transaction[]
 }
 
 // ============ MODEL QUEUE ============
 model Queue {
-  id            Int        @id @default(autoincrement())
-  date          DateTime   @db.Date
-  queueNumber   Int
+  id            Int         @id @default(autoincrement())
+  date          DateTime    @db.Date // tanggal antrian (tanpa jam)
+  queueNumber   Int // Nomor Antrian per hari (mulai 1)
   patientId     Int
   status        QueueStatus @default(WAITING)
-  patientCode   String?    @unique
-  codeExpiresAt DateTime?
-  calledAt      DateTime?
-  completedAt   DateTime?
-  createdAt     DateTime   @default(now())
+  patientCode   String?     @unique // Kode 6 digit untuk pasien online
+  codeExpiresAt DateTime? // Masa berlaku kode (24 jam)
+  calledAt      DateTime? // Waktu dipanggil
+  completedAt   DateTime? // Waktu selesai
+  createdAt     DateTime    @default(now())
 
   patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
+  // Relasi one-to-one dengan webPushSubscription (opsional)
+  webPushSubscription webPushSubscription?
+  medicalVisits       MedicalVisit[]
+
+  transactions Transaction[]
+
+  // Indeks untuk performa query
   @@unique([date, queueNumber])
   @@index([date])
   @@index([status])
@@ -47,5 +57,68 @@ enum QueueStatus {
   COMPLETED
 }
 
-// Catatan: Model untuk WebPushSubscription, MedicalVisit, dll akan ditambahkan di fase selanjutnya.
-// Admin tidak perlu model karena disimpan di .env.local
+// ============ MODEL WEB PUSH SUBSCRIPTION ============
+model webPushSubscription {
+  id        Int      @id @default(autoincrement())
+  queueId   Int      @unique // satu queue hanya satu subscription
+  endpoint  String   @unique // endpoint unik dari browser
+  p256dh    String // kunci publik untuk enkripsi
+  auth      String // rahasia autentikasi
+  createdAt DateTime @default(now())
+
+  queue Queue @relation(fields: [queueId], references: [id], onDelete: Cascade)
+}
+
+// ============ MODEL TRANSACTION ============
+model Transaction {
+  id            Int      @id @default(autoincrement())
+  queueId       Int
+  patientId     Int
+  status        String   @default("PENDING") // PENDING, PAID, CANCELLED
+  amount        Int? // dalam rupiah (integer)
+  paymentMethod String? // CASH, TRANSFER, QRIS
+  receiptUrl    String? // URL bukti pembayaran
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relasi ke Queue dan Patient
+  queue   Queue   @relation(fields: [queueId], references: [id], onDelete: Cascade)
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([queueId])
+  @@index([patientId])
+  @@index([status])
+}
+
+// ============ MODEL MEDICAL VISIT (Rekam Medis) ============
+model MedicalVisit {
+  id                    Int       @id @default(autoincrement())
+  patientId             Int
+  queueId               Int       @unique // Satu kunjungan terkait satu antrian
+  keluhanUtama          String? // Keluhan utama (opsional)
+  diagnosa              String // Wajib diisi
+  tindakan              String // Wajib diisi
+  resepObat             String? // Resep obat (opsional)
+  catatanTambahan       String? // Catatan tambahan (opsional)
+  dokterPenanggungJawab String // Nama dokter (wajib)
+  followUpDate          DateTime? // Tanggal follow-up (opsional)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relasi
+  patient Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  queue   Queue          @relation(fields: [queueId], references: [id], onDelete: Cascade)
+  photos  MedicalPhoto[]
+}
+
+// ============ MODEL MEDICAL PHOTO (Foto Rekam Medis) ============
+model MedicalPhoto {
+  id         Int      @id @default(autoincrement())
+  visitId    Int
+  fileUrl    String // URL dari Supabase Storage
+  fileName   String // Nama file asli
+  uploadedAt DateTime @default(now())
+
+  // Relasi
+  visit MedicalVisit @relation(fields: [visitId], references: [id], onDelete: Cascade)
+}

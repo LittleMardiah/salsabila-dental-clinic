@@ -28,3 +28,53 @@
     color: hsl(var(--foreground));
   }
 }
+
+/* ===== CUSTOM STYLES UNTUK ADMIN LOGIN & LANDING PAGE ===== */
+
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.vault-backdrop {
+  background: radial-gradient(circle at center, #ffffff 0%, #fdf8f7 40%, #f4ecec 100%);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.75);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.inner-glow {
+  box-shadow: inset 0 0 40px rgba(220, 161, 161, 0.05);
+}
+
+.glass-header {
+  background: rgba(255, 248, 247, 0.7);
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.card-3d {
+  background: #ffffff;
+  box-shadow: 0px 24px 80px rgba(129, 81, 82, 0.08), 0px 8px 16px rgba(129, 81, 82, 0.05);
+  border-top: 1px solid rgba(255, 255, 255, 0.8);
+  border-left: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.input-inset {
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.btn-gradient-3d {
+  background: linear-gradient(145deg, #f5b7b7 0%, #dca1a1 45%, #815152 100%);
+  box-shadow: 0 15px 30px -10px rgba(129, 81, 82, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.4), inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.icon-soft-shadow {
+  filter: drop-shadow(0 10px 15px rgba(129, 81, 82, 0.1));
+}

@@ -1,4 +1,3 @@
-// app/api/auth/admin/login/route.ts (base64 version - fix 100%)
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
@@ -93,13 +92,13 @@ export async function POST(request: Request) {
   const response = NextResponse.json({
     success: true,
     message: 'Login berhasil',
-    redirectTo: '/admin/dashboard',
+    redirectTo: '/admin/queue', 
   })
 
   response.cookies.set('token', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    secure: false,
+    sameSite: 'lax',
     maxAge: 86400,
     path: '/',
   })
