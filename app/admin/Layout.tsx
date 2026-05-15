@@ -5,20 +5,21 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
-const menuItems = [
-  { href: '/admin/dashboard', label: 'Dashboard', icon: 'dashboard' },
-  { href: '/admin/queue', label: 'Antrian', icon: 'groups' },
-  { href: '/admin/emr', label: 'EMR', icon: 'clinical_notes' },
-  { href: '/admin/finance', label: 'Keuangan', icon: 'payments' },
-  { href: '/admin/audit-log', label: 'Audit Log', icon: 'shield' },
-  { href: '/admin/backup', label: 'Backup', icon: 'backup' },
-  { href: '/admin/preferences', label: 'Pengaturan', icon: 'settings' },
+// Daftar semua menu (default)
+const ALL_MENU_ITEMS = [
+  { href: '/admin/dashboard', label: 'Dashboard', icon: 'dashboard', key: 'Dashboard' },
+  { href: '/admin/queue', label: 'Antrian', icon: 'groups', key: 'Queue' },
+  { href: '/admin/emr', label: 'EMR', icon: 'clinical_notes', key: 'EMR' },
+  { href: '/admin/finance', label: 'Keuangan', icon: 'payments', key: 'Finance' },
+  { href: '/admin/audit-log', label: 'Audit Log', icon: 'shield', key: 'AuditLog' },
+   { href: '/admin/settings', label: 'Pengaturan', icon: 'settings', key: 'Settings' },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [username, setUsername] = useState('Admin')
   const [userRole, setUserRole] = useState('Super Admin')
+  const [menuItems, setMenuItems] = useState(ALL_MENU_ITEMS)
 
   const isLoginPage = pathname === '/admin/login' || pathname === '/admin/login/credentials'
 
@@ -37,6 +38,45 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
     if (!isLoginPage) fetchAdmin()
   }, [isLoginPage])
+
+  // Fetch preferences and filter menu items
+  useEffect(() => {
+    const fetchPreferences = async () => {
+      try {
+        const res = await fetch('/api/preferences')
+        if (res.ok) {
+          const data = await res.json()
+          const hiddenMenus = data.hiddenMenus || []
+          const filtered = ALL_MENU_ITEMS.filter(item => !hiddenMenus.includes(item.key))
+          setMenuItems(filtered)
+        }
+      } catch (error) {
+        console.error('Failed to fetch preferences', error)
+      }
+    }
+    if (!isLoginPage) {
+      fetchPreferences()
+    }
+  }, [isLoginPage])
+
+  // Optional: listen to preference update events (if needed)
+  useEffect(() => {
+    const handleUpdate = () => {
+      // Re-fetch preferences when event is triggered
+      const refresh = async () => {
+        const res = await fetch('/api/preferences')
+        if (res.ok) {
+          const data = await res.json()
+          const hiddenMenus = data.hiddenMenus || []
+          const filtered = ALL_MENU_ITEMS.filter(item => !hiddenMenus.includes(item.key))
+          setMenuItems(filtered)
+        }
+      }
+      refresh()
+    }
+    window.addEventListener('preferences-updated', handleUpdate)
+    return () => window.removeEventListener('preferences-updated', handleUpdate)
+  }, [])
 
   if (isLoginPage) {
     return <>{children}</>

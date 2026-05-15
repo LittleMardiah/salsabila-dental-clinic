@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/middleware/auth'
-import { google } from 'googleapis'
+import archiver from 'archiver'
+import fs from 'fs'
+import path from 'path'
 
 async function refreshAccessToken(refreshToken: string): Promise<string | null> {
   const response = await fetch('https://oauth2.googleapis.com/token', {
@@ -24,16 +26,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: auth.error }, { status: auth.status })
   }
 
-  // Ambil token dari database
   const pref = await prisma.adminPreference.findUnique({
     where: { adminId: auth.username! },
   })
+
   if (!pref || !pref.googleAccessToken) {
     return NextResponse.json({ error: 'Google Drive not connected' }, { status: 400 })
   }
 
   let accessToken = pref.googleAccessToken
-  // Jika token expired, refresh
   if (pref.googleTokenExpiry && new Date() > pref.googleTokenExpiry) {
     const newToken = await refreshAccessToken(pref.googleRefreshToken!)
     if (!newToken) {
@@ -42,12 +43,25 @@ export async function POST(request: Request) {
     accessToken = newToken
     await prisma.adminPreference.update({
       where: { adminId: auth.username! },
-      data: { googleAccessToken: newToken, googleTokenExpiry: new Date(Date.now() + 3600 * 1000) },
+      data: {
+        googleAccessToken: newToken,
+        googleTokenExpiry: new Date(Date.now() + 3600 * 1000),
+      },
     })
   }
 
-  // Generate backup data (sama seperti local backup)
-  const [patients, queues, medicalVisits, medicalPhotos, transactions, dailyReconciliations, auditLogs, adminPreferences, webPushSubscriptions] = await Promise.all([
+  // Ambil data database
+  const [
+    patients,
+    queues,
+    medicalVisits,
+    medicalPhotos,
+    transactions,
+    dailyReconciliations,
+    auditLogs,
+    adminPreferences,
+    webPushSubscriptions,
+  ] = await Promise.all([
     prisma.patient.findMany(),
     prisma.queue.findMany(),
     prisma.medicalVisit.findMany(),
@@ -77,36 +91,66 @@ export async function POST(request: Request) {
       webPushSubscriptions,
     },
   }
+
   const jsonString = JSON.stringify(backupData, null, 2)
-  const fileName = `backup-${new Date().toISOString().split('T')[0]}.json`
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+  const zipFileName = `backup-${timestamp}.zip`
 
-  // Upload ke Google Drive
-  const authDrive = new google.auth.OAuth2()
-  authDrive.setCredentials({ access_token: accessToken })
-  const drive = google.drive({ version: 'v3', auth: authDrive })
+  // Buat ZIP stream
+  const archive = archiver('zip', { zlib: { level: 9 } })
+  archive.append(jsonString, { name: 'database.json' })
 
-  const fileMetadata = {
-    name: fileName,
-    parents: ['root'], // bisa diganti dengan folder ID
-  }
-  const media = {
-    mimeType: 'application/json',
-    body: Buffer.from(jsonString, 'utf-8'),
+  const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
+  if (fs.existsSync(uploadsDir)) {
+    archive.directory(uploadsDir, 'uploads')
   }
 
-  const file = await drive.files.create({
-    requestBody: fileMetadata,
-    media: media,
-    fields: 'id',
+  // Kumpulkan buffer dari archive
+  const chunks: Buffer[] = []
+  await new Promise<void>((resolve, reject) => {
+    archive.on('data', (chunk: Buffer) => chunks.push(chunk))
+    archive.on('end', () => resolve())
+    archive.on('error', (err: Error) => reject(err))
+    archive.finalize()
   })
 
-  // Catat audit log
-  // await addAuditLog(auth.username, 'BACKUP_CLOUD', 'backup', file.data.id, { fileName })
+  const zipBuffer = Buffer.concat(chunks)
 
+  // Upload ke Google Drive dengan multipart
+  const boundary = '-------314159265358979323846'
+  const delimiter = `\r\n--${boundary}\r\n`
+  const closeDelimiter = `\r\n--${boundary}--\r\n`
+
+  const multipartBody =
+    delimiter +
+    'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+    JSON.stringify({ name: zipFileName, parents: ['root'] }) +
+    delimiter +
+    'Content-Type: application/zip\r\n' +
+    'Content-Transfer-Encoding: base64\r\n\r\n' +
+    zipBuffer.toString('base64') +
+    closeDelimiter
+
+  const uploadResponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': `multipart/related; boundary=${boundary}`,
+    },
+    body: multipartBody,
+  })
+
+  if (!uploadResponse.ok) {
+    const errorText = await uploadResponse.text()
+    console.error('Google Drive upload error:', uploadResponse.status, errorText)
+    return NextResponse.json({ error: `Upload failed: ${uploadResponse.status}` }, { status: 500 })
+  }
+
+  const result = await uploadResponse.json()
   return NextResponse.json({
     success: true,
     message: 'Backup uploaded to Google Drive',
-    fileId: file.data.id,
-    fileName,
+    fileId: result.id,
+    fileName: zipFileName,
   })
 }

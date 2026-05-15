@@ -30,9 +30,6 @@
   }
 }
 
-/* ===== CUSTOM STYLES UNTUK ADMIN & FINANCE ===== */
-/* PERBAIKAN: Semua efek dari Stitch disesuaikan */
-
 @keyframes gradient {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
@@ -43,17 +40,15 @@
   background: radial-gradient(circle at center, #ffffff 0%, #fdf8f7 40%, #f4ecec 100%);
 }
 
-/* PERBAIKAN: glass-card persis Stitch */
 .glass-card {
   background: rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
+  backdrop-filter: blur(40px);
   border: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow: 0 12px 32px rgba(129, 81, 82, 0.08);
   border-radius: 1.5rem;
 }
 
-/* PERBAIKAN: cta-gradient persis Stitch (override bg-gradient) */
 .cta-gradient {
   background: linear-gradient(135deg, #815152 0%, #623738 100%);
 }
@@ -65,14 +60,12 @@
   transform: translateY(1px) scale(0.98);
 }
 
-/* PERBAIKAN: atmospheric-glow persis Stitch */
 .atmospheric-glow {
   background: radial-gradient(circle at 10% 10%, #ffdad9 0%, transparent 40%),
               radial-gradient(circle at 90% 90%, #dca1a1 0%, transparent 40%),
               #fff8f7;
 }
 
-/* PERBAIKAN: Input focus sesuai Stitch */
 input:focus, textarea:focus {
   outline: none;
   box-shadow: 0 0 0 2px rgba(129, 81, 82, 0.1);
@@ -81,8 +74,8 @@ input:focus, textarea:focus {
 /* Class tambahan untuk kompatibilitas */
 .glass-card-premium {
   background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.5);
   box-shadow: 0 8px 32px 0 rgba(129, 81, 82, 0.05);
 }
@@ -107,8 +100,8 @@ input:focus, textarea:focus {
 
 .sidebar-glass {
   background: rgba(249, 242, 242, 0.85);
-  backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   border-right: 1px solid rgba(129, 81, 82, 0.05);
 }
 
@@ -124,8 +117,8 @@ input:focus, textarea:focus {
 
 .glass-header {
   background: rgba(255, 248, 247, 0.7);
+  -webkit-backdrop-filter: blur(24px);
   backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);;
   border-bottom: 1px solid rgba(255, 255, 255, 0.3);
 }
 
@@ -172,12 +165,11 @@ input:focus, textarea:focus {
 
 .glass-input {
   background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.5);
   box-shadow: 0 4px 12px rgba(129, 81, 82, 0.08);
   border-radius: 0.5rem;
-  border: 1px solid rgba(131, 115, 115, 0.1);
   transition: all 0.2s ease;
 }
 .glass-input:focus {
@@ -262,4 +254,28 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 @keyframes pulse-radiance {
   0%, 100% { box-shadow: 0 0 40px rgba(220, 161, 161, 0.15), 0 30px 60px -12px rgba(129, 81, 82, 0.2); }
   50% { box-shadow: 0 0 60px rgba(220, 161, 161, 0.3), 0 35px 70px -10px rgba(129, 81, 82, 0.3); }
+}
+
+.glass-silk {
+  background: rgba(255, 255, 255, 0.4);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.silk-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.4));
+  box-shadow: 0 20px 40px -10px rgba(129, 81, 82, 0.1);
+}
+
+.shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }

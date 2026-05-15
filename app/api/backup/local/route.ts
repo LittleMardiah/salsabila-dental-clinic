@@ -1,15 +1,17 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/middleware/auth'
+import archiver from 'archiver'
+import fs from 'fs'
+import path from 'path'
 
 export async function GET(request: Request) {
-  // Verifikasi admin
   const auth = await verifyAdminToken(request)
   if (!auth.valid) {
     return NextResponse.json({ error: auth.error }, { status: auth.status })
   }
 
-  // Ambil semua data dari database
+  // Ambil data dari database
   const [
     patients,
     queues,
@@ -32,7 +34,6 @@ export async function GET(request: Request) {
     prisma.webPushSubscription.findMany(),
   ])
 
-  // Buat objek backup
   const backupData = {
     metadata: {
       version: '1.0',
@@ -63,16 +64,39 @@ export async function GET(request: Request) {
     },
   }
 
-  // 4. Konversi ke JSON string
   const jsonString = JSON.stringify(backupData, null, 2)
-  const fileName = `backup-${new Date().toISOString().split('T')[0]}.json`
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+  const zipFileName = `backup-${timestamp}.zip`
 
-  // 5. Return response sebagai file attachment
-  return new NextResponse(jsonString, {
+  // Buat ZIP stream
+  const archive = archiver('zip', { zlib: { level: 9 } })
+  archive.append(jsonString, { name: 'database.json' })
+
+  // Tambahkan folder uploads jika ada
+  const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
+  if (fs.existsSync(uploadsDir)) {
+    archive.directory(uploadsDir, 'uploads')
+  } else {
+    console.warn('Folder uploads tidak ditemukan:', uploadsDir)
+  }
+
+  // Set header response
+  const headers = new Headers()
+  headers.set('Content-Type', 'application/zip')
+  headers.set('Content-Disposition', `attachment; filename="${zipFileName}"`)
+
+  // Return stream response dengan ReadableStream
+  const stream = new ReadableStream({
+    start(controller) {
+      archive.on('data', (chunk: Buffer) => controller.enqueue(chunk))
+      archive.on('end', () => controller.close())
+      archive.on('error', (err: Error) => controller.error(err))
+      archive.finalize()
+    }
+  })
+
+  return new NextResponse(stream, {
     status: 200,
-    headers: {
-      'Content-Type': 'application/json',
-      'Content-Disposition': `attachment; filename="${fileName}"`,
-    },
+    headers,
   })
 }

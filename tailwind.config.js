@@ -68,19 +68,26 @@ module.exports = {
         body: ['Public Sans', 'sans-serif'],
         label: ['Plus Jakarta Sans', 'sans-serif'],
       },
+      borderRadius: {
+        '2xl': '1rem',      
+        '3xl': '1.5rem',    
+      },
       boxShadow: {
         ambient: '0px 12px 32px rgba(129, 81, 82, 0.08)',
         premium: '0 20px 50px -12px rgba(220, 161, 161, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.7)',
         'soft-3d': '0 10px 30px -10px rgba(129, 81, 82, 0.12), 0 20px 40px -20px rgba(129, 81, 82, 0.08)',
         'deep-3d': '0 20px 50px -12px rgba(129, 81, 82, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.6)',
         'active-inset': 'inset 2px 2px 4px rgba(0, 0, 0, 0.05), inset -2px -2px 4px rgba(255, 255, 255, 0.8)',
+        'silk': '0 20px 40px -10px rgba(129, 81, 82, 0.1)',
       },
       backgroundImage: {
         'cta-gradient': 'linear-gradient(135deg, #815152 0%, #623738 100%)',
+        'shimmer': 'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0) 100%)',
       },
       animation: {
         gradient: 'gradient 3s linear infinite',
         'pulse-radiance': 'pulse-radiance 4s infinite ease-in-out',
+        'shimmer': 'shimmer 2s infinite',
       },
       keyframes: {
         gradient: {
@@ -91,6 +98,11 @@ module.exports = {
         'pulse-radiance': {
           '0%, 100%': { boxShadow: '0 0 40px rgba(220, 161, 161, 0.15), 0 30px 60px -12px rgba(129, 81, 82, 0.2)' },
           '50%': { boxShadow: '0 0 60px rgba(220, 161, 161, 0.3), 0 35px 70px -10px rgba(129, 81, 82, 0.3)' },
+        },
+        // PERBAIKAN: animasi shimmer
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
         },
       },
     },
