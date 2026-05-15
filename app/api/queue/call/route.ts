@@ -3,13 +3,12 @@ import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/ServerAuth'
 import { QueueStatus } from '@prisma/client'
 import { sendNotification } from '@/lib/services/WebpushService'
+import { addAuditLog } from '@/lib/services/audit.service' 
 
 export async function POST(request: Request) {
-  // Log cookie header untuk debugging
   const cookieHeader = request.headers.get('cookie') || ''
   console.log('[CALL] Cookie header received:', cookieHeader)
 
-  // Verifikasi token admin
   const authResult = await verifyAdminToken(request)
   if (!authResult.valid) {
     console.error('[CALL] Admin token invalid:', authResult.error)
@@ -18,51 +17,33 @@ export async function POST(request: Request) {
       { status: authResult.status || 401 }
     )
   }
-  const adminUsername = authResult.username
+  const adminUsername = authResult.username || 'unknown' 
+
   console.log(`[CALL] Admin ${adminUsername} calling next queue`)
 
-  // Ambil queue WAITING teratas untuk hari ini
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
   const nextQueue = await prisma.queue.findFirst({
-    where: {
-      date: today,
-      status: QueueStatus.WAITING,
-    },
+    where: { date: today, status: QueueStatus.WAITING },
     orderBy: { queueNumber: 'asc' },
-    include: {
-      patient: true,
-      webPushSubscription: true,
-    },
+    include: { patient: true, webPushSubscription: true },
   })
 
   if (!nextQueue) {
-    return NextResponse.json(
-      { success: false, error: 'No waiting queue available' },
-      { status: 400 }
-    )
+    return NextResponse.json({ success: false, error: 'No waiting queue available' }, { status: 400 })
   }
 
   let notificationSent = false
   try {
-    // Update queue menjadi CALLED
     await prisma.queue.update({
       where: { id: nextQueue.id },
-      data: {
-        status: QueueStatus.CALLED,
-        calledAt: new Date(),
-      },
+      data: { status: QueueStatus.CALLED, calledAt: new Date() },
     })
 
-    // Kirim notifikasi jika ada subscription
     if (nextQueue.webPushSubscription) {
       try {
-        notificationSent = await sendNotification(
-          nextQueue.id,
-          nextQueue.patient.name,
-          nextQueue.queueNumber
-        )
+        notificationSent = await sendNotification(nextQueue.id, nextQueue.patient.name, nextQueue.queueNumber)
       } catch (pushError) {
         console.error('Web push failed:', pushError)
         notificationSent = false
@@ -70,6 +51,15 @@ export async function POST(request: Request) {
     } else {
       console.log(`No web push subscription for queue ${nextQueue.id}`)
     }
+
+    await addAuditLog(
+      adminUsername,
+      'CALL_QUEUE',
+      'queue',
+      nextQueue.id.toString(),
+      { queueNumber: nextQueue.queueNumber, patientName: nextQueue.patient.name },
+      request.headers.get('x-forwarded-for') || 'unknown'
+    )
 
     return NextResponse.json({
       success: true,
@@ -82,9 +72,6 @@ export async function POST(request: Request) {
     })
   } catch (error) {
     console.error('Error calling queue:', error)
-    return NextResponse.json(
-      { success: false, error: 'Database error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ success: false, error: 'Database error' }, { status: 500 })
   }
 }

@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { z } from 'zod'
 import { RateLimit } from '@/lib/middleware/RateLimiter'
+import { addAuditLog } from '@/lib/services/audit.service' 
 
 const loginSchema = z.object({
   username: z.string().min(3, 'Username minimal 3 karakter'),
@@ -92,7 +93,7 @@ export async function POST(request: Request) {
   const response = NextResponse.json({
     success: true,
     message: 'Login berhasil',
-    redirectTo: '/admin/queue', 
+    redirectTo: '/admin/queue',
   })
 
   response.cookies.set('token', token, {
@@ -104,5 +105,8 @@ export async function POST(request: Request) {
   })
 
   response.cookies.delete('admin_code_verified')
+
+  await addAuditLog(username, 'LOGIN', 'admin', username, {}, ip)
+
   return response
 }

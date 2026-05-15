@@ -14,8 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import QueueCodeModal from '@/components/admin/QueueCodeModal' 
 
-// Tipe data untuk antrian
 type QueueItem = {
   id: number
   queueNumber: number
@@ -26,9 +26,9 @@ type QueueItem = {
   calledAt: string | null
   completedAt: string | null
   createdAt: string
+  patientCode?: string | null // ✅ tambahkan field patientCode
 }
 
-// Fetch queues
 async function fetchQueues(): Promise<QueueItem[]> {
   const res = await fetch('/api/queue')
   if (!res.ok) throw new Error('Failed to fetch queues')
@@ -36,7 +36,6 @@ async function fetchQueues(): Promise<QueueItem[]> {
   return data.data
 }
 
-// Call queue
 async function callQueue(): Promise<void> {
   const res = await fetch('/api/queue/call', { method: 'POST' })
   if (!res.ok) {
@@ -45,7 +44,6 @@ async function callQueue(): Promise<void> {
   }
 }
 
-// Complete queue
 async function completeQueue(id: number): Promise<void> {
   const res = await fetch(`/api/queue/${id}/complete`, { method: 'PATCH' })
   if (!res.ok) {
@@ -54,7 +52,6 @@ async function completeQueue(id: number): Promise<void> {
   }
 }
 
-// Add patient
 async function addPatient(data: {
   name: string
   phone?: string
@@ -80,15 +77,16 @@ export default function QueuePage() {
   const [manualModalOpen, setManualModalOpen] = useState(false)
   const [onlineForm, setOnlineForm] = useState({ name: '', phone: '', email: '', keluhan: '' })
   const [manualForm, setManualForm] = useState({ name: '', phone: '' })
+  const [codeModalOpen, setCodeModalOpen] = useState(false)
+  const [modalQueueNumber, setModalQueueNumber] = useState<number | null>(null)
+  const [modalPatientCode, setModalPatientCode] = useState<string | null>(null)
 
-  // Fetch queues with auto-refresh setiap 5 detik
   const { data: queues = [], isLoading, error } = useQuery({
     queryKey: ['queues'],
     queryFn: fetchQueues,
     refetchInterval: 5000,
   })
 
-  // Mutations
   const callMutation = useMutation({
     mutationFn: callQueue,
     onSuccess: () => {
@@ -114,6 +112,11 @@ export default function QueuePage() {
       setOnlineModalOpen(false)
       setOnlineForm({ name: '', phone: '', email: '', keluhan: '' })
       toast.success(`Pasien online ditambahkan. Kode: ${data.patient_code}`)
+      if (data.patient_code) {
+        setModalQueueNumber(data.queue_number)
+        setModalPatientCode(data.patient_code)
+        setCodeModalOpen(true)
+      }
     },
     onError: (err: Error) => toast.error(err.message),
   })
@@ -135,10 +138,7 @@ export default function QueuePage() {
       toast.error('Nama wajib diisi')
       return
     }
-    addOnlineMutation.mutate({
-      ...onlineForm,
-      mode: 'ONLINE',
-    })
+    addOnlineMutation.mutate({ ...onlineForm, mode: 'ONLINE' })
   }
 
   const handleManualSubmit = (e: React.FormEvent) => {
@@ -154,15 +154,23 @@ export default function QueuePage() {
     })
   }
 
-  // Statistik
+  // Menampilkan modal saat klik nomor antrian
+  const handleQueueNumberClick = (queueNumber: number, patientCode: string | null | undefined) => {
+    if (patientCode) {
+      setModalQueueNumber(queueNumber)
+      setModalPatientCode(patientCode)
+      setCodeModalOpen(true)
+    }
+  }
+
   const totalQueues = queues.length
   const waitingQueues = queues.filter(q => q.status === 'WAITING').length
   const calledQueues = queues.filter(q => q.status === 'CALLED').length
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'WAITING': return 'Waiting'
-      case 'CALLED': return 'Called'
+      case 'WAITING': return 'Menunggu'
+      case 'CALLED': return 'Dipanggil'
       case 'COMPLETED': return 'Selesai'
       default: return status
     }
@@ -170,295 +178,174 @@ export default function QueuePage() {
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
-      case 'WAITING':
-        return 'bg-primary-container/20 text-primary'
-      case 'CALLED':
-        return 'bg-secondary-container/30 text-secondary'
-      case 'COMPLETED':
-        return 'bg-outline-variant/30 text-on-surface-variant'
-      default:
-        return 'bg-surface-container-high text-on-surface-variant'
+      case 'WAITING': return 'bg-primary-container/20 text-primary'
+      case 'CALLED': return 'bg-secondary-container/30 text-secondary'
+      case 'COMPLETED': return 'bg-outline-variant/30 text-on-surface-variant'
+      default: return 'bg-surface-container-high text-on-surface-variant'
     }
   }
 
   const formatQueueNumber = (num: number) => `A-${num.toString().padStart(2, '0')}`
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
+    return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
   }
 
   if (error) {
-    return (
-      <div className="text-center text-error p-4">
-        Error loading queues: {error.message}
-      </div>
-    )
+    return <div className="text-center text-error p-4">Error loading queues: {error.message}</div>
   }
 
   return (
-    <div className="min-h-screen bg-background text-on-surface flex">
-      {/* Sidebar */}
-      <aside className="bg-surface-container-low h-screen w-72 flex flex-col fixed left-0 top-0 z-50">
-        <div className="flex flex-col h-full p-6 gap-2">
-          <div className="mb-8 px-4">
-            <span className="font-headline font-black text-xl text-primary block">Salsa Dental</span>
-            <span className="text-[10px] uppercase tracking-[0.2em] text-on-surface-variant font-bold opacity-60">The Clinical Sanctuary</span>
+    <>
+      {/* Header Halaman */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="font-headline font-bold text-2xl tracking-tight text-on-surface">Manajemen Antrian</h1>
+          <div className="flex items-center gap-2 mt-1">
+            <div className="w-2 h-2 rounded-full bg-secondary animate-pulse"></div>
+            <span className="text-xs font-bold text-secondary uppercase tracking-wider">Sistem Aktif</span>
           </div>
-          <nav className="flex-1 space-y-1">
-            <div className="bg-surface-container-lowest text-primary font-bold rounded-xl shadow-sm px-4 py-3 flex items-center gap-3">
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>clinical_notes</span>
-              <span className="font-headline font-medium text-sm">Antrian</span>
-            </div>
-          </nav>
         </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="ml-72 flex-1 flex flex-col min-h-screen">
-        {/* Header */}
-        <header className="bg-surface/80 backdrop-blur-xl sticky top-0 z-40 flex justify-between items-center px-12 py-6 w-full">
-          <div className="flex items-center gap-4">
-            <h1 className="font-headline font-bold text-2xl tracking-tight text-on-surface">Manajemen Antrian</h1>
-            <div className="flex items-center gap-2 px-3 py-1 bg-secondary/10 rounded-full">
-              <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
-              <span className="text-xs font-bold text-secondary uppercase tracking-wider">Sistem Aktif</span>
-            </div>
-          </div>
-          <div className="flex gap-4">
-            <button
-              onClick={() => setManualModalOpen(true)}
-              className="px-6 py-3 rounded-full border border-outline-variant/30 text-primary font-headline font-bold text-sm hover:bg-primary/5 transition-all"
-            >
-              Manual Registration
-            </button>
-            <button
-              onClick={() => setOnlineModalOpen(true)}
-              className="px-6 py-3 rounded-full bg-gradient-to-r from-[#DCA1A1] to-[#663a3b] text-white font-headline font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[0.98] transition-all"
-            >
-              Online Registration
-            </button>
-          </div>
-        </header>
-
-        <div className="px-12 py-8 flex-1">
-          {/* Statistik */}
-          <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/5">
-              <p className="text-on-surface-variant text-xs font-bold uppercase tracking-widest mb-1">Total Antrian</p>
-              <h3 className="font-headline text-3xl font-black text-on-surface">{totalQueues}</h3>
-            </div>
-            <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/5">
-              <p className="text-on-surface-variant text-xs font-bold uppercase tracking-widest mb-1">Menunggu</p>
-              <h3 className="font-headline text-3xl font-black text-primary">{waitingQueues}</h3>
-            </div>
-            <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/5">
-              <p className="text-on-surface-variant text-xs font-bold uppercase tracking-widest mb-1">Sedang Dilayani</p>
-              <h3 className="font-headline text-3xl font-black text-secondary">{calledQueues}</h3>
-            </div>
-          </section>
-
-          {/* Tabel Antrian */}
-          <section className="bg-surface-container-lowest rounded-[2rem] p-8 shadow-ambient border border-outline-variant/5 overflow-hidden">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-              <div>
-                <h2 className="font-headline font-bold text-xl text-on-surface">Daftar Pasien Hari Ini</h2>
-                <p className="text-on-surface-variant text-sm mt-1">Daftar real-time antrian klinik gigi.</p>
-              </div>
-            </div>
-
-            {queues.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-24 text-center">
-                <div className="w-48 h-48 bg-surface-container-low rounded-full flex items-center justify-center mb-6 relative">
-                  <span className="material-symbols-outlined text-primary/20 text-7xl" style={{ fontVariationSettings: "'wght' 200" }}>hourglass_empty</span>
-                  <div className="absolute -bottom-2 -right-2 bg-surface-container-lowest p-3 rounded-2xl shadow-sm border border-outline-variant/20">
-                    <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                  </div>
-                </div>
-                <h3 className="font-headline font-bold text-lg text-on-surface">Belum ada antrian</h3>
-                <p className="text-on-surface-variant text-sm max-w-xs mx-auto mt-2">Semua pasien telah dilayani atau belum ada pendaftaran baru hari ini.</p>
-                <button
-                  onClick={() => queryClient.invalidateQueries({ queryKey: ['queues'] })}
-                  className="mt-8 px-6 py-3 border border-outline-variant/40 rounded-full text-xs font-bold text-on-surface-variant hover:bg-primary/5 transition-all flex items-center gap-2"
-                >
-                  <span className="material-symbols-outlined text-sm">refresh</span>
-                  Perbarui Data
-                </button>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-separate border-spacing-y-4">
-                  <thead className="text-on-surface-variant text-[10px] uppercase tracking-[0.15em] font-black">
-                    <tr>
-                      <th className="pb-4 pl-6">No</th>
-                      <th className="pb-4">Nama Pasien</th>
-                      <th className="pb-4">Kontak</th>
-                      <th className="pb-4">Waktu Daftar</th>
-                      <th className="pb-4">Status</th>
-                      <th className="pb-4 pr-6 text-right">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-sm">
-                    {queues.map((queue) => (
-                      <tr
-                        key={queue.id}
-                        className={`${queue.status === 'CALLED' ? 'bg-surface-container-low/50' : 'bg-surface-container-lowest border border-outline-variant/10'} hover:bg-surface-container-low transition-colors rounded-2xl overflow-hidden shadow-sm`}
-                      >
-                        <td className="py-5 pl-6 font-headline font-black text-lg rounded-l-2xl">
-                          {formatQueueNumber(queue.queueNumber)}
-                        </td>
-                        <td className="py-5">
-                          <div className="flex flex-col">
-                            <span className="font-bold text-on-surface">{queue.patientName}</span>
-                          </div>
-                        </td>
-                        <td className="py-5">
-                          <div className="flex gap-2">
-                            {queue.phone && (
-                              <a href={`tel:${queue.phone}`} className="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center hover:bg-outline-variant transition-colors">
-                                <span className="material-symbols-outlined text-on-surface-variant text-base">call</span>
-                              </a>
-                            )}
-                            {queue.email && (
-                              <a href={`mailto:${queue.email}`} className="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center hover:bg-outline-variant transition-colors">
-                                <span className="material-symbols-outlined text-on-surface-variant text-base">mail</span>
-                              </a>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-5 font-medium text-on-surface-variant">
-                          {format(new Date(queue.createdAt), 'HH:mm', { locale: id })}
-                        </td>
-                        <td className="py-5">
-                          <span className={`px-3 py-1 text-[10px] font-black uppercase rounded-full tracking-wider ${getStatusBadgeClass(queue.status)}`}>
-                            {getStatusLabel(queue.status)}
-                          </span>
-                        </td>
-                        <td className="py-5 pr-6 text-right rounded-r-2xl">
-                          {queue.status === 'WAITING' && (
-                            <button
-                              onClick={() => callMutation.mutate()}
-                              disabled={callMutation.isPending}
-                              className="px-5 py-2 border border-primary text-primary text-xs font-bold rounded-full hover:bg-primary/5 transition-all disabled:opacity-50"
-                            >
-                              Panggil
-                            </button>
-                          )}
-                          {queue.status === 'CALLED' && (
-                            <button
-                              onClick={() => completeMutation.mutate(queue.id)}
-                              disabled={completeMutation.isPending}
-                              className="px-5 py-2 bg-on-surface text-white text-xs font-bold rounded-full hover:bg-on-surface/80 transition-all disabled:opacity-50"
-                            >
-                              Selesai
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
+        <div className="flex gap-4">
+          <button
+            onClick={() => setManualModalOpen(true)}
+            className="px-6 py-3 rounded-full border border-outline-variant/30 text-primary font-headline font-bold text-sm hover:bg-primary/5 transition-all"
+          >
+            Manual Registration
+          </button>
+          <button
+            onClick={() => setOnlineModalOpen(true)}
+            className="px-6 py-3 rounded-full bg-gradient-to-r from-[#DCA1A1] to-[#663a3b] text-white font-headline font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[0.98] transition-all"
+          >
+            Online Registration
+          </button>
         </div>
-      </main>
+      </div>
 
-      {/* Modal Tambah Pasien Online */}
+      {/* Statistik Cards */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/5">
+          <p className="text-on-surface-variant text-xs font-bold uppercase tracking-widest mb-1">Total Antrian</p>
+          <h3 className="font-headline text-3xl font-black text-on-surface">{totalQueues}</h3>
+        </div>
+        <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/5">
+          <p className="text-on-surface-variant text-xs font-bold uppercase tracking-widest mb-1">Menunggu</p>
+          <h3 className="font-headline text-3xl font-black text-primary">{waitingQueues}</h3>
+        </div>
+        <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/5">
+          <p className="text-on-surface-variant text-xs font-bold uppercase tracking-widest mb-1">Sedang Dilayani</p>
+          <h3 className="font-headline text-3xl font-black text-secondary">{calledQueues}</h3>
+        </div>
+      </section>
+
+      {/* Tabel Antrian */}
+      <section className="bg-surface-container-lowest rounded-[2rem] p-8 shadow-ambient border border-outline-variant/5 overflow-hidden">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+          <div>
+            <h2 className="font-headline font-bold text-xl text-on-surface">Daftar Pasien Hari Ini</h2>
+            <p className="text-on-surface-variant text-sm mt-1">Daftar real-time antrian klinik gigi.</p>
+          </div>
+        </div>
+
+        {queues.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="w-48 h-48 bg-surface-container-low rounded-full flex items-center justify-center mb-6 relative">
+              <span className="material-symbols-outlined text-primary/20 text-7xl" style={{ fontVariationSettings: "'wght' 200" }}>hourglass_empty</span>
+              <div className="absolute -bottom-2 -right-2 bg-surface-container-lowest p-3 rounded-2xl shadow-sm border border-outline-variant/20">
+                <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+              </div>
+            </div>
+            <h3 className="font-headline font-bold text-lg text-on-surface">Belum ada antrian</h3>
+            <p className="text-on-surface-variant text-sm max-w-xs mx-auto mt-2">Semua pasien telah dilayani atau belum ada pendaftaran baru hari ini.</p>
+            <button
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['queues'] })}
+              className="mt-8 px-6 py-3 border border-outline-variant/40 rounded-full text-xs font-bold text-on-surface-variant hover:bg-primary/5 transition-all flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-sm">refresh</span>
+              Perbarui Data
+            </button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-separate border-spacing-y-4">
+              <thead className="text-on-surface-variant text-[10px] uppercase tracking-[0.15em] font-black">
+                <tr>
+                  <th className="pb-4 pl-6">No</th>
+                  <th className="pb-4">Nama Pasien</th>
+                  <th className="pb-4">Kontak</th>
+                  <th className="pb-4">Waktu Daftar</th>
+                  <th className="pb-4">Status</th>
+                  <th className="pb-4 pr-6 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="text-sm font-body">
+                {queues.map((queue) => (
+                  <tr key={queue.id} className={`${queue.status === 'CALLED' ? 'bg-surface-container-low/50' : 'bg-surface-container-lowest border border-outline-variant/10'} hover:bg-surface-container-low transition-colors rounded-2xl overflow-hidden shadow-sm`}>
+                    {/* nomor antrian sekarang bisa diklik */}
+                    <td
+                      className="py-5 pl-6 font-headline font-black text-lg rounded-l-2xl cursor-pointer hover:text-primary transition-colors"
+                      onClick={() => handleQueueNumberClick(queue.queueNumber, (queue as any).patientCode)}
+                    >
+                      {formatQueueNumber(queue.queueNumber)}
+                    </td>
+                    <td className="py-5">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-on-surface font-body">{queue.patientName}</span>
+                      </div>
+                    </td>
+                    <td className="py-5">
+                      <div className="flex gap-2">
+                        {queue.phone && <a href={`tel:${queue.phone}`} className="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center hover:bg-outline-variant transition-colors"><span className="material-symbols-outlined text-on-surface-variant text-base">call</span></a>}
+                        {queue.email && <a href={`mailto:${queue.email}`} className="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center hover:bg-outline-variant transition-colors"><span className="material-symbols-outlined text-on-surface-variant text-base">mail</span></a>}
+                      </div>
+                    </td>
+                    <td className="py-5 font-medium text-on-surface-variant font-body">{format(new Date(queue.createdAt), 'HH:mm', { locale: id })}</td>
+                    <td className="py-5"><span className={`px-3 py-1 text-[10px] font-black uppercase rounded-full tracking-wider ${getStatusBadgeClass(queue.status)} font-body`}>{getStatusLabel(queue.status)}</span></td>
+                    <td className="py-5 pr-6 text-right rounded-r-2xl">
+                      {queue.status === 'WAITING' && <button onClick={() => callMutation.mutate()} disabled={callMutation.isPending} className="px-5 py-2 border border-primary text-primary text-xs font-bold rounded-full hover:bg-primary/5 transition-all disabled:opacity-50 font-body">Panggil</button>}
+                      {queue.status === 'CALLED' && <button onClick={() => completeMutation.mutate(queue.id)} disabled={completeMutation.isPending} className="px-5 py-2 bg-on-surface text-white text-xs font-bold rounded-full hover:bg-on-surface/80 transition-all disabled:opacity-50 font-body">Selesai</button>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {/* Modal Online Registration */}
       <Dialog open={onlineModalOpen} onOpenChange={setOnlineModalOpen}>
         <DialogContent className="bg-surface-container-lowest rounded-2xl max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-headline text-xl">Tambah Pasien Online</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle className="font-headline text-xl">Tambah Pasien Online</DialogTitle></DialogHeader>
           <form onSubmit={handleOnlineSubmit} className="space-y-4 mt-4">
-            <div>
-              <Label htmlFor="online-name">Nama Lengkap *</Label>
-              <Input
-                id="online-name"
-                value={onlineForm.name}
-                onChange={(e) => setOnlineForm({ ...onlineForm, name: e.target.value })}
-                className="bg-surface-container-low border-none rounded-xl"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="online-phone">No. Telepon</Label>
-              <Input
-                id="online-phone"
-                value={onlineForm.phone}
-                onChange={(e) => setOnlineForm({ ...onlineForm, phone: e.target.value })}
-                className="bg-surface-container-low border-none rounded-xl"
-              />
-            </div>
-            <div>
-              <Label htmlFor="online-email">Email</Label>
-              <Input
-                id="online-email"
-                type="email"
-                value={onlineForm.email}
-                onChange={(e) => setOnlineForm({ ...onlineForm, email: e.target.value })}
-                className="bg-surface-container-low border-none rounded-xl"
-              />
-            </div>
-            <div>
-              <Label htmlFor="online-keluhan">Keluhan</Label>
-              <Input
-                id="online-keluhan"
-                value={onlineForm.keluhan}
-                onChange={(e) => setOnlineForm({ ...onlineForm, keluhan: e.target.value })}
-                className="bg-surface-container-low border-none rounded-xl"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={addOnlineMutation.isPending}
-              className="w-full bg-gradient-to-r from-[#DCA1A1] to-[#663a3b] text-white font-bold py-3 rounded-full transition-all disabled:opacity-70"
-            >
-              {addOnlineMutation.isPending ? 'Memproses...' : 'Simpan & Generate Kode'}
-            </button>
+            <div><Label htmlFor="online-name" className="font-body">Nama Lengkap *</Label><Input id="online-name" value={onlineForm.name} onChange={(e) => setOnlineForm({ ...onlineForm, name: e.target.value })} className="bg-surface-container-low border-none rounded-xl" required /></div>
+            <div><Label htmlFor="online-phone" className="font-body">No. Telepon</Label><Input id="online-phone" value={onlineForm.phone} onChange={(e) => setOnlineForm({ ...onlineForm, phone: e.target.value })} className="bg-surface-container-low border-none rounded-xl" /></div>
+            <div><Label htmlFor="online-email" className="font-body">Email</Label><Input id="online-email" type="email" value={onlineForm.email} onChange={(e) => setOnlineForm({ ...onlineForm, email: e.target.value })} className="bg-surface-container-low border-none rounded-xl" /></div>
+            <div><Label htmlFor="online-keluhan" className="font-body">Keluhan</Label><Input id="online-keluhan" value={onlineForm.keluhan} onChange={(e) => setOnlineForm({ ...onlineForm, keluhan: e.target.value })} className="bg-surface-container-low border-none rounded-xl" /></div>
+            <button type="submit" disabled={addOnlineMutation.isPending} className="w-full bg-gradient-to-r from-[#DCA1A1] to-[#663a3b] text-white font-headline font-bold py-3 rounded-full transition-all disabled:opacity-70">{addOnlineMutation.isPending ? 'Memproses...' : 'Simpan & Generate Kode'}</button>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Modal Tambah Pasien Manual */}
+      {/* Modal Manual Registration */}
       <Dialog open={manualModalOpen} onOpenChange={setManualModalOpen}>
         <DialogContent className="bg-surface-container-lowest rounded-2xl max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-headline text-xl">Tambah Pasien Manual</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle className="font-headline text-xl">Tambah Pasien Manual</DialogTitle></DialogHeader>
           <form onSubmit={handleManualSubmit} className="space-y-4 mt-4">
-            <div>
-              <Label htmlFor="manual-name">Nama Lengkap *</Label>
-              <Input
-                id="manual-name"
-                value={manualForm.name}
-                onChange={(e) => setManualForm({ ...manualForm, name: e.target.value })}
-                className="bg-surface-container-low border-none rounded-xl"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="manual-phone">No. Telepon (opsional)</Label>
-              <Input
-                id="manual-phone"
-                value={manualForm.phone}
-                onChange={(e) => setManualForm({ ...manualForm, phone: e.target.value })}
-                className="bg-surface-container-low border-none rounded-xl"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={addManualMutation.isPending}
-              className="w-full border border-primary text-primary font-bold py-3 rounded-full transition-all hover:bg-primary/5 disabled:opacity-70"
-            >
-              {addManualMutation.isPending ? 'Memproses...' : 'Simpan'}
-            </button>
+            <div><Label htmlFor="manual-name" className="font-body">Nama Lengkap *</Label><Input id="manual-name" value={manualForm.name} onChange={(e) => setManualForm({ ...manualForm, name: e.target.value })} className="bg-surface-container-low border-none rounded-xl" required /></div>
+            <div><Label htmlFor="manual-phone" className="font-body">No. Telepon (opsional)</Label><Input id="manual-phone" value={manualForm.phone} onChange={(e) => setManualForm({ ...manualForm, phone: e.target.value })} className="bg-surface-container-low border-none rounded-xl" /></div>
+            <button type="submit" disabled={addManualMutation.isPending} className="w-full border border-primary text-primary font-headline font-bold py-3 rounded-full transition-all hover:bg-primary/5 disabled:opacity-70">{addManualMutation.isPending ? 'Memproses...' : 'Simpan'}</button>
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+
+      {/* Modal untuk menampilkan kode antrian */}
+      <QueueCodeModal
+        open={codeModalOpen}
+        onOpenChange={setCodeModalOpen}
+        queueNumber={modalQueueNumber ?? 0}
+        patientCode={modalPatientCode}
+      />
+    </>
   )
 }

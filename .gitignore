@@ -60,3 +60,6 @@ src/generated/prisma
 
 # OS
 Thumbs.db
+
+# Upload Foto
+public/uploads/

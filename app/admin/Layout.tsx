@@ -1,95 +1,92 @@
+// app/admin/layout.tsx
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { Menu, LayoutDashboard, Users, FileText, DollarSign, Shield, Database, Settings, LogOut } from 'lucide-react'
-import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
 
 const menuItems = [
-  { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/queue', label: 'Queue', icon: Users },
-  { href: '/admin/emr', label: 'EMR', icon: FileText },
-  { href: '/admin/finance', label: 'Finance', icon: DollarSign },
-  { href: '/admin/audit-log', label: 'Audit Log', icon: Shield },
-  { href: '/admin/backup', label: 'Backup', icon: Database },
-  { href: '/admin/preferences', label: 'Preferences', icon: Settings },
+  { href: '/admin/dashboard', label: 'Dashboard', icon: 'dashboard' },
+  { href: '/admin/queue', label: 'Antrian', icon: 'groups' },
+  { href: '/admin/emr', label: 'EMR', icon: 'clinical_notes' },
+  { href: '/admin/finance', label: 'Keuangan', icon: 'payments' },
+  { href: '/admin/audit-log', label: 'Audit Log', icon: 'shield' },
+  { href: '/admin/backup', label: 'Backup', icon: 'backup' },
+  { href: '/admin/preferences', label: 'Pengaturan', icon: 'settings' },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
   const pathname = usePathname()
   const [username, setUsername] = useState('Admin')
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [userRole, setUserRole] = useState('Super Admin')
+
+  const isLoginPage = pathname === '/admin/login' || pathname === '/admin/login/credentials'
 
   useEffect(() => {
-    // Ambil username dari JWT (bisa dari cookie atau context)
-    // Sementara hardcoded dulu, nanti diintegrasikan
-    setUsername('admin')
-  }, [])
+    const fetchAdmin = async () => {
+      try {
+        const res = await fetch('/api/auth/admin/check')
+        if (res.ok) {
+          const data = await res.json()
+          setUsername(data.username || 'Admin')
+          setUserRole(data.role || 'Super Admin')
+        }
+      } catch (error) {
+        console.error('Failed to fetch admin data')
+      }
+    }
+    if (!isLoginPage) fetchAdmin()
+  }, [isLoginPage])
 
-  const handleLogout = async () => {
-    await fetch('/api/auth/admin/logout', { method: 'POST' })
-    router.push('/')
+  if (isLoginPage) {
+    return <>{children}</>
   }
 
-  const SidebarContent = () => (
-    <div className="h-full flex flex-col bg-primary-foreground border-r">
-      <div className="p-4 border-b">
-        <h2 className="text-xl font-bold text-primary">Salsa Dental</h2>
-        <p className="text-sm text-muted-foreground">{username}</p>
-      </div>
-      <nav className="flex-1 p-2 space-y-1">
-        {menuItems.map((item) => {
-          const Icon = item.icon
-          const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-                isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              <span>{item.label}</span>
-            </Link>
-          )
-        })}
-      </nav>
-      <div className="p-4 border-t">
-        <Button variant="outline" className="w-full justify-start gap-2" onClick={handleLogout}>
-          <LogOut className="h-4 w-4" />
-          Logout
-        </Button>
-      </div>
-    </div>
-  )
-
   return (
-    <div className="flex h-screen bg-background">
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:block w-64 shrink-0">
-        <SidebarContent />
+    <div className="bg-[#fff8f7] text-[#1e1b1b] min-h-screen flex">
+      <aside className="w-72 bg-white/40 backdrop-blur-md border-r border-white/20 h-screen sticky top-0 flex flex-col p-6 gap-8 overflow-y-auto shadow-[10px_0px_30px_rgba(0,0,0,0.03)] z-20">
+        <div className="flex items-center gap-3 px-2">
+          <span className="text-2xl font-bold tracking-tight text-[#815152]">Salsa Dental</span>
+        </div>
+        <nav className="flex flex-col gap-2">
+          {menuItems.map((item) => {
+            const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 ${
+                  isActive
+                    ? 'bg-gradient-to-br from-[#dca1a1] to-[#815152]/30 text-[#1e1b1b] font-semibold shadow-[0_4px_12px_rgba(129,81,82,0.15)]'
+                    : 'text-[#514443] hover:bg-white/60 hover:shadow-sm'
+                }`}
+              >
+                <span
+                  className={`material-symbols-outlined ${isActive ? 'icon-filled' : 'icon-outline'}`}
+                >
+                  {item.icon}
+                </span>
+                <span className="font-label text-sm">{item.label}</span>
+              </Link>
+            )
+          })}
+        </nav>
       </aside>
 
-      {/* Mobile Sidebar */}
-      <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-        <SheetTrigger asChild>
-          <Button variant="ghost" size="icon" className="md:hidden fixed top-4 left-4 z-50">
-            <Menu />
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="p-0 w-64">
-          <SidebarContent />
-        </SheetContent>
-      </Sheet>
-
       {/* Main content */}
-      <main className="flex-1 overflow-auto p-4 md:p-6">
-        {children}
+      <main className="flex-1 flex flex-col min-w-0">
+        {/* Header tanpa session timer dan profil */}
+        <header className="h-20 bg-white/70 backdrop-blur-lg sticky top-0 z-10 flex items-center justify-between px-8">
+          <div className="flex flex-col">
+            <h1 className="text-xl font-headline font-bold text-[#1e1b1b]">Halo, {username}</h1>
+            <p className="text-xs text-[#514443]">Selamat datang di Clinical Sanctuary Management.</p>
+          </div>
+          {/* Session timer dan profil dihapus */}
+        </header>
+
+        <div className="p-8 flex flex-col gap-8 max-w-7xl">
+          {children}
+        </div>
       </main>
     </div>
   )

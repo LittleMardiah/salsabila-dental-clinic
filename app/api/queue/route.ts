@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/ServerAuth'
-// import { addAuditLog } from '@/lib/services/audit.service'
+import { addAuditLog } from '@/lib/services/audit.service'
 import { generateQueueNumber, generatePatientCode } from '@/lib/utils/QueueUtils' 
 
 // Schema validasi untuk request body POST
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       { status: authResult.status || 401 }
     )
   }
-  const adminUsername = authResult.username
+  const adminUsername = authResult.username || 'unknown' // ✅ fallback
 
   // Parse dan validasi body
   let body
@@ -91,6 +91,16 @@ export async function POST(request: Request) {
         codeExpiresAt,
       },
     })
+
+    // ✅ Audit log dengan fallback untuk adminUsername dan patientCode
+    await addAuditLog(
+      adminUsername,
+      'CREATE_QUEUE',
+      'queue',
+      queue.id.toString(),
+      { mode, patientName: name, queueNumber: queue.queueNumber, patientCode: patientCode || '' },
+      request.headers.get('x-forwarded-for') || 'unknown'
+    )
 
     return NextResponse.json(
       {

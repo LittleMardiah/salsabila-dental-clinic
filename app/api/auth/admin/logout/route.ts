@@ -1,23 +1,34 @@
 import { NextResponse } from 'next/server'
+import jwt from 'jsonwebtoken'
+import { addAuditLog } from '@/lib/services/audit.service' 
 
-export async function POST() {
-  // Buat response sukses
+export async function POST(request: Request) {
+  let username = 'unknown'
+  const cookieHeader = request.headers.get('cookie') || ''
+  const tokenMatch = cookieHeader.match(/token=([^;]+)/)
+  if (tokenMatch) {
+    try {
+      const decoded = jwt.verify(tokenMatch[1], process.env.JWT_SECRET!) as any
+      username = decoded.username
+    } catch (e) {}
+  }
+
   const response = NextResponse.json({
     success: true,
     message: 'Logout berhasil',
   })
 
-  // Hapus cookie token dengan cara meng-set maxAge = -1 (expire langsung)
   response.cookies.set('token', '', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
-    maxAge: -1,  // -1 artinya hapus cookie
+    maxAge: -1,
     path: '/',
   })
-
-  // Opsional: hapus juga cookie lain jika ada (misal admin_code_verified, tapi biasanya sudah dihapus di login)
   response.cookies.delete('admin_code_verified')
+
+  const ip = request.headers.get('x-forwarded-for') || 'unknown'
+  await addAuditLog(username, 'LOGOUT', 'admin', username, {}, ip)
 
   return response
 }
