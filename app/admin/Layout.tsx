@@ -79,7 +79,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <header className="h-20 bg-white/70 backdrop-blur-lg sticky top-0 z-10 flex items-center justify-between px-8">
           <div className="flex flex-col">
             <h1 className="text-xl font-headline font-bold text-[#1e1b1b]">Halo, {username}</h1>
-            <p className="text-xs text-[#514443]">Selamat datang di Clinical Sanctuary Management.</p>
+            <p className="text-xs text-[#514443]">Selamat datang di Salsa Dental Clinic</p>
           </div>
           {/* Session timer dan profil dihapus */}
         </header>

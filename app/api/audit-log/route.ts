@@ -13,9 +13,6 @@ const actionTranslations: Record<string, string> = {
   DELETE_EMR: 'Menghapus Rekam Medis',
   CONFIRM_TRANSACTION: 'Konfirmasi Pembayaran',
   RECONCILE: 'Rekonsiliasi Harian',
-  BACKUP_LOCAL: 'Backup Lokal',
-  BACKUP_CLOUD: 'Backup Cloud',
-  UPDATE_PREFERENCES: 'Update Preferensi',
 }
 
 export async function GET(request: Request) {
@@ -34,21 +31,30 @@ export async function GET(request: Request) {
   const page = parseInt(url.searchParams.get('page') || '1')
 
   const where: any = {}
-  if (from) where.createdAt = { gte: new Date(from) }
-  if (to) where.createdAt = { ...where.createdAt, lte: new Date(to) }
+  if (from) {
+    const fromDate = new Date(from)
+    fromDate.setHours(0, 0, 0, 0)
+    where.createdAt = { gte: fromDate }
+  }
+  if (to) {
+    const toDate = new Date(to)
+    toDate.setHours(23, 59, 59, 999)
+    where.createdAt = { ...where.createdAt, lte: toDate }
+  }
   if (action) where.actionType = action
   if (adminId) where.adminId = adminId
 
-  const logs = await prisma.auditLog.findMany({
-    where,
-    orderBy: { createdAt: 'desc' },
-    skip: (page - 1) * limit,
-    take: limit,
-  })
-  const total = await prisma.auditLog.count({ where })
+  const [logs, total] = await Promise.all([
+    prisma.auditLog.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.auditLog.count({ where }),
+  ])
 
   if (mode === 'admin') {
-    // Transform ke Bahasa Indonesia
     const transformed = logs.map(log => ({
       id: log.id,
       timestamp: log.createdAt,
@@ -64,7 +70,6 @@ export async function GET(request: Request) {
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     })
   } else {
-    // Raw JSON for developer
     return NextResponse.json({
       success: true,
       mode: 'developer',

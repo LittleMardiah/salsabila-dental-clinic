@@ -120,6 +120,16 @@ model AuditLog {
   createdAt        DateTime @default(now())
 }
 
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model AdminPreference {
+  adminId            String    @id
+  hiddenMenus        String[]  @default([])
+  googleAccessToken  String?
+  googleRefreshToken String?
+  googleTokenExpiry  DateTime? @db.Timestamptz(6)
+  updatedAt          DateTime  @default(now()) @db.Timestamptz(6)
+}
+
 enum PaymentMethod {
   CASH
   TRANSFER

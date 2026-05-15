@@ -10,53 +10,96 @@ const reconcileSchema = z.object({
   notes: z.string().optional(),
 })
 
-export async function POST(request: Request) {
-  const auth = await verifyAdminToken(request)
-  if (!auth.valid) {
-    return NextResponse.json({ error: auth.error }, { status: auth.status })
-  }
+export async function GET(request: Request) {
+  try {
+    const auth = await verifyAdminToken(request)
+    if (!auth.valid) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
+    }
 
-  const body = await request.json()
-  const parsed = reconcileSchema.safeParse(body)
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 })
-  }
+    const { searchParams } = new URL(request.url)
+    const limit = parseInt(searchParams.get('limit') || '10')
+    const page = parseInt(searchParams.get('page') || '1')
+    const skip = (page - 1) * limit
 
-  const { date, totalRecorded, notes } = parsed.data
-  const reconcileDate = new Date(date)
+    const [reconciliations, total] = await Promise.all([
+      prisma.dailyReconciliation.findMany({
+        orderBy: { date: 'desc' },
+        take: limit,
+        skip,
+      }),
+      prisma.dailyReconciliation.count()
+    ])
 
-  // Cek apakah sudah ada reconciliasi untuk tanggal tersebut
-  const existing = await prisma.dailyReconciliation.findUnique({
-    where: { date: reconcileDate },
-  })
-  if (existing) {
+    return NextResponse.json({
+      success: true,
+      data: reconciliations,
+      pagination: { page, limit, total }
+    })
+  } catch (error: any) {
+    console.error('[GET /api/finance/reconcile] Error:', error)
     return NextResponse.json(
-      { error: 'Reconciliation already exists for this date' },
-      { status: 409 }
+      { error: 'Internal server error', details: error.message },
+      { status: 500 }
     )
   }
+}
 
-  const reconciliation = await prisma.dailyReconciliation.create({
-    data: {
-      date: reconcileDate,
-      totalRecorded,
-      notes,
-      adminId: auth.username!,
-    },
-  })
+export async function POST(request: Request) {
+  try {
+    const auth = await verifyAdminToken(request)
+    if (!auth.valid) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
+    }
+
+    const body = await request.json()
+    const parsed = reconcileSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 })
+    }
+
+    const { date, totalRecorded, notes } = parsed.data
+    const reconcileDate = new Date(date)
+
+    // Cek duplikasi
+    const existing = await prisma.dailyReconciliation.findUnique({
+      where: { date: reconcileDate },
+    })
+    if (existing) {
+      return NextResponse.json(
+        { error: 'Reconciliation already exists for this date' },
+        { status: 409 }
+      )
+    }
+
+    const reconciliation = await prisma.dailyReconciliation.create({
+      data: {
+        date: reconcileDate,
+        totalRecorded,
+        notes,
+        adminId: auth.username!, 
+      },
+    })
 
     await addAuditLog(
-    auth.username!,
-    'RECONCILE',
-    'daily_reconciliation',
-    reconciliation.id.toString(),
-    { date, totalRecorded, notes },
-    request.headers.get('x-forwarded-for') || 'unknown'
-  )
+      auth.username!,
+      'RECONCILE',
+      'daily_reconciliation',
+      reconciliation.id.toString(),
+      { date, totalRecorded, notes },
+      request.headers.get('x-forwarded-for') || 'unknown'
+    )
 
-  return NextResponse.json({
-    success: true,
-    message: 'Reconciliation saved',
-    data: reconciliation,
-  })
+    return NextResponse.json({
+      success: true,
+      message: 'Reconciliation saved',
+      data: reconciliation,
+    })
+  } catch (error: any) {
+    console.error('[POST /api/finance/reconcile] Error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error', details: error.message },
+      { status: 500 }
+    )
+  }
 }

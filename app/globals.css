@@ -1,3 +1,4 @@
+/* app/globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -29,7 +30,8 @@
   }
 }
 
-/* ===== CUSTOM STYLES UNTUK ADMIN LOGIN & LANDING PAGE ===== */
+/* ===== CUSTOM STYLES UNTUK ADMIN & FINANCE ===== */
+/* PERBAIKAN: Semua efek dari Stitch disesuaikan */
 
 @keyframes gradient {
   0% { background-position: 0% 50%; }
@@ -41,11 +43,79 @@
   background: radial-gradient(circle at center, #ffffff 0%, #fdf8f7 40%, #f4ecec 100%);
 }
 
+/* PERBAIKAN: glass-card persis Stitch */
 .glass-card {
-  background: rgba(255, 255, 255, 0.75);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 12px 32px rgba(129, 81, 82, 0.08);
+  border-radius: 1.5rem;
+}
+
+/* PERBAIKAN: cta-gradient persis Stitch (override bg-gradient) */
+.cta-gradient {
+  background: linear-gradient(135deg, #815152 0%, #623738 100%);
+}
+.cta-gradient:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -4px rgba(129, 81, 82, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+}
+.cta-gradient:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+/* PERBAIKAN: atmospheric-glow persis Stitch */
+.atmospheric-glow {
+  background: radial-gradient(circle at 10% 10%, #ffdad9 0%, transparent 40%),
+              radial-gradient(circle at 90% 90%, #dca1a1 0%, transparent 40%),
+              #fff8f7;
+}
+
+/* PERBAIKAN: Input focus sesuai Stitch */
+input:focus, textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(129, 81, 82, 0.1);
+}
+
+/* Class tambahan untuk kompatibilitas */
+.glass-card-premium {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 8px 32px 0 rgba(129, 81, 82, 0.05);
+}
+
+.pearl-border {
+  border: 1px solid rgba(220, 161, 161, 0.2);
+  position: relative;
+}
+.pearl-border::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 50%, rgba(220, 161, 161, 0.1) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.sidebar-glass {
+  background: rgba(249, 242, 242, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-right: 1px solid rgba(129, 81, 82, 0.05);
+}
+
+.active-pill-3d {
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(129, 81, 82, 0.08), inset 0 1px 1px rgba(255,255,255,1);
+  border: 1px solid rgba(129, 81, 82, 0.05);
 }
 
 .inner-glow {
@@ -54,8 +124,8 @@
 
 .glass-header {
   background: rgba(255, 248, 247, 0.7);
-  -webkit-backdrop-filter: blur(24px);
   backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);;
   border-bottom: 1px solid rgba(255, 255, 255, 0.3);
 }
 
@@ -99,11 +169,14 @@
   transform: translateY(-4px);
   box-shadow: 12px 12px 24px rgba(129, 81, 82, 0.12), -6px -6px 16px rgba(255, 255, 255, 0.95);
 }
+
 .glass-input {
   background: rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 12px rgba(129, 81, 82, 0.08);
+  border-radius: 0.5rem;
   border: 1px solid rgba(131, 115, 115, 0.1);
   transition: all 0.2s ease;
 }
@@ -114,26 +187,12 @@
   outline: none;
 }
 
-.cta-gradient {
-    background: linear-gradient(135deg, #DCA1A1 0%, #815152 100%);
-    box-shadow: 0 8px 20px -4px rgba(129, 81, 82, 0.4), inset 0 2px 4px rgba(255,255,255,0.3);
-}
-.cta-gradient:hover {
-    box-shadow: 0 12px 28px -4px rgba(129, 81, 82, 0.5), inset 0 2px 4px rgba(255,255,255,0.4);
-    transform: translateY(-2px);
-}
-.cta-gradient:active {
-    transform: translateY(1px) scale(0.98);
-}
-
-/* Sembunyikan ikon kalender default browser */
 input[type="date"]::-webkit-calendar-picker-indicator {
-  display: none;
-  -webkit-appearance: none;
-}
-input[type="date"] {
-  appearance: none;
-  -webkit-appearance: none;
+  display: block;
+  cursor: pointer;
+  opacity: 1;
+  position: relative;
+  z-index: 10;
 }
 
 .modal-3d {
@@ -153,10 +212,12 @@ input[type="date"] {
   mask-composite: exclude;
   pointer-events: none;
 }
+
 .inset-etch {
   background: rgba(244, 236, 236, 0.3);
   box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 0 0 rgba(255, 255, 255, 0.8);
 }
+
 .button-3d-gradient {
   background: linear-gradient(145deg, #fceeee 0%, #dca1a1 30%, #b87e7e 100%);
   box-shadow: 0 10px 25px -5px rgba(220, 161, 161, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.6);
@@ -180,4 +241,25 @@ input[type="date"] {
 }
 .icon-emboss {
   box-shadow: inset 2px 2px 5px rgba(0,0,0,0.2), inset -2px -2px 5px rgba(255,255,255,0.4), 0 10px 20px rgba(129, 81, 82, 0.15);
+}
+
+.frosted-quartz {
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 15px 35px -5px rgba(129, 81, 82, 0.1), inset 0 0 15px rgba(255, 255, 255, 1);
+  border: 1px solid rgba(220, 161, 161, 0.1);
+}
+
+.hero-glow {
+  background: radial-gradient(circle at center, #ffffff 0%, #fff8f7 100%);
+  box-shadow: 0 0 50px rgba(220, 161, 161, 0.2), 0 30px 60px -12px rgba(129, 81, 82, 0.25), inset 0 0 20px rgba(255, 255, 255, 1);
+  animation: pulse-radiance 4s infinite ease-in-out;
+}
+
+.soft-border {
+  border-color: rgba(129, 81, 82, 0.05);
+}
+
+@keyframes pulse-radiance {
+  0%, 100% { box-shadow: 0 0 40px rgba(220, 161, 161, 0.15), 0 30px 60px -12px rgba(129, 81, 82, 0.2); }
+  50% { box-shadow: 0 0 60px rgba(220, 161, 161, 0.3), 0 35px 70px -10px rgba(129, 81, 82, 0.3); }
 }
