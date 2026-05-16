@@ -1,7 +1,7 @@
+// app/admin/emr/[patientId]/edit/[visitId]/page.tsx
 'use client'
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import EMRForm from '@/components/admin/EMRForm'
 import { toast } from 'sonner'
 
@@ -27,15 +27,15 @@ export default function EditEMRPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Ambil data pasien
         const patientRes = await fetch(`/api/patient/${patientId}`)
+        if (!patientRes.ok) throw new Error('Failed to fetch patient')
         const patientData = await patientRes.json()
         setPatientName(patientData.name)
 
-        // Ambil semua kunjungan, cari yang sesuai visitId
         const visitRes = await fetch(`/api/patient/${patientId}/emr`)
+        if (!visitRes.ok) throw new Error('Failed to fetch visits')
         const visitData = await visitRes.json()
-        const found = visitData.data.find((v: any) => v.id === parseInt(visitId as string))
+        const found = visitData.data?.find((v: any) => v.id === parseInt(visitId as string))
         if (found) {
           setVisit({
             id: found.id,
@@ -63,41 +63,44 @@ export default function EditEMRPage() {
     fetchData()
   }, [patientId, visitId, router])
 
-  if (loading) return <div className="p-8">Memuat...</div>
-  if (!visit) return <div className="p-8">Data tidak ditemukan</div>
+  if (loading) return <div className="p-8 text-center">Memuat data kunjungan...</div>
+  if (!visit) return <div className="p-8 text-center">Data tidak ditemukan</div>
 
   return (
-    <div className="px-4 md:px-8 py-8 w-full max-w-full">
-      <Card className="border-0 shadow-none bg-transparent">
-        <CardHeader className="px-0 pt-0">
-          <CardTitle className="text-2xl font-bold">
-            Edit EMR - {patientName}
-          </CardTitle>
-          <p className="text-muted-foreground">
-            Kunjungan {visit.followUpDate ? new Date(visit.followUpDate).toLocaleDateString() : ''}
-          </p>
-        </CardHeader>
-        <CardContent className="px-0">
-          <EMRForm
-            patientId={Number(patientId)}
-            initialData={{
-              queueId: visit.queueId,
-              keluhanUtama: visit.keluhanUtama || '',
-              diagnosa: visit.diagnosa,
-              tindakan: visit.tindakan,
-              resepObat: visit.resepObat || '',
-              catatanTambahan: visit.catatanTambahan || '',
-              dokterPenanggungJawab: visit.dokterPenanggungJawab,
-              followUpDate: visit.followUpDate ? visit.followUpDate.split('T')[0] : '',
-            }}
-            visitId={visit.id}
-            onSuccess={() => {
-              toast.success('EMR berhasil diperbarui')
-              router.push(`/admin/emr/${patientId}`)
-            }}
-          />
-        </CardContent>
-      </Card>
+    <div className="w-full max-w-full px-4 sm:px-6 md:px-8 py-6 md:py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold text-on-surface tracking-tight">
+          Edit EMR - {patientName}
+        </h1>
+        <p className="text-sm text-on-surface-variant mt-1">
+          {visit.followUpDate 
+            ? `Kunjungan ${new Date(visit.followUpDate).toLocaleDateString('id-ID')}`
+            : 'Perbarui rekam medis pasien'}
+        </p>
+      </div>
+
+      {/* Form EMR edit */}
+      <div className="w-full">
+        <EMRForm
+          patientId={Number(patientId)}
+          initialData={{
+            queueId: visit.queueId,
+            keluhanUtama: visit.keluhanUtama || '',
+            diagnosa: visit.diagnosa,
+            tindakan: visit.tindakan,
+            resepObat: visit.resepObat || '',
+            catatanTambahan: visit.catatanTambahan || '',
+            dokterPenanggungJawab: visit.dokterPenanggungJawab,
+            followUpDate: visit.followUpDate ? visit.followUpDate.split('T')[0] : '',
+          }}
+          visitId={visit.id}
+          onSuccess={() => {
+            toast.success('EMR berhasil diperbarui')
+            router.push(`/admin/emr/${patientId}`)
+          }}
+        />
+      </div>
     </div>
   )
 }

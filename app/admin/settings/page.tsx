@@ -129,50 +129,50 @@ export default function SettingsPage() {
   if (error) return <div className="p-6 text-red-500">Error: {error.message}</div>
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <header className="mb-12">
-        <h1 className="text-4xl font-headline font-extrabold text-primary mb-2">Pengaturan</h1>
-        <p className="text-body-md text-on-surface-variant max-w-2xl">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 md:py-8">
+      <header className="mb-6 md:mb-10">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-headline font-extrabold text-primary mb-2">Pengaturan</h1>
+        <p className="text-sm sm:text-base text-on-surface-variant max-w-2xl">
           Konfigurasi pengalaman klinis dengan mengelola visibilitas modul dan pastikan integritas data melalui sistem pencadangan otomatis.
         </p>
       </header>
 
-      <div className="grid grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
         {/* Preferensi Tampilan Menu */}
         <section className="col-span-12 lg:col-span-5 flex flex-col gap-6">
-          <div className="silk-card rounded-3xl p-8 border border-white/50 relative overflow-hidden">
+          <div className="silk-card rounded-2xl md:rounded-3xl p-5 md:p-8 border border-white/50 relative overflow-hidden">
             <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl"></div>
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-3 bg-primary-container/20 rounded-2xl text-primary">
-                <span className="material-symbols-outlined">visibility</span>
+            <div className="flex items-center gap-3 mb-6 md:mb-8">
+              <div className="p-2 md:p-3 bg-primary-container/20 rounded-xl md:rounded-2xl text-primary">
+                <span className="material-symbols-outlined text-xl md:text-2xl">visibility</span>
               </div>
-              <h2 className="text-xl font-headline font-bold text-on-primary-fixed-variant">Preferensi Tampilan Menu</h2>
+              <h2 className="text-lg md:text-xl font-headline font-bold text-on-primary-fixed-variant">Preferensi Tampilan Menu</h2>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               {MENUS.map(menu => (
                 <label
                   key={menu.key}
-                  className="flex items-center justify-between p-4 rounded-2xl bg-white/40 hover:bg-white/60 transition-all cursor-pointer group"
+                  className="flex items-center justify-between p-3 md:p-4 rounded-xl md:rounded-2xl bg-white/40 hover:bg-white/60 transition-all cursor-pointer group"
                 >
-                  <div className="flex items-center gap-4">
-                    <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">
+                  <div className="flex items-center gap-3 md:gap-4">
+                    <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors text-xl md:text-2xl">
                       {menu.icon}
                     </span>
-                    <span className="font-body font-medium">{menu.label}</span>
+                    <span className="font-body font-medium text-sm md:text-base">{menu.label}</span>
                   </div>
                   <input
                     type="checkbox"
                     checked={hiddenMenus.includes(menu.key)}
                     onChange={() => handleToggle(menu.key)}
-                    className="w-6 h-6 rounded-lg border-outline-variant text-primary focus:ring-primary/20 cursor-pointer"
+                    className="w-5 h-5 md:w-6 md:h-6 rounded-lg border-outline-variant text-primary focus:ring-primary/20 cursor-pointer"
                   />
                 </label>
               ))}
               {/* Menu Settings selalu tidak bisa disembunyikan */}
-              <div className="flex items-center justify-between p-4 rounded-2xl bg-primary/5 opacity-60 border border-primary/10">
-                <div className="flex items-center gap-4">
-                  <span className="material-symbols-outlined text-primary">settings</span>
-                  <span className="font-body font-medium text-primary">Pengaturan</span>
+              <div className="flex items-center justify-between p-3 md:p-4 rounded-xl md:rounded-2xl bg-primary/5 opacity-60 border border-primary/10">
+                <div className="flex items-center gap-3 md:gap-4">
+                  <span className="material-symbols-outlined text-primary text-xl md:text-2xl">settings</span>
+                  <span className="font-body font-medium text-primary text-sm md:text-base">Pengaturan</span>
                 </div>
                 <span className="material-symbols-outlined text-primary text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>lock</span>
               </div>
@@ -180,7 +180,7 @@ export default function SettingsPage() {
             <button
               onClick={handleSavePreferences}
               disabled={updateMutation.isPending}
-              className="mt-8 w-full py-4 bg-gradient-to-br from-primary to-on-primary-container text-white font-headline font-bold rounded-2xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="mt-6 md:mt-8 w-full py-3 md:py-4 bg-gradient-to-br from-primary to-on-primary-container text-white font-headline font-bold rounded-xl md:rounded-2xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-sm md:text-base"
             >
               {updateMutation.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
             </button>
@@ -188,49 +188,49 @@ export default function SettingsPage() {
         </section>
 
         {/* Backup Data */}
-        <section className="col-span-12 lg:col-span-7 flex flex-col gap-8">
+        <section className="col-span-12 lg:col-span-7 flex flex-col gap-6 md:gap-8">
           <div className="flex items-center gap-3 px-2">
-            <div className="p-3 bg-tertiary-container/20 rounded-2xl text-tertiary">
-              <span className="material-symbols-outlined">cloud_sync</span>
+            <div className="p-2 md:p-3 bg-tertiary-container/20 rounded-xl md:rounded-2xl text-tertiary">
+              <span className="material-symbols-outlined text-xl md:text-2xl">cloud_sync</span>
             </div>
-            <h2 className="text-xl font-headline font-bold text-on-primary-fixed-variant">Backup Data</h2>
+            <h2 className="text-lg md:text-xl font-headline font-bold text-on-primary-fixed-variant">Backup Data</h2>
           </div>
 
           {/* Local Backup Module */}
-          <div className="silk-card rounded-3xl p-8 border border-white/50 flex items-center gap-8 relative overflow-hidden group">
+          <div className="silk-card rounded-2xl md:rounded-3xl p-5 md:p-8 border border-white/50 flex flex-col sm:flex-row items-center gap-6 md:gap-8 relative overflow-hidden group">
             <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-tertiary/5 rounded-full blur-3xl"></div>
-            <div className="w-32 h-32 flex-shrink-0 bg-white/40 rounded-3xl border border-white/60 shadow-inner flex items-center justify-center relative">
-              <span className="material-symbols-outlined text-5xl text-primary/40 group-hover:scale-110 transition-transform">folder_zip</span>
+            <div className="w-24 h-24 md:w-32 md:h-32 flex-shrink-0 bg-white/40 rounded-2xl md:rounded-3xl border border-white/60 shadow-inner flex items-center justify-center relative">
+              <span className="material-symbols-outlined text-4xl md:text-5xl text-primary/40 group-hover:scale-110 transition-transform">folder_zip</span>
               <div className="absolute -top-2 -right-2 bg-primary text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-tighter">Local</div>
             </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-headline font-bold text-on-surface mb-2">Arsip Data Klinik (ZIP)</h3>
-              <p className="text-on-surface-variant text-sm mb-6 leading-relaxed">
+            <div className="flex-1 text-center sm:text-left">
+              <h3 className="text-base md:text-lg font-headline font-bold text-on-surface mb-2">Arsip Data Klinik (ZIP)</h3>
+              <p className="text-xs md:text-sm text-on-surface-variant mb-4 md:mb-6 leading-relaxed">
                 Unduh salinan lengkap basis data pasien, rekam medis, dan laporan keuangan dalam format terenkripsi yang aman.
               </p>
               <button
                 onClick={downloadLocalBackup}
-                className="px-6 py-3 bg-white border border-outline-variant/30 text-primary font-headline font-bold rounded-xl shadow-sm hover:shadow-md hover:bg-surface-container-low transition-all flex items-center gap-2"
+                className="px-4 md:px-6 py-2 md:py-3 bg-white border border-outline-variant/30 text-primary font-headline font-bold rounded-lg md:rounded-xl shadow-sm hover:shadow-md hover:bg-surface-container-low transition-all flex items-center justify-center gap-2 text-sm md:text-base w-full sm:w-auto"
               >
-                <span className="material-symbols-outlined text-lg">download</span>
+                <span className="material-symbols-outlined text-base md:text-lg">download</span>
                 Unduh ZIP Sekarang
               </button>
             </div>
           </div>
 
           {/* Cloud Sync Module */}
-          <div className="silk-card rounded-3xl p-8 border border-white/50 relative overflow-hidden group">
-            <div className="flex items-start justify-between mb-8">
-              <div className="flex gap-6">
-                <div className="w-16 h-16 rounded-2xl flex items-center justify-center">
+          <div className="silk-card rounded-2xl md:rounded-3xl p-5 md:p-8 border border-white/50 relative overflow-hidden group">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6 md:mb-8">
+              <div className="flex gap-4 md:gap-6">
+                <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl flex items-center justify-center">
                   <img
                     src="https://lh3.googleusercontent.com/aida-public/AB6AXuABFCtcVUAMenwB4wUMYjCxH0b_y_RkCyf5FjM8tuomMXM1OYY7dXABSUWy2HJEp82wjgqk1yLZw0tUJcThCHBxY3bZ827wmXQ8e02C2GeXl0hQunVt_J9lMyLq0F4CHR8Ozy4oZ5VpcfovODVu-a_w4CM6uT9DJB9cxgkKzFXkOvel1t8qgQLDM9nkyZ_FqpkOkxT7Hfb5X1p1xEMwYojJNyVJIVQoTnCy4BcXRHv6aRuRv6k8awpWs2gYbxuCLeH5PXAW98CGFug"
                     alt="Sync Icon"
-                    className="w-10 h-10 object-contain"
+                    className="w-8 h-8 md:w-10 md:h-10 object-contain"
                   />
                 </div>
                 <div>
-                  <h3 className="text-lg font-headline font-bold text-on-surface">Sinkronisasi Google Drive</h3>
+                  <h3 className="text-base md:text-lg font-headline font-bold text-on-surface">Sinkronisasi Google Drive</h3>
                   <div className="flex items-center gap-2 mt-1">
                     <div className={`w-2 h-2 rounded-full ${isGoogleConnected ? 'bg-secondary animate-pulse' : 'bg-error'}`}></div>
                     <span className={`${isGoogleConnected ? 'text-secondary' : 'text-error'} font-bold text-xs uppercase tracking-widest`}>
@@ -240,7 +240,7 @@ export default function SettingsPage() {
                 </div>
               </div>
               {isGoogleConnected && (
-                <div className="px-2 py-0.5 bg-secondary/5 rounded-full flex items-center gap-1 border border-secondary/10">
+                <div className="px-2 py-0.5 bg-secondary/5 rounded-full flex items-center gap-1 border border-secondary/10 w-fit">
                   <span className="material-symbols-outlined text-secondary text-[10px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
                   <span className="text-secondary text-[10px] font-bold">Terverifikasi</span>
                 </div>
@@ -248,27 +248,27 @@ export default function SettingsPage() {
             </div>
 
             {isGoogleConnected && (
-              <div className="bg-surface-container-low/50 rounded-2xl p-6 border border-white/50 mb-8">
-                <div className="flex justify-between items-end mb-4">
+              <div className="bg-surface-container-low/50 rounded-xl md:rounded-2xl p-4 md:p-6 border border-white/50 mb-6 md:mb-8">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2 mb-4">
                   <div>
                     <p className="text-xs text-on-surface-variant font-bold uppercase tracking-widest mb-1">Status Penyimpanan</p>
-                    <p className="text-xl font-headline font-extrabold text-primary">12.4 GB <span className="text-sm font-medium text-on-surface-variant">/ 15 GB</span></p>
+                    <p className="text-base md:text-xl font-headline font-extrabold text-primary">12.4 GB <span className="text-xs md:text-sm font-medium text-on-surface-variant">/ 15 GB</span></p>
                   </div>
                   <p className="text-xs text-on-surface-variant italic">Terakhir sinkron: 2 menit yang lalu</p>
                 </div>
-                <div className="w-full h-3 bg-white rounded-full overflow-hidden border border-white/20">
+                <div className="w-full h-2 md:h-3 bg-white rounded-full overflow-hidden border border-white/20">
                   <div className="h-full bg-gradient-to-r from-primary to-secondary w-[82%] rounded-full"></div>
                 </div>
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
               {!isGoogleConnected ? (
                 <button
                   onClick={connectGoogleDrive}
-                  className="col-span-2 py-3 px-4 bg-white/60 hover:bg-white border border-outline-variant/20 rounded-xl font-headline font-bold text-on-surface-variant text-sm transition-all flex items-center justify-center gap-2"
+                  className="col-span-1 sm:col-span-2 py-2.5 md:py-3 px-3 md:px-4 bg-white/60 hover:bg-white border border-outline-variant/20 rounded-lg md:rounded-xl font-headline font-bold text-on-surface-variant text-sm transition-all flex items-center justify-center gap-2"
                 >
-                  <span className="material-symbols-outlined text-lg">cloud_queue</span>
+                  <span className="material-symbols-outlined text-base md:text-lg">cloud_queue</span>
                   Hubungkan Google Drive
                 </button>
               ) : (
@@ -276,16 +276,16 @@ export default function SettingsPage() {
                   <button
                     onClick={uploadToDrive}
                     disabled={isUploading}
-                    className="py-3 px-4 bg-white/60 hover:bg-white border border-outline-variant/20 rounded-xl font-headline font-bold text-on-surface-variant text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="py-2.5 md:py-3 px-3 md:px-4 bg-white/60 hover:bg-white border border-outline-variant/20 rounded-lg md:rounded-xl font-headline font-bold text-on-surface-variant text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                   >
-                    <span className="material-symbols-outlined text-lg">settings_backup_restore</span>
+                    <span className="material-symbols-outlined text-base md:text-lg">settings_backup_restore</span>
                     {isUploading ? 'Mengupload...' : 'Backup'}
                   </button>
                   <button
                     onClick={disconnectGoogleDrive}
-                    className="py-3 px-4 bg-white/60 hover:bg-white border border-outline-variant/20 rounded-xl font-headline font-bold text-error/70 text-sm transition-all flex items-center justify-center gap-2"
+                    className="py-2.5 md:py-3 px-3 md:px-4 bg-white/60 hover:bg-white border border-outline-variant/20 rounded-lg md:rounded-xl font-headline font-bold text-error/70 text-sm transition-all flex items-center justify-center gap-2"
                   >
-                    <span className="material-symbols-outlined text-lg">link_off</span>
+                    <span className="material-symbols-outlined text-base md:text-lg">link_off</span>
                     Putuskan Akses
                   </button>
                 </>

@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import QueueCodeModal from '@/components/admin/QueueCodeModal' 
+import QueueCodeModal from '@/components/admin/QueueCodeModal'
 
 type QueueItem = {
   id: number
@@ -26,7 +26,7 @@ type QueueItem = {
   calledAt: string | null
   completedAt: string | null
   createdAt: string
-  patientCode?: string | null // ✅ tambahkan field patientCode
+  patientCode?: string | null
 }
 
 async function fetchQueues(): Promise<QueueItem[]> {
@@ -154,7 +154,6 @@ export default function QueuePage() {
     })
   }
 
-  // Menampilkan modal saat klik nomor antrian
   const handleQueueNumberClick = (queueNumber: number, patientCode: string | null | undefined) => {
     if (patientCode) {
       setModalQueueNumber(queueNumber)
@@ -198,7 +197,7 @@ export default function QueuePage() {
   return (
     <>
       {/* Header Halaman */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <h1 className="font-headline font-bold text-2xl tracking-tight text-on-surface">Manajemen Antrian</h1>
           <div className="flex items-center gap-2 mt-1">
@@ -206,60 +205,54 @@ export default function QueuePage() {
             <span className="text-xs font-bold text-secondary uppercase tracking-wider">Sistem Aktif</span>
           </div>
         </div>
-        <div className="flex gap-4">
-          <button
-            onClick={() => setManualModalOpen(true)}
-            className="px-6 py-3 rounded-full border border-outline-variant/30 text-primary font-headline font-bold text-sm hover:bg-primary/5 transition-all"
-          >
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button onClick={() => setManualModalOpen(true)} className="px-4 sm:px-6 py-2 sm:py-3 rounded-full border border-outline-variant/30 text-primary font-headline font-bold text-sm hover:bg-primary/5 transition-all">
             Manual Registration
           </button>
-          <button
-            onClick={() => setOnlineModalOpen(true)}
-            className="px-6 py-3 rounded-full bg-gradient-to-r from-[#DCA1A1] to-[#663a3b] text-white font-headline font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[0.98] transition-all"
-          >
+          <button onClick={() => setOnlineModalOpen(true)} className="px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-gradient-to-r from-[#DCA1A1] to-[#663a3b] text-white font-headline font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[0.98] transition-all">
             Online Registration
           </button>
         </div>
       </div>
 
       {/* Statistik Cards */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/5">
+      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-8 md:mb-12">
+        <div className="bg-surface-container-lowest p-4 md:p-6 rounded-2xl shadow-sm border border-outline-variant/5">
           <p className="text-on-surface-variant text-xs font-bold uppercase tracking-widest mb-1">Total Antrian</p>
-          <h3 className="font-headline text-3xl font-black text-on-surface">{totalQueues}</h3>
+          <h3 className="font-headline text-2xl md:text-3xl font-black text-on-surface">{totalQueues}</h3>
         </div>
-        <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/5">
+        <div className="bg-surface-container-lowest p-4 md:p-6 rounded-2xl shadow-sm border border-outline-variant/5">
           <p className="text-on-surface-variant text-xs font-bold uppercase tracking-widest mb-1">Menunggu</p>
-          <h3 className="font-headline text-3xl font-black text-primary">{waitingQueues}</h3>
+          <h3 className="font-headline text-2xl md:text-3xl font-black text-primary">{waitingQueues}</h3>
         </div>
-        <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/5">
+        <div className="bg-surface-container-lowest p-4 md:p-6 rounded-2xl shadow-sm border border-outline-variant/5">
           <p className="text-on-surface-variant text-xs font-bold uppercase tracking-widest mb-1">Sedang Dilayani</p>
-          <h3 className="font-headline text-3xl font-black text-secondary">{calledQueues}</h3>
+          <h3 className="font-headline text-2xl md:text-3xl font-black text-secondary">{calledQueues}</h3>
         </div>
       </section>
 
       {/* Tabel Antrian */}
-      <section className="bg-surface-container-lowest rounded-[2rem] p-8 shadow-ambient border border-outline-variant/5 overflow-hidden">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+      <section className="bg-surface-container-lowest rounded-2xl md:rounded-[2rem] p-4 md:p-8 shadow-ambient border border-outline-variant/5 overflow-hidden">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-4">
           <div>
-            <h2 className="font-headline font-bold text-xl text-on-surface">Daftar Pasien Hari Ini</h2>
+            <h2 className="font-headline font-bold text-lg md:text-xl text-on-surface">Daftar Pasien Hari Ini</h2>
             <p className="text-on-surface-variant text-sm mt-1">Daftar real-time antrian klinik gigi.</p>
           </div>
         </div>
 
         {queues.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-48 h-48 bg-surface-container-low rounded-full flex items-center justify-center mb-6 relative">
-              <span className="material-symbols-outlined text-primary/20 text-7xl" style={{ fontVariationSettings: "'wght' 200" }}>hourglass_empty</span>
-              <div className="absolute -bottom-2 -right-2 bg-surface-container-lowest p-3 rounded-2xl shadow-sm border border-outline-variant/20">
-                <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+          <div className="flex flex-col items-center justify-center py-16 md:py-24 text-center">
+            <div className="w-32 h-32 md:w-48 md:h-48 bg-surface-container-low rounded-full flex items-center justify-center mb-6 relative">
+              <span className="material-symbols-outlined text-primary/20 text-5xl md:text-7xl" style={{ fontVariationSettings: "'wght' 200" }}>hourglass_empty</span>
+              <div className="absolute -bottom-2 -right-2 bg-surface-container-lowest p-2 md:p-3 rounded-2xl shadow-sm border border-outline-variant/20">
+                <span className="material-symbols-outlined text-secondary text-xl md:text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
               </div>
             </div>
-            <h3 className="font-headline font-bold text-lg text-on-surface">Belum ada antrian</h3>
-            <p className="text-on-surface-variant text-sm max-w-xs mx-auto mt-2">Semua pasien telah dilayani atau belum ada pendaftaran baru hari ini.</p>
+            <h3 className="font-headline font-bold text-base md:text-lg text-on-surface">Belum ada antrian</h3>
+            <p className="text-on-surface-variant text-xs md:text-sm max-w-xs mx-auto mt-2">Semua pasien telah dilayani atau belum ada pendaftaran baru hari ini.</p>
             <button
               onClick={() => queryClient.invalidateQueries({ queryKey: ['queues'] })}
-              className="mt-8 px-6 py-3 border border-outline-variant/40 rounded-full text-xs font-bold text-on-surface-variant hover:bg-primary/5 transition-all flex items-center gap-2"
+              className="mt-6 md:mt-8 px-4 md:px-6 py-2 md:py-3 border border-outline-variant/40 rounded-full text-xs font-bold text-on-surface-variant hover:bg-primary/5 transition-all flex items-center gap-2"
             >
               <span className="material-symbols-outlined text-sm">refresh</span>
               Perbarui Data
@@ -267,43 +260,58 @@ export default function QueuePage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-separate border-spacing-y-4">
+            <table className="min-w-[700px] md:min-w-full w-full text-left border-separate border-spacing-y-3 md:border-spacing-y-4">
               <thead className="text-on-surface-variant text-[10px] uppercase tracking-[0.15em] font-black">
                 <tr>
-                  <th className="pb-4 pl-6">No</th>
-                  <th className="pb-4">Nama Pasien</th>
-                  <th className="pb-4">Kontak</th>
-                  <th className="pb-4">Waktu Daftar</th>
-                  <th className="pb-4">Status</th>
-                  <th className="pb-4 pr-6 text-right">Aksi</th>
+                  <th className="pb-3 pl-4 md:pl-6">No</th>
+                  <th className="pb-3">Nama Pasien</th>
+                  <th className="pb-3 hidden sm:table-cell">Kontak</th>
+                  <th className="pb-3 hidden md:table-cell">Waktu Daftar</th>
+                  <th className="pb-3">Status</th>
+                  <th className="pb-3 pr-4 md:pr-6 text-right">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="text-sm font-body">
+              <tbody className="text-xs md:text-sm font-body">
                 {queues.map((queue) => (
                   <tr key={queue.id} className={`${queue.status === 'CALLED' ? 'bg-surface-container-low/50' : 'bg-surface-container-lowest border border-outline-variant/10'} hover:bg-surface-container-low transition-colors rounded-2xl overflow-hidden shadow-sm`}>
-                    {/* nomor antrian sekarang bisa diklik */}
                     <td
-                      className="py-5 pl-6 font-headline font-black text-lg rounded-l-2xl cursor-pointer hover:text-primary transition-colors"
+                      className="py-3 md:py-5 pl-4 md:pl-6 font-headline font-black text-base md:text-lg rounded-l-2xl cursor-pointer hover:text-primary transition-colors"
                       onClick={() => handleQueueNumberClick(queue.queueNumber, (queue as any).patientCode)}
                     >
                       {formatQueueNumber(queue.queueNumber)}
                     </td>
-                    <td className="py-5">
+                    <td className="py-3 md:py-5">
                       <div className="flex flex-col">
-                        <span className="font-bold text-on-surface font-body">{queue.patientName}</span>
+                        <span className="font-bold text-on-surface">{queue.patientName}</span>
                       </div>
                     </td>
-                    <td className="py-5">
-                      <div className="flex gap-2">
-                        {queue.phone && <a href={`tel:${queue.phone}`} className="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center hover:bg-outline-variant transition-colors"><span className="material-symbols-outlined text-on-surface-variant text-base">call</span></a>}
-                        {queue.email && <a href={`mailto:${queue.email}`} className="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center hover:bg-outline-variant transition-colors"><span className="material-symbols-outlined text-on-surface-variant text-base">mail</span></a>}
+                    <td className="py-3 md:py-5 hidden sm:table-cell">
+                      <div className="flex gap-1 md:gap-2">
+                        {queue.phone && <a href={`tel:${queue.phone}`} className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-surface-container-highest flex items-center justify-center hover:bg-outline-variant transition-colors"><span className="material-symbols-outlined text-on-surface-variant text-sm md:text-base">call</span></a>}
+                        {queue.email && <a href={`mailto:${queue.email}`} className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-surface-container-highest flex items-center justify-center hover:bg-outline-variant transition-colors"><span className="material-symbols-outlined text-on-surface-variant text-sm md:text-base">mail</span></a>}
                       </div>
                     </td>
-                    <td className="py-5 font-medium text-on-surface-variant font-body">{format(new Date(queue.createdAt), 'HH:mm', { locale: id })}</td>
-                    <td className="py-5"><span className={`px-3 py-1 text-[10px] font-black uppercase rounded-full tracking-wider ${getStatusBadgeClass(queue.status)} font-body`}>{getStatusLabel(queue.status)}</span></td>
-                    <td className="py-5 pr-6 text-right rounded-r-2xl">
-                      {queue.status === 'WAITING' && <button onClick={() => callMutation.mutate()} disabled={callMutation.isPending} className="px-5 py-2 border border-primary text-primary text-xs font-bold rounded-full hover:bg-primary/5 transition-all disabled:opacity-50 font-body">Panggil</button>}
-                      {queue.status === 'CALLED' && <button onClick={() => completeMutation.mutate(queue.id)} disabled={completeMutation.isPending} className="px-5 py-2 bg-on-surface text-white text-xs font-bold rounded-full hover:bg-on-surface/80 transition-all disabled:opacity-50 font-body">Selesai</button>}
+                    <td className="py-3 md:py-5 font-medium text-on-surface-variant hidden md:table-cell">{format(new Date(queue.createdAt), 'HH:mm', { locale: id })}</td>
+                    <td className="py-3 md:py-5"><span className={`px-2 md:px-3 py-1 text-[9px] md:text-[10px] font-black uppercase rounded-full tracking-wider ${getStatusBadgeClass(queue.status)}`}>{getStatusLabel(queue.status)}</span></td>
+                    <td className="py-3 md:py-5 pr-4 md:pr-6 text-right rounded-r-2xl">
+                      {queue.status === 'WAITING' && (
+                        <button
+                          onClick={() => callMutation.mutate()}
+                          disabled={callMutation.isPending}
+                          className="px-3 md:px-5 py-1.5 md:py-2 border border-primary text-primary text-[10px] md:text-xs font-bold rounded-full hover:bg-primary/5 transition-all disabled:opacity-50"
+                        >
+                          Panggil
+                        </button>
+                      )}
+                      {queue.status === 'CALLED' && (
+                        <button
+                          onClick={() => completeMutation.mutate(queue.id)}
+                          disabled={completeMutation.isPending}
+                          className="px-3 md:px-5 py-1.5 md:py-2 bg-on-surface text-white text-[10px] md:text-xs font-bold rounded-full hover:bg-on-surface/80 transition-all disabled:opacity-50"
+                        >
+                          Selesai
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -315,26 +323,26 @@ export default function QueuePage() {
 
       {/* Modal Online Registration */}
       <Dialog open={onlineModalOpen} onOpenChange={setOnlineModalOpen}>
-        <DialogContent className="bg-surface-container-lowest rounded-2xl max-w-md">
-          <DialogHeader><DialogTitle className="font-headline text-xl">Tambah Pasien Online</DialogTitle></DialogHeader>
-          <form onSubmit={handleOnlineSubmit} className="space-y-4 mt-4">
-            <div><Label htmlFor="online-name" className="font-body">Nama Lengkap *</Label><Input id="online-name" value={onlineForm.name} onChange={(e) => setOnlineForm({ ...onlineForm, name: e.target.value })} className="bg-surface-container-low border-none rounded-xl" required /></div>
-            <div><Label htmlFor="online-phone" className="font-body">No. Telepon</Label><Input id="online-phone" value={onlineForm.phone} onChange={(e) => setOnlineForm({ ...onlineForm, phone: e.target.value })} className="bg-surface-container-low border-none rounded-xl" /></div>
-            <div><Label htmlFor="online-email" className="font-body">Email</Label><Input id="online-email" type="email" value={onlineForm.email} onChange={(e) => setOnlineForm({ ...onlineForm, email: e.target.value })} className="bg-surface-container-low border-none rounded-xl" /></div>
-            <div><Label htmlFor="online-keluhan" className="font-body">Keluhan</Label><Input id="online-keluhan" value={onlineForm.keluhan} onChange={(e) => setOnlineForm({ ...onlineForm, keluhan: e.target.value })} className="bg-surface-container-low border-none rounded-xl" /></div>
-            <button type="submit" disabled={addOnlineMutation.isPending} className="w-full bg-gradient-to-r from-[#DCA1A1] to-[#663a3b] text-white font-headline font-bold py-3 rounded-full transition-all disabled:opacity-70">{addOnlineMutation.isPending ? 'Memproses...' : 'Simpan & Generate Kode'}</button>
+        <DialogContent className="bg-surface-container-lowest rounded-2xl max-w-md p-4 md:p-6">
+          <DialogHeader><DialogTitle className="font-headline text-lg md:text-xl">Tambah Pasien Online</DialogTitle></DialogHeader>
+          <form onSubmit={handleOnlineSubmit} className="space-y-3 md:space-y-4 mt-2 md:mt-4">
+            <div><Label htmlFor="online-name" className="font-body text-sm">Nama Lengkap *</Label><Input id="online-name" value={onlineForm.name} onChange={(e) => setOnlineForm({ ...onlineForm, name: e.target.value })} className="bg-surface-container-low border-none rounded-xl" required /></div>
+            <div><Label htmlFor="online-phone" className="font-body text-sm">No. Telepon</Label><Input id="online-phone" value={onlineForm.phone} onChange={(e) => setOnlineForm({ ...onlineForm, phone: e.target.value })} className="bg-surface-container-low border-none rounded-xl" /></div>
+            <div><Label htmlFor="online-email" className="font-body text-sm">Email</Label><Input id="online-email" type="email" value={onlineForm.email} onChange={(e) => setOnlineForm({ ...onlineForm, email: e.target.value })} className="bg-surface-container-low border-none rounded-xl" /></div>
+            <div><Label htmlFor="online-keluhan" className="font-body text-sm">Keluhan</Label><Input id="online-keluhan" value={onlineForm.keluhan} onChange={(e) => setOnlineForm({ ...onlineForm, keluhan: e.target.value })} className="bg-surface-container-low border-none rounded-xl" /></div>
+            <button type="submit" disabled={addOnlineMutation.isPending} className="w-full bg-gradient-to-r from-[#DCA1A1] to-[#663a3b] text-white font-headline font-bold py-2.5 md:py-3 rounded-full transition-all disabled:opacity-70 text-sm md:text-base">{addOnlineMutation.isPending ? 'Memproses...' : 'Simpan & Generate Kode'}</button>
           </form>
         </DialogContent>
       </Dialog>
 
       {/* Modal Manual Registration */}
       <Dialog open={manualModalOpen} onOpenChange={setManualModalOpen}>
-        <DialogContent className="bg-surface-container-lowest rounded-2xl max-w-md">
-          <DialogHeader><DialogTitle className="font-headline text-xl">Tambah Pasien Manual</DialogTitle></DialogHeader>
-          <form onSubmit={handleManualSubmit} className="space-y-4 mt-4">
-            <div><Label htmlFor="manual-name" className="font-body">Nama Lengkap *</Label><Input id="manual-name" value={manualForm.name} onChange={(e) => setManualForm({ ...manualForm, name: e.target.value })} className="bg-surface-container-low border-none rounded-xl" required /></div>
-            <div><Label htmlFor="manual-phone" className="font-body">No. Telepon (opsional)</Label><Input id="manual-phone" value={manualForm.phone} onChange={(e) => setManualForm({ ...manualForm, phone: e.target.value })} className="bg-surface-container-low border-none rounded-xl" /></div>
-            <button type="submit" disabled={addManualMutation.isPending} className="w-full border border-primary text-primary font-headline font-bold py-3 rounded-full transition-all hover:bg-primary/5 disabled:opacity-70">{addManualMutation.isPending ? 'Memproses...' : 'Simpan'}</button>
+        <DialogContent className="bg-surface-container-lowest rounded-2xl max-w-md p-4 md:p-6">
+          <DialogHeader><DialogTitle className="font-headline text-lg md:text-xl">Tambah Pasien Manual</DialogTitle></DialogHeader>
+          <form onSubmit={handleManualSubmit} className="space-y-3 md:space-y-4 mt-2 md:mt-4">
+            <div><Label htmlFor="manual-name" className="font-body text-sm">Nama Lengkap *</Label><Input id="manual-name" value={manualForm.name} onChange={(e) => setManualForm({ ...manualForm, name: e.target.value })} className="bg-surface-container-low border-none rounded-xl" required /></div>
+            <div><Label htmlFor="manual-phone" className="font-body text-sm">No. Telepon (opsional)</Label><Input id="manual-phone" value={manualForm.phone} onChange={(e) => setManualForm({ ...manualForm, phone: e.target.value })} className="bg-surface-container-low border-none rounded-xl" /></div>
+            <button type="submit" disabled={addManualMutation.isPending} className="w-full border border-primary text-primary font-headline font-bold py-2.5 md:py-3 rounded-full transition-all hover:bg-primary/5 disabled:opacity-70 text-sm md:text-base">{addManualMutation.isPending ? 'Memproses...' : 'Simpan'}</button>
           </form>
         </DialogContent>
       </Dialog>

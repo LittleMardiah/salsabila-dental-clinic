@@ -1,4 +1,3 @@
-// app/admin/emr/page.tsx
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -61,7 +60,7 @@ export default function EMRPatientListPage() {
 
   useEffect(() => {
     fetchPatients(1)
-  }, [search]) // reload saat search berubah
+  }, [search])
 
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage > pagination.totalPages) return
@@ -71,74 +70,74 @@ export default function EMRPatientListPage() {
   const formatQueueNumber = (num: number) => `A-${num.toString().padStart(2, '0')}`
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="p-3 md:p-8 lg:p-12">
       {/* Header */}
-      <div className="mb-12">
-        <h2 className="text-4xl font-bold text-on-surface tracking-tight font-headline">Pilih Pasien untuk EMR</h2>
-        <p className="text-on-surface-variant/80 text-lg">Cari dan kelola rekam medis elektronik pasien dengan presisi.</p>
+      <div className="mb-6 md:mb-12">
+        <h2 className="text-xl md:text-4xl font-bold text-on-surface tracking-tight font-headline">Pilih Pasien untuk EMR</h2>
+        <p className="text-xs md:text-lg text-on-surface-variant/80">Cari dan kelola rekam medis elektronik pasien dengan presisi.</p>
       </div>
 
-      {/* Search Bar with 3D inset effect */}
-      <div className="mb-10 max-w-2xl">
+      {/* Search Bar */}
+      <div className="mb-6 md:mb-10 max-w-2xl">
         <div className="relative group">
-          <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-outline-variant transition-colors group-focus-within:text-primary">search</span>
+          <span className="material-symbols-outlined absolute left-3 md:left-5 top-1/2 -translate-y-1/2 text-outline-variant text-base md:text-2xl">search</span>
           <Input
             placeholder="Cari nama atau no HP..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full inset-search-3d border-0 rounded-3xl pl-14 pr-8 py-5 focus:ring-0 focus:outline-none transition-all placeholder:text-outline-variant/60 font-medium text-on-surface"
+            className="w-full inset-search-3d border-0 rounded-xl md:rounded-3xl pl-9 md:pl-14 pr-3 md:pr-8 py-2 md:py-5 text-sm md:text-base focus:ring-0 focus:outline-none transition-all placeholder:text-outline-variant/60 font-medium text-on-surface"
           />
         </div>
       </div>
 
       {/* Pearl Glass Table Section */}
-      <section className="rounded-[2.5rem] p-10 pearl-glass-table">
+      <section className="rounded-xl md:rounded-[2.5rem] p-3 md:p-10 pearl-glass-table">
         <div className="overflow-x-auto">
-          <Table className="w-full text-left border-collapse">
+          <Table className="min-w-[640px] md:min-w-full w-full text-left border-collapse">
             <TableHeader>
               <TableRow className="border-b border-surface-container-high/50">
-                <TableHead className="pb-8 pt-2 px-6 text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/60 font-bold font-headline">No Antrian</TableHead>
-                <TableHead className="pb-8 pt-2 px-6 text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/60 font-bold font-headline">Nama Lengkap</TableHead>
-                <TableHead className="pb-8 pt-2 px-6 text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/60 font-bold font-headline">No. HP</TableHead>
-                <TableHead className="pb-8 pt-2 px-6 text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/60 font-bold font-headline">Email</TableHead>
-                <TableHead className="pb-8 pt-2 px-6 text-right text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/60 font-bold font-headline">Aksi</TableHead>
+                <TableHead className="pb-4 md:pb-8 pt-2 px-3 md:px-6 text-[9px] md:text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/60 font-bold font-headline">No</TableHead>
+                <TableHead className="pb-4 md:pb-8 pt-2 px-3 md:px-6 text-[9px] md:text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/60 font-bold font-headline">Nama Lengkap</TableHead>
+                <TableHead className="pb-4 md:pb-8 pt-2 px-3 md:px-6 text-[9px] md:text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/60 font-bold font-headline">No. HP</TableHead>
+                <TableHead className="pb-4 md:pb-8 pt-2 px-3 md:px-6 text-[9px] md:text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/60 font-bold font-headline">Email</TableHead>
+                <TableHead className="pb-4 md:pb-8 pt-2 px-3 md:px-6 text-right text-[9px] md:text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/60 font-bold font-headline">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-surface-container/20">
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-12">Memuat data...</TableCell>
+                  <TableCell colSpan={5} className="text-center py-8 md:py-12">Memuat data...</TableCell>
                 </TableRow>
               ) : patients.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-12">Tidak ada pasien ditemukan</TableCell>
+                  <TableCell colSpan={5} className="text-center py-8 md:py-12">Tidak ada pasien ditemukan</TableCell>
                 </TableRow>
               ) : (
                 patients.map((patient, index) => {
-                  // Hitung nomor antrian berdasarkan urutan dan halaman
                   const queueNumber = (pagination.page - 1) * pagination.limit + index + 1
                   return (
                     <TableRow key={patient.id} className="group transition-all duration-300 hover:bg-white/40">
-                      <TableCell className="py-7 px-6">
-                        <span className="bg-surface-container/60 border border-surface-container p-2 px-3.5 rounded-xl text-primary font-bold text-xs shadow-sm">{formatQueueNumber(queueNumber)}</span>
+                      <TableCell className="py-4 md:py-7 px-3 md:px-6">
+                        <span className="bg-surface-container/60 border border-surface-container p-1.5 md:p-2 px-2 md:px-3.5 rounded-lg md:rounded-xl text-primary font-bold text-[10px] md:text-xs shadow-sm">{formatQueueNumber(queueNumber)}</span>
                       </TableCell>
-                      <TableCell className="py-7 px-6">
-                        <div className="flex items-center gap-4">
-                          <div className="w-11 h-11 rounded-full bg-primary-fixed border border-white flex items-center justify-center text-primary font-bold shadow-sm uppercase">
+                      <TableCell className="py-4 md:py-7 px-3 md:px-6">
+                        <div className="flex items-center gap-2 md:gap-4">
+                          <div className="w-8 h-8 md:w-11 md:h-11 rounded-full bg-primary-fixed border border-white flex items-center justify-center text-primary font-bold shadow-sm uppercase text-xs md:text-base">
                             {patient.name.charAt(0)}
                           </div>
-                          <span className="font-bold text-on-surface text-[15px]">{patient.name}</span>
+                          <span className="font-bold text-on-surface text-xs md:text-[15px]">{patient.name}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="py-7 px-6 text-on-surface-variant font-medium">{patient.phone || '-'}</TableCell>
-                      <TableCell className="py-7 px-6 text-on-surface-variant font-medium">{patient.email || '-'}</TableCell>
-                      <TableCell className="py-7 px-6 text-right">
+                      <TableCell className="py-4 md:py-7 px-3 md:px-6 text-on-surface-variant font-medium text-xs md:text-base">{patient.phone || '-'}</TableCell>
+                      <TableCell className="py-4 md:py-7 px-3 md:px-6 text-on-surface-variant font-medium text-xs md:text-base">{patient.email || '-'}</TableCell>
+                      <TableCell className="py-4 md:py-7 px-3 md:px-6 text-right">
                         <button
                           onClick={() => router.push(`/admin/emr/${patient.id}`)}
-                          className="cta-3d-pill text-white px-7 py-3 rounded-full font-bold text-sm inline-flex items-center gap-2.5 soft-rim-light font-headline"
+                          className="cta-3d-pill text-white px-3 md:px-7 py-1.5 md:py-3 rounded-full font-bold text-[10px] md:text-sm inline-flex items-center gap-1 md:gap-2.5 soft-rim-light font-headline"
                         >
-                          <span className="material-symbols-outlined text-[20px]">history_edu</span>
-                          Kelola EMR
+                          <span className="material-symbols-outlined text-sm md:text-[20px]">history_edu</span>
+                          <span className="hidden sm:inline">Kelola EMR</span>
+                          <span className="sm:hidden">EMR</span>
                         </button>
                       </TableCell>
                     </TableRow>
@@ -151,18 +150,18 @@ export default function EMRPatientListPage() {
 
         {/* Pagination Section */}
         {!loading && pagination.totalPages > 0 && (
-          <div className="mt-12 pt-10 border-t border-surface-container-high/50 flex items-center justify-between flex-wrap gap-4">
-            <p className="text-sm text-on-surface-variant/80 font-medium italic">
+          <div className="mt-6 md:mt-12 pt-6 md:pt-10 border-t border-surface-container-high/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-xs md:text-sm text-on-surface-variant/80 font-medium italic text-center sm:text-left">
               Menampilkan {patients.length > 0 ? ((pagination.page - 1) * pagination.limit + 1) : 0} -{' '}
-              {((pagination.page - 1) * pagination.limit + patients.length)} dari {pagination.total} pasien terdaftar
+              {((pagination.page - 1) * pagination.limit + patients.length)} dari {pagination.total} pasien
             </p>
-            <div className="flex gap-2">
+            <div className="flex gap-1 md:gap-2">
               <button
                 onClick={() => handlePageChange(pagination.page - 1)}
                 disabled={pagination.page === 1}
-                className="w-11 h-11 flex items-center justify-center rounded-2xl bg-white/60 border border-white/80 text-on-surface transition-all hover:bg-primary-container/20 hover:text-primary shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-8 h-8 md:w-11 md:h-11 flex items-center justify-center rounded-lg md:rounded-2xl bg-white/60 border border-white/80 text-on-surface transition-all hover:bg-primary-container/20 hover:text-primary shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <span className="material-symbols-outlined">chevron_left</span>
+                <span className="material-symbols-outlined text-sm md:text-2xl">chevron_left</span>
               </button>
               {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
                 let pageNum = i + 1
@@ -175,7 +174,7 @@ export default function EMRPatientListPage() {
                   <button
                     key={pageNum}
                     onClick={() => handlePageChange(pageNum)}
-                    className={`w-11 h-11 flex items-center justify-center rounded-2xl transition-all ${
+                    className={`w-8 h-8 md:w-11 md:h-11 flex items-center justify-center rounded-lg md:rounded-2xl transition-all text-xs md:text-base ${
                       pagination.page === pageNum
                         ? 'bg-[#815152] text-white font-bold shadow-lg shadow-primary/20'
                         : 'bg-white/60 border border-white/80 text-on-surface hover:bg-primary-container/20 shadow-sm'
@@ -188,16 +187,16 @@ export default function EMRPatientListPage() {
               <button
                 onClick={() => handlePageChange(pagination.page + 1)}
                 disabled={pagination.page === pagination.totalPages}
-                className="w-11 h-11 flex items-center justify-center rounded-2xl bg-white/60 border border-white/80 text-on-surface transition-all hover:bg-primary-container/20 hover:text-primary shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-8 h-8 md:w-11 md:h-11 flex items-center justify-center rounded-lg md:rounded-2xl bg-white/60 border border-white/80 text-on-surface transition-all hover:bg-primary-container/20 hover:text-primary shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <span className="material-symbols-outlined">chevron_right</span>
+                <span className="material-symbols-outlined text-sm md:text-2xl">chevron_right</span>
               </button>
             </div>
           </div>
         )}
       </section>
 
-      {/* Custom CSS for 3D effects - add to globals.css or use <style> */}
+      {/* Custom CSS - unchanged */}
       <style jsx>{`
         .inset-search-3d {
           background: rgba(255, 255, 255, 0.4);

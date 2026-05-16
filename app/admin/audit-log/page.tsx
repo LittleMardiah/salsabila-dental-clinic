@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
 import { useQuery } from '@tanstack/react-query'
@@ -13,6 +13,7 @@ export default function AuditLogPage() {
   const [page, setPage] = useState(1)
   const limit = 10
 
+  // Query data audit log
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['auditLog', fromDate, toDate, actionFilter, adminFilter, page],
     queryFn: async () => {
@@ -29,19 +30,11 @@ export default function AuditLogPage() {
     },
   })
 
-  const handleApplyFilter = () => {
-    setPage(1)
+  // Auto-refresh ketika filter berubah (tanpa tombol)
+  useEffect(() => {
+    setPage(1) // reset ke halaman pertama saat filter berubah
     refetch()
-  }
-
-  const handleReset = () => {
-    setFromDate('')
-    setToDate('')
-    setActionFilter('')
-    setAdminFilter('')
-    setPage(1)
-    setTimeout(() => refetch(), 0)
-  }
+  }, [fromDate, toDate, actionFilter, adminFilter, refetch])
 
   if (error) toast.error('Gagal memuat data audit log')
 
@@ -126,7 +119,7 @@ export default function AuditLogPage() {
           </div>
         </header>
 
-        {/* Filter Section */}
+        {/* Filter Section tanpa tombol Reset/Terapkan */}
         <section className="glass-card perspective-card rounded-[2rem] p-8 mb-12 border border-white/40 overflow-hidden relative">
           <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/5 rounded-full blur-3xl"></div>
           <div className="relative grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
@@ -134,7 +127,7 @@ export default function AuditLogPage() {
               <label className="font-label text-xs font-bold text-primary uppercase tracking-widest ml-1">Dari Tanggal</label>
               <div className="relative group">
                 <input
-                title='.'
+                  title="Dari tanggal"
                   type="date"
                   value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
@@ -147,7 +140,7 @@ export default function AuditLogPage() {
               <label className="font-label text-xs font-bold text-primary uppercase tracking-widest ml-1">Sampai Tanggal</label>
               <div className="relative group">
                 <input
-                title='.'
+                  title="Sampai tanggal"
                   type="date"
                   value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
@@ -160,7 +153,7 @@ export default function AuditLogPage() {
               <label className="font-label text-xs font-bold text-primary uppercase tracking-widest ml-1">Filter Aksi</label>
               <div className="relative group">
                 <select
-                title='.'
+                  title="Filter aksi"
                   value={actionFilter}
                   onChange={(e) => setActionFilter(e.target.value)}
                   className="w-full h-14 bg-surface-container-low/50 border-none rounded-2xl px-5 font-body focus:ring-2 focus:ring-primary/20 transition-all text-sm outline-none appearance-none"
@@ -189,23 +182,6 @@ export default function AuditLogPage() {
                   person_search
                 </span>
               </div>
-            </div>
-
-            <div className="md:col-span-4 flex justify-end gap-4 pt-4">
-              <button
-                onClick={handleReset}
-                className="px-8 py-3 rounded-full border-2 border-outline-variant/30 text-primary font-bold hover:bg-surface-container-high transition-all text-sm"
-              >
-                Reset
-              </button>
-              <button
-                onClick={handleApplyFilter}
-                className="px-10 py-3 rounded-full text-white font-bold shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all text-sm flex items-center gap-2"
-                style={{ background: 'linear-gradient(135deg, #DCA1A1 0%, #663a3b 100%)' }}
-              >
-                <span className="material-symbols-outlined text-lg">filter_alt</span>
-                Terapkan Filter
-              </button>
             </div>
           </div>
         </section>
