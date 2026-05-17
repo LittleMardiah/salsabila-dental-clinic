@@ -5,6 +5,26 @@ import { QueueStatus } from '@prisma/client'
 import { sendNotification } from '@/lib/services/WebpushService'
 import { addAuditLog } from '@/lib/services/audit.service' 
 
+/**
+ * @openapi
+ * /api/queue/call:
+ *   post:
+ *     summary: Memanggil antrian berikutnya (mengubah status menjadi CALLED)
+ *     tags: [Queue]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Antrian berhasil dipanggil
+ *       400:
+ *         description: Tidak ada antrian menunggu
+ *       401:
+ *         description: Token admin tidak valid
+ *       500:
+ *         description: Gagal update database
+ */
+
+
 export async function POST(request: Request) {
   const cookieHeader = request.headers.get('cookie') || ''
   console.log('[CALL] Cookie header received:', cookieHeader)

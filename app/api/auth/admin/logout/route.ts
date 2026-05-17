@@ -2,6 +2,18 @@ import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { addAuditLog } from '@/lib/services/audit.service' 
 
+/**
+ * @openapi
+ * /api/auth/admin/logout:
+ *   post:
+ *     summary: Admin logout
+ *     description: Menghapus cookie token dan mencatat logout.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logout berhasil
+ */
 export async function POST(request: Request) {
   let username = 'unknown'
   const cookieHeader = request.headers.get('cookie') || ''

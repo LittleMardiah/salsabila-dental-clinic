@@ -3,6 +3,32 @@ import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/ServerAuth'
 import { addAuditLog } from '@/lib/services/audit.service' 
 
+/**
+ * @openapi
+ * /api/queue/{id}/complete:
+ *   patch:
+ *     summary: Menyelesaikan antrian (mark as COMPLETED) dan membuat transaksi pending
+ *     tags: [Queue]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID antrian
+ *     responses:
+ *       200:
+ *         description: Antrian selesai, transaksi dibuat
+ *       400:
+ *         description: Input tidak valid atau antrian tidak dalam status CALLED
+ *       401:
+ *         description: Tidak terautentikasi
+ *       404:
+ *         description: Antrian tidak ditemukan
+ */
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

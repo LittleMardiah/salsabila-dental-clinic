@@ -15,12 +15,55 @@ const confirmSchema = z.object({
   paymentMethod: z.enum(['CASH', 'TRANSFER']),
 })
 
+/**
+ * @openapi
+ * /api/finance/transactions/{id}/confirm:
+ *   post:
+ *     summary: Konfirmasi pembayaran transaksi
+ *     tags: [Finance]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID transaksi
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - amount
+ *               - paymentMethod
+ *             properties:
+ *               amount:
+ *                 type: number
+ *               paymentMethod:
+ *                 type: string
+ *                 enum: [CASH, TRANSFER]
+ *               proof:
+ *                 type: string
+ *                 format: binary
+ *                 description: Bukti transfer (wajib jika paymentMethod=TRANSFER)
+ *     responses:
+ *       200:
+ *         description: Transaksi berhasil dikonfirmasi
+ *       400:
+ *         description: Input tidak valid
+ *       401:
+ *         description: Tidak terautentikasi
+ *       404:
+ *         description: Transaksi tidak ditemukan
+ */
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    // Verifikasi admin token
     const auth = await verifyAdminToken(request)
     if (!auth.valid) {
       return NextResponse.json(
@@ -38,13 +81,11 @@ export async function POST(
       )
     }
 
-    // Parse form data
     const formData = await request.formData()
     const amountRaw = formData.get('amount')
     const paymentMethodStr = formData.get('paymentMethod') as string
     const proofFile = formData.get('proof') as File | null
 
-    // Validasi amount
     const amount = parseFloat(amountRaw as string)
     const parsed = confirmSchema.safeParse({ amount, paymentMethod: paymentMethodStr })
     if (!parsed.success) {
@@ -54,7 +95,6 @@ export async function POST(
       )
     }
 
-    // Cek apakah transaction ada
     const transaction = await prisma.transaction.findUnique({
       where: { id: transactionId },
       include: { queue: { include: { patient: true } } }
@@ -97,7 +137,6 @@ export async function POST(
       receiptUrl = `/uploads/finance/${fileName}`
     }
 
-    // Update transaction (konversi string ke enum)
     const updated = await prisma.transaction.update({
       where: { id: transactionId },
       data: {

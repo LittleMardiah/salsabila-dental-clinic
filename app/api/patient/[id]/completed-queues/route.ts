@@ -2,6 +2,45 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/ServerAuth'
 
+/**
+ * @openapi
+ * /api/patient/{id}/completed-queues:
+ *   get:
+ *     summary: Mendapatkan daftar antrian yang sudah selesai untuk pasien tertentu
+ *     tags: [Patient]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID pasien
+ *     responses:
+ *       200:
+ *         description: Daftar antrian selesai berhasil diambil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 queues:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       label:
+ *                         type: string
+ *       400:
+ *         description: ID tidak valid
+ *       401:
+ *         description: Tidak terautentikasi
+ */
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }

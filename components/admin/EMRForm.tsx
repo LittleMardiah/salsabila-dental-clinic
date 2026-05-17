@@ -128,26 +128,26 @@ export default function EMRForm({ patientId, initialData, visitId, onSuccess, on
   const getQueueLabel = (q: { id: number; label: string }) => q.label
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="w-full space-y-6 md:space-y-8">
-      {/* Grid utama: 1 kolom di mobile, 2 kolom di tablet, 3 kolom di desktop */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+    <form onSubmit={handleSubmit(onSubmit)} className="w-full space-y-8">
+      {/* Grid utama */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Kolom kiri: Informasi Kunjungan (span 2 di lg) */}
+        {/* Kolom kiri: Informasi Kunjungan (span 2) */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white/40 backdrop-blur-sm rounded-2xl p-5 md:p-8 border border-white/50 shadow-sm">
+          <div className="diamond-glass rounded-3xl p-6 md:p-8 transition-all hover:shadow-xl">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shadow-inner">
                 <span className="material-symbols-outlined text-primary">person_search</span>
               </div>
-              <h3 className="text-lg font-bold">Informasi Kunjungan</h3>
+              <h3 className="text-lg font-headline font-bold text-primary">Informasi Kunjungan</h3>
             </div>
             
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Pilih Antrian Selesai *</label>
+                <label className="block text-xs font-label font-bold text-on-surface/70 uppercase tracking-wider mb-2">Pilih Antrian Selesai *</label>
                 <select
                   {...register('queueId', { valueAsNumber: true })}
-                  className="w-full rounded-xl border border-gray-200 p-3 bg-white/80 focus:ring-2 focus:ring-primary/20"
+                  className="high-gloss-input w-full rounded-2xl px-5 py-3 font-body focus:ring-2 focus:ring-primary/20"
                   required
                 >
                   <option value="">Pilih antrian selesai</option>
@@ -155,24 +155,24 @@ export default function EMRForm({ patientId, initialData, visitId, onSuccess, on
                     <option key={q.id} value={q.id}>{getQueueLabel(q)}</option>
                   ))}
                 </select>
-                {errors.queueId && <p className="text-red-500 text-xs mt-1">{errors.queueId.message}</p>}
-                {fetchingQueues && <p className="text-gray-500 text-xs mt-1">Memuat daftar antrian...</p>}
+                {errors.queueId && <p className="text-error text-xs mt-1">{errors.queueId.message}</p>}
+                {fetchingQueues && <p className="text-on-surface-variant/60 text-xs mt-1">Memuat daftar antrian...</p>}
                 {!fetchingQueues && completedQueues.length === 0 && (
-                  <p className="text-red-500 text-xs mt-1">Belum ada antrian selesai untuk pasien ini.</p>
+                  <p className="text-error text-xs mt-1">Belum ada antrian selesai untuk pasien ini.</p>
                 )}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Tanggal Follow Up</label>
+                <label className="block text-xs font-label font-bold text-on-surface/70 uppercase tracking-wider mb-2">Tanggal Follow Up</label>
                 <div className="relative">
                   <input
                     type="date"
                     {...register('followUpDate')}
-                    className="w-full rounded-xl border border-gray-200 p-3 bg-white/80"
+                    className="high-gloss-input w-full rounded-2xl px-5 py-3 font-body pr-12"
                     ref={dateInputRef}
                   />
                   <span
-                    className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer"
+                    className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-primary/40 cursor-pointer hover:text-primary transition"
                     onClick={handleCalendarClick}
                   >
                     calendar_today
@@ -181,10 +181,10 @@ export default function EMRForm({ patientId, initialData, visitId, onSuccess, on
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Keluhan Utama</label>
+                <label className="block text-xs font-label font-bold text-on-surface/70 uppercase tracking-wider mb-2">Keluhan Utama</label>
                 <textarea
                   {...register('keluhanUtama')}
-                  className="w-full rounded-xl border border-gray-200 p-3 bg-white/80"
+                  className="high-gloss-input w-full rounded-2xl px-5 py-3 font-body resize-none"
                   rows={4}
                   placeholder="Deskripsikan keluhan utama pasien..."
                 />
@@ -194,80 +194,80 @@ export default function EMRForm({ patientId, initialData, visitId, onSuccess, on
         </div>
 
         {/* Kolom kanan: Diagnosa & Tindakan, Dokter PJ */}
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white/40 backdrop-blur-sm rounded-2xl p-5 md:p-8 border border-white/50 shadow-sm">
+        <div className="space-y-6">
+          <div className="diamond-glass rounded-3xl p-6 md:p-8 transition-all hover:shadow-xl">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center shadow-inner">
                 <span className="material-symbols-outlined text-secondary">stethoscope</span>
               </div>
-              <h3 className="text-lg font-bold">Diagnosa & Tindakan</h3>
+              <h3 className="text-lg font-headline font-bold text-primary">Diagnosa & Tindakan</h3>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Diagnosa *</label>
+                <label className="block text-xs font-label font-bold text-on-surface/70 uppercase tracking-wider mb-2">Diagnosa *</label>
                 <input
                   {...register('diagnosa')}
-                  className="w-full rounded-xl border border-gray-200 p-3 bg-white/80"
+                  className="high-gloss-input w-full rounded-2xl px-5 py-3 font-body"
                   placeholder="Contoh: Pulpitis Irreversibel"
                 />
-                {errors.diagnosa && <p className="text-red-500 text-xs mt-1">{errors.diagnosa.message}</p>}
+                {errors.diagnosa && <p className="text-error text-xs mt-1">{errors.diagnosa.message}</p>}
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Tindakan *</label>
+                <label className="block text-xs font-label font-bold text-on-surface/70 uppercase tracking-wider mb-2">Tindakan *</label>
                 <input
                   {...register('tindakan')}
-                  className="w-full rounded-xl border border-gray-200 p-3 bg-white/80"
+                  className="high-gloss-input w-full rounded-2xl px-5 py-3 font-body"
                   placeholder="Contoh: Root Canal Treatment"
                 />
-                {errors.tindakan && <p className="text-red-500 text-xs mt-1">{errors.tindakan.message}</p>}
+                {errors.tindakan && <p className="text-error text-xs mt-1">{errors.tindakan.message}</p>}
               </div>
             </div>
           </div>
 
-          <div className="bg-white/40 backdrop-blur-sm rounded-2xl p-5 md:p-8 border border-white/50 shadow-sm">
+          <div className="diamond-glass rounded-3xl p-6 md:p-8 transition-all hover:shadow-xl">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shadow-inner">
                 <span className="material-symbols-outlined text-primary">person</span>
               </div>
-              <h3 className="text-lg font-bold">Dokter Penanggung Jawab</h3>
+              <h3 className="text-lg font-headline font-bold text-primary">Dokter Penanggung Jawab</h3>
             </div>
             <div>
               <input
                 {...register('dokterPenanggungJawab')}
-                className="w-full rounded-xl border border-gray-200 p-3 bg-white/80"
+                className="high-gloss-input w-full rounded-2xl px-5 py-3 font-body"
                 placeholder="Nama dokter"
               />
-              {errors.dokterPenanggungJawab && <p className="text-red-500 text-xs mt-1">{errors.dokterPenanggungJawab.message}</p>}
+              {errors.dokterPenanggungJawab && <p className="text-error text-xs mt-1">{errors.dokterPenanggungJawab.message}</p>}
             </div>
           </div>
         </div>
 
-        {/* Resep Obat dan Catatan Tambahan dalam grid 2 kolom (1 di mobile) */}
+        {/* Resep Obat dan Catatan Tambahan */}
         <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white/40 backdrop-blur-sm rounded-2xl p-5 md:p-8 border border-white/50 shadow-sm">
+          <div className="diamond-glass rounded-3xl p-6 md:p-8 transition-all hover:shadow-xl">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-tertiary/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-tertiary/10 flex items-center justify-center shadow-inner">
                 <span className="material-symbols-outlined text-tertiary">prescriptions</span>
               </div>
-              <h3 className="text-lg font-bold">Resep Obat</h3>
+              <h3 className="text-lg font-headline font-bold text-primary">Resep Obat</h3>
             </div>
             <textarea
               {...register('resepObat')}
-              className="w-full rounded-xl border border-gray-200 p-3 bg-white/80"
+              className="high-gloss-input w-full rounded-2xl px-5 py-3 font-body resize-none"
               rows={5}
               placeholder="Tuliskan detail resep obat..."
             />
           </div>
-          <div className="bg-white/40 backdrop-blur-sm rounded-2xl p-5 md:p-8 border border-white/50 shadow-sm">
+          <div className="diamond-glass rounded-3xl p-6 md:p-8 transition-all hover:shadow-xl">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-outline/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-outline/10 flex items-center justify-center shadow-inner">
                 <span className="material-symbols-outlined text-outline">note_alt</span>
               </div>
-              <h3 className="text-lg font-bold">Catatan Tambahan</h3>
+              <h3 className="text-lg font-headline font-bold text-primary">Catatan Tambahan</h3>
             </div>
             <textarea
               {...register('catatanTambahan')}
-              className="w-full rounded-xl border border-gray-200 p-3 bg-white/80"
+              className="high-gloss-input w-full rounded-2xl px-5 py-3 font-body resize-none"
               rows={5}
               placeholder="Catatan internal atau instruksi khusus..."
             />
@@ -276,45 +276,42 @@ export default function EMRForm({ patientId, initialData, visitId, onSuccess, on
 
         {/* Dokumentasi Foto */}
         <div className="lg:col-span-3">
-          <div className="bg-white/40 backdrop-blur-sm rounded-2xl p-5 md:p-8 border border-white/50 shadow-sm">
+          <div className="diamond-glass rounded-3xl p-6 md:p-8 transition-all hover:shadow-xl">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center shadow-inner">
                 <span className="material-symbols-outlined text-secondary">add_a_photo</span>
               </div>
-              <h3 className="text-lg font-bold">Dokumentasi Foto</h3>
+              <h3 className="text-lg font-headline font-bold text-primary">Dokumentasi Foto</h3>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
               {previews.map((src, idx) => (
-                <div key={idx} className="relative aspect-square rounded-xl overflow-hidden group shadow-sm ring-2 ring-white">
+                <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden group shadow-md ring-2 ring-white/50 transition-all hover:scale-105">
                   <img src={src} alt="preview" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <button type="button" onClick={() => removeFile(idx)} className="bg-white rounded-full p-2 text-red-500 hover:scale-110">
+                    <button type="button" onClick={() => removeFile(idx)} className="bg-white rounded-full p-2 text-error hover:scale-110 transition">
                       <span className="material-symbols-outlined text-sm">delete</span>
                     </button>
                   </div>
                 </div>
               ))}
-              <label className="relative aspect-square rounded-xl border-2 border-dashed border-gray-300 bg-white/30 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-white/50 transition-colors">
+              <label className="relative aspect-square rounded-2xl border-2 border-dashed border-outline-variant/50 bg-white/30 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-white/50 transition-all hover:shadow-md">
                 <input type="file" multiple accept="image/*" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" />
-                <span className="material-symbols-outlined text-gray-400 text-3xl">cloud_upload</span>
-                <span className="text-xs text-gray-500">Unggah</span>
+                <span className="material-symbols-outlined text-on-surface-variant/60 text-3xl">cloud_upload</span>
+                <span className="text-xs text-on-surface-variant/70 font-label">Unggah</span>
               </label>
-              {Array.from({ length: Math.max(0, 4 - previews.length - 1) }).map((_, idx) => (
-                <div key={`empty-${idx}`} className="aspect-square rounded-xl border-2 border-dashed border-gray-200 bg-white/20"></div>
-              ))}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Bottom Actions */}
+      {/* Bottom Actions - Floating gradient button */}
       <div className="flex justify-center mt-8">
-        <div className="flex flex-col sm:flex-row items-center gap-3 bg-white/80 backdrop-blur-md rounded-full px-4 py-2 shadow-lg border border-white/50">
+        <div className="flex flex-col sm:flex-row items-center gap-4 bg-white/60 backdrop-blur-md rounded-full px-6 py-2 shadow-xl border border-white/60">
           {onHistoryClick && (
             <button
               type="button"
               onClick={onHistoryClick}
-              className="px-6 py-2 rounded-full bg-white/60 border border-gray-200 text-gray-700 font-semibold text-sm hover:bg-white transition-colors"
+              className="px-6 py-2 rounded-full border border-primary/30 text-primary font-label font-bold text-sm hover:bg-white/60 transition-all shadow-sm"
             >
               Riwayat Kunjungan
             </button>
@@ -322,7 +319,7 @@ export default function EMRForm({ patientId, initialData, visitId, onSuccess, on
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-2 rounded-full bg-gradient-to-r from-[#DCA1A1] to-[#663a3b] text-white font-semibold text-sm disabled:opacity-50"
+            className="px-8 py-3 rounded-full bg-gradient-to-r from-primary to-[#623738] text-white font-label font-bold text-sm shadow-lg shadow-primary/30 hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Menyimpan...' : (visitId ? 'Update EMR' : 'Simpan EMR')}
           </button>

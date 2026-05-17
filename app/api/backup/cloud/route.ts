@@ -5,6 +5,38 @@ import archiver from 'archiver'
 import fs from 'fs'
 import path from 'path'
 
+/**
+ * @openapi
+ * /api/backup/cloud:
+ *   post:
+ *     summary: Upload backup ke Google Drive
+ *     description: Membuat file ZIP berisi seluruh database dan folder uploads, lalu menguploadnya ke Google Drive pengguna (memerlukan koneksi OAuth terlebih dahulu).
+ *     tags: [Backup]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Backup berhasil diupload
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 fileId:
+ *                   type: string
+ *                 fileName:
+ *                   type: string
+ *       400:
+ *         description: Google Drive belum terhubung
+ *       401:
+ *         description: Token tidak valid atau expired
+ *       500:
+ *         description: Gagal upload ke Google Drive
+ */
 async function refreshAccessToken(refreshToken: string): Promise<string | null> {
   const response = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',

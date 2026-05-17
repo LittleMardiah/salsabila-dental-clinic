@@ -1,4 +1,3 @@
-// app/api/queue/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
@@ -22,6 +21,78 @@ const querySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(50),
 })
+
+/**
+ * @openapi
+ * /api/queue:
+ *   post:
+ *     summary: Tambah pasien ke antrian (online/manual)
+ *     tags: [Queue]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - mode
+ *             properties:
+ *               name:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               keluhan:
+ *                 type: string
+ *               mode:
+ *                 type: string
+ *                 enum: [ONLINE, MANUAL]
+ *     responses:
+ *       201:
+ *         description: Pasien berhasil ditambahkan
+ *       400:
+ *         description: Input tidak valid
+ *       401:
+ *         description: Tidak terautentikasi
+ *   get:
+ *     summary: Mendapatkan daftar antrian hari ini (admin)
+ *     tags: [Queue]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Tanggal (YYYY-MM-DD)
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [WAITING, CALLED, COMPLETED]
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Halaman
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Jumlah per halaman (max 100)
+ *     responses:
+ *       200:
+ *         description: Daftar antrian berhasil diambil
+ *       400:
+ *         description: Parameter tidak valid
+ *       401:
+ *         description: Tidak terautentikasi
+ */
 
 export async function POST(request: Request) {
   // Verifikasi token admin

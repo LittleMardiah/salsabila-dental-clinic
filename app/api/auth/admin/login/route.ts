@@ -10,6 +10,38 @@ const loginSchema = z.object({
   password: z.string().min(6, 'Password minimal 6 karakter'),
 })
 
+/**
+ * @openapi
+ * /api/auth/admin/login:
+ *   post:
+ *     summary: Login admin (lapis 2)
+ *     description: Memerlukan cookie `admin_code_verified` dari endpoint verify-code.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - password
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 example: admin
+ *               password:
+ *                 type: string
+ *                 example: password123
+ *     responses:
+ *       200:
+ *         description: Login berhasil, token disimpan di cookie
+ *       401:
+ *         description: Username atau password salah
+ *       403:
+ *         description: Kode verifikasi belum diberikan atau sudah expired
+ *       429:
+ *         description: Terlalu banyak percobaan
+ */
 export async function POST(request: Request) {
   const ip = request.headers.get('x-forwarded-for') || request.headers.get('remote-addr') || 'unknown'
   const rateLimit = RateLimit(ip)

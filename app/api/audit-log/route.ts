@@ -15,6 +15,74 @@ const actionTranslations: Record<string, string> = {
   RECONCILE: 'Rekonsiliasi Harian',
 }
 
+/**
+ * @openapi
+ * /api/audit-log:
+ *   get:
+ *     summary: Mendapatkan log audit
+ *     description: Mengembalikan riwayat aktivitas admin dalam dua mode (admin-friendly atau developer raw).
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: mode
+ *         schema:
+ *           type: string
+ *           enum: [admin, developer]
+ *         description: Mode tampilan (admin = Bahasa Indonesia, developer = raw JSON)
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter tanggal mulai (YYYY-MM-DD)
+ *       - in: query
+ *         name: to
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter tanggal akhir (YYYY-MM-DD)
+ *       - in: query
+ *         name: action
+ *         schema:
+ *           type: string
+ *         description: Filter berdasarkan tipe aksi
+ *       - in: query
+ *         name: adminId
+ *         schema:
+ *           type: string
+ *         description: Filter berdasarkan username admin
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Jumlah data per halaman
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Nomor halaman
+ *     responses:
+ *       200:
+ *         description: Sukses
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 mode:
+ *                   type: string
+ *                 logs:
+ *                   type: array
+ *                 pagination:
+ *                   type: object
+ *       401:
+ *         description: Unauthorized
+ */
 export async function GET(request: Request) {
   const auth = await verifyAdminToken(request)
   if (!auth.valid) {

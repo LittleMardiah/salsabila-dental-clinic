@@ -63,10 +63,10 @@ module.exports = {
         whatsapp: "#25D366",
       },
       fontFamily: {
-        headline: ['Plus Jakarta Sans', 'sans-serif'],
-        display: ['Plus Jakarta Sans', 'sans-serif'],
-        body: ['Public Sans', 'sans-serif'],
-        label: ['Plus Jakarta Sans', 'sans-serif'],
+        headline: ['Plus Jakarta Sans', 'sans-serif'],   // untuk judul besar (heading)
+        display: ['Public Sans', 'sans-serif'],          // untuk subjudul atau teks display
+        body: ['Plus Jakarta Sans', 'sans-serif'],       // untuk paragraf, konten umum
+        label: ['Plus Jakarta Sans', 'sans-serif'],      // untuk label form, tombol kecil
       },
       borderRadius: {
         '2xl': '1rem',      
@@ -79,15 +79,23 @@ module.exports = {
         'deep-3d': '0 20px 50px -12px rgba(129, 81, 82, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.6)',
         'active-inset': 'inset 2px 2px 4px rgba(0, 0, 0, 0.05), inset -2px -2px 4px rgba(255, 255, 255, 0.8)',
         'silk': '0 20px 40px -10px rgba(129, 81, 82, 0.1)',
+        'diamond': '0 8px 32px 0 rgba(129, 81, 82, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.4)',
+        'floating': '0 12px 24px -6px rgba(129, 81, 82, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.2)',
+        'floating-hover': '0 20px 32px -8px rgba(129, 81, 82, 0.5)',
+        'high-gloss': 'inset 0 2px 4px rgba(255, 255, 255, 0.8), 0 4px 12px rgba(129, 81, 82, 0.03)',
+        'high-gloss-focus': 'inset 0 2px 4px rgba(255, 255, 255, 0.9), 0 8px 20px rgba(129, 81, 82, 0.08)',
       },
       backgroundImage: {
         'cta-gradient': 'linear-gradient(135deg, #815152 0%, #623738 100%)',
         'shimmer': 'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0) 100%)',
+        'floating-gradient': 'linear-gradient(135deg, #815152 0%, #663a3b 100%)',
+        'silk-gradient': 'linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.4))',
       },
       animation: {
         gradient: 'gradient 3s linear infinite',
         'pulse-radiance': 'pulse-radiance 4s infinite ease-in-out',
         'shimmer': 'shimmer 2s infinite',
+        'float': 'float 3s ease-in-out infinite',
       },
       keyframes: {
         gradient: {
@@ -99,10 +107,13 @@ module.exports = {
           '0%, 100%': { boxShadow: '0 0 40px rgba(220, 161, 161, 0.15), 0 30px 60px -12px rgba(129, 81, 82, 0.2)' },
           '50%': { boxShadow: '0 0 60px rgba(220, 161, 161, 0.3), 0 35px 70px -10px rgba(129, 81, 82, 0.3)' },
         },
-        // PERBAIKAN: animasi shimmer
         shimmer: {
           '0%': { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-5px)' },
         },
       },
     },

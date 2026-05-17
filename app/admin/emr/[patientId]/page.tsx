@@ -34,37 +34,43 @@ export default function EMREditPage() {
   if (!patient) return <div className="p-8 text-center">Pasien tidak ditemukan</div>
 
   return (
-    <div className="w-full max-w-full px-4 sm:px-6 md:px-8 py-6 md:py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-on-surface tracking-tight">
-          EMR - {patient.name}
-        </h1>
-        <p className="text-sm text-on-surface-variant mt-1">
-          Kelola rekam medis elektronik pasien
-        </p>
-      </div>
+    <div className="bg-surface min-h-screen font-body text-on-surface">
+      <main className="p-6 md:p-10 lg:p-12">
+        {/* Header dengan efek 3D sederhana */}
+        <div className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-headline font-bold text-primary tracking-tight drop-shadow-sm">
+            EMR - {patient.name}
+          </h1>
+          <p className="text-on-surface-variant mt-2 font-medium">
+            Kelola rekam medis elektronik pasien dengan presisi
+          </p>
+        </div>
 
-      {/* Form EMR - tanpa pembatas apapun */}
-      <div className="w-full">
-        <EMRForm 
-          patientId={Number(patientId)} 
-          onSuccess={() => toast.success('EMR berhasil disimpan')}
-          onHistoryClick={() => setHistoryOpen(true)}
-        />
-      </div>
+        {/* Kontainer Form dengan efek bayangan 3D */}
+        <div className="rounded-3xl bg-white/50 backdrop-blur-sm border border-white/60 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.1),0_1px_2px_rgba(255,255,255,0.8)_inset] p-6 md:p-8 transition-all duration-300 hover:shadow-[0_30px_50px_-15px_rgba(0,0,0,0.15)]">
+          <EMRForm 
+            patientId={Number(patientId)} 
+            onSuccess={() => toast.success('EMR berhasil disimpan')}
+            onHistoryClick={() => setHistoryOpen(true)}
+          />
+        </div>
 
-      {/* Modal Riwayat */}
-      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
-        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto w-[calc(100%-2rem)] mx-auto rounded-2xl p-4 md:p-6">
-          <DialogHeader>
-            <DialogTitle className="text-lg md:text-xl font-bold">
-              Riwayat Kunjungan - {patient.name}
-            </DialogTitle>
-          </DialogHeader>
-          <EMRHistory patientId={Number(patientId)} />
-        </DialogContent>
-      </Dialog>
+        {/* Modal Riwayat dengan efek 3D */}
+        <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+          <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto w-[calc(100%-2rem)] mx-auto rounded-2xl p-0 border-0 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] bg-white/95 backdrop-blur-md">
+            <div className="sticky top-0 bg-white/90 backdrop-blur-sm border-b border-white/50 p-5 rounded-t-2xl z-10">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-headline font-bold text-primary">
+                  Riwayat Kunjungan - {patient.name}
+                </DialogTitle>
+              </DialogHeader>
+            </div>
+            <div className="p-5">
+              <EMRHistory patientId={Number(patientId)} />
+            </div>
+          </DialogContent>
+        </Dialog>
+      </main>
     </div>
   )
 }

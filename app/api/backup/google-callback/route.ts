@@ -2,6 +2,28 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/middleware/auth'
 
+/**
+ * @openapi
+ * /api/backup/google-callback:
+ *   get:
+ *     summary: Callback OAuth Google Drive
+ *     description: Menerima kode otorisasi dari Google, menukarnya dengan access token, dan menyimpan token ke database pengguna.
+ *     tags: [Backup]
+ *     parameters:
+ *       - in: query
+ *         name: code
+ *         schema:
+ *           type: string
+ *         description: Kode otorisasi dari Google
+ *       - in: query
+ *         name: error
+ *         schema:
+ *           type: string
+ *         description: Pesan error jika ada
+ *     responses:
+ *       302:
+ *         description: Redirect ke halaman backup dengan status
+ */
 export async function GET(request: Request) {
   const url = new URL(request.url)
   const code = url.searchParams.get('code')

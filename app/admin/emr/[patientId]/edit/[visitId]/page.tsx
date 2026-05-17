@@ -63,44 +63,62 @@ export default function EditEMRPage() {
     fetchData()
   }, [patientId, visitId, router])
 
-  if (loading) return <div className="p-8 text-center">Memuat data kunjungan...</div>
-  if (!visit) return <div className="p-8 text-center">Data tidak ditemukan</div>
+  if (loading) return (
+    <div className="bg-surface min-h-screen flex items-center justify-center">
+      <div className="text-center text-on-surface-variant">Memuat data kunjungan...</div>
+    </div>
+  )
+  if (!visit) return (
+    <div className="bg-surface min-h-screen flex items-center justify-center">
+      <div className="text-center text-on-surface-variant">Data tidak ditemukan</div>
+    </div>
+  )
 
   return (
-    <div className="w-full max-w-full px-4 sm:px-6 md:px-8 py-6 md:py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-on-surface tracking-tight">
-          Edit EMR - {patientName}
-        </h1>
-        <p className="text-sm text-on-surface-variant mt-1">
-          {visit.followUpDate 
-            ? `Kunjungan ${new Date(visit.followUpDate).toLocaleDateString('id-ID')}`
-            : 'Perbarui rekam medis pasien'}
-        </p>
-      </div>
+    <div className="bg-surface font-body text-on-surface antialiased min-h-screen">
+      <main className="p-8 lg:p-12">
+        {/* Header */}
+        <header className="flex justify-between items-end mb-12">
+          <div>
+            <h2 className="text-4xl font-headline font-bold text-primary tracking-tight">
+              Edit EMR - {patientName}
+            </h2>
+            <p className="text-on-surface-variant mt-2 font-medium opacity-70">
+              {visit.followUpDate 
+                ? `Perbarui catatan kunjungan tanggal ${new Date(visit.followUpDate).toLocaleDateString('id-ID')}`
+                : 'Perbarui rekam medis pasien dengan presisi'}
+            </p>
+          </div>
+        </header>
 
-      {/* Form EMR edit */}
-      <div className="w-full">
-        <EMRForm
-          patientId={Number(patientId)}
-          initialData={{
-            queueId: visit.queueId,
-            keluhanUtama: visit.keluhanUtama || '',
-            diagnosa: visit.diagnosa,
-            tindakan: visit.tindakan,
-            resepObat: visit.resepObat || '',
-            catatanTambahan: visit.catatanTambahan || '',
-            dokterPenanggungJawab: visit.dokterPenanggungJawab,
-            followUpDate: visit.followUpDate ? visit.followUpDate.split('T')[0] : '',
-          }}
-          visitId={visit.id}
-          onSuccess={() => {
-            toast.success('EMR berhasil diperbarui')
-            router.push(`/admin/emr/${patientId}`)
-          }}
-        />
-      </div>
+        {/* Form EMR edit - menggunakan diamond-glass di dalam EMRForm */}
+        <div className="bg-surface-container-lowest rounded-[2rem] shadow-ambient overflow-hidden border border-white/20 p-6 md:p-8">
+          <EMRForm
+            patientId={Number(patientId)}
+            initialData={{
+              queueId: visit.queueId,
+              keluhanUtama: visit.keluhanUtama || '',
+              diagnosa: visit.diagnosa,
+              tindakan: visit.tindakan,
+              resepObat: visit.resepObat || '',
+              catatanTambahan: visit.catatanTambahan || '',
+              dokterPenanggungJawab: visit.dokterPenanggungJawab,
+              followUpDate: visit.followUpDate ? visit.followUpDate.split('T')[0] : '',
+            }}
+            visitId={visit.id}
+            onSuccess={() => {
+              toast.success('EMR berhasil diperbarui')
+              router.push(`/admin/emr/${patientId}`)
+            }}
+          />
+        </div>
+
+        <footer className="mt-12 text-center">
+          <p className="text-xs font-label text-on-surface-variant opacity-50">
+            © 2025 Salsa Dental Portal. Secured with AES-256 Clinical Grade Encryption.
+          </p>
+        </footer>
+      </main>
     </div>
   )
 }

@@ -2,6 +2,37 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/middleware/auth'
 
+/**
+ * @openapi
+ * /api/dashboard:
+ *   get:
+ *     summary: Mendapatkan data KPI dashboard
+ *     description: Mengembalikan jumlah pasien hari ini, total pendapatan hari ini, dan jumlah antrian aktif.
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Data berhasil diambil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     todayPatients:
+ *                       type: integer
+ *                     todayRevenue:
+ *                       type: number
+ *                     activeQueues:
+ *                       type: integer
+ *       401:
+ *         description: Token admin tidak valid atau tidak ada
+ */
 export async function GET(request: Request) {
   const auth = await verifyAdminToken(request)
   if (!auth.valid) {
@@ -13,7 +44,6 @@ export async function GET(request: Request) {
   const tomorrow = new Date(today)
   tomorrow.setDate(tomorrow.getDate() + 1)
 
-  // 1. Jumlah pasien hari ini (berdasarkan queue.date, sama dengan halaman antrian)
   const todayPatients = await prisma.queue.count({
     where: {
       date: {
@@ -23,7 +53,6 @@ export async function GET(request: Request) {
     },
   })
 
-  // 2. Total revenue hari ini (dari transaksi confirmed dengan confirmedAt hari ini)
   const revenueResult = await prisma.transaction.aggregate({
     where: {
       status: 'CONFIRMED',
@@ -38,7 +67,6 @@ export async function GET(request: Request) {
   })
   const todayRevenue = revenueResult._sum.amount || 0
 
-  // 3. Jumlah antrian aktif (WAITING atau CALLED)
   const activeQueues = await prisma.queue.count({
     where: {
       status: {
@@ -47,7 +75,6 @@ export async function GET(request: Request) {
     },
   })
 
-  // Log untuk debugging (bisa dilihat di terminal)
   console.log('[Dashboard] todayPatients:', todayPatients)
   console.log('[Dashboard] todayRevenue:', todayRevenue)
   console.log('[Dashboard] activeQueues:', activeQueues)

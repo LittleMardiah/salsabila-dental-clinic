@@ -2,14 +2,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { toast } from 'sonner'
 
 interface Patient {
@@ -70,188 +62,178 @@ export default function EMRPatientListPage() {
   const formatQueueNumber = (num: number) => `A-${num.toString().padStart(2, '0')}`
 
   return (
-    <div className="p-3 md:p-8 lg:p-12">
-      {/* Header */}
-      <div className="mb-6 md:mb-12">
-        <h2 className="text-xl md:text-4xl font-bold text-on-surface tracking-tight font-headline">Pilih Pasien untuk EMR</h2>
-        <p className="text-xs md:text-lg text-on-surface-variant/80">Cari dan kelola rekam medis elektronik pasien dengan presisi.</p>
-      </div>
-
-      {/* Search Bar */}
-      <div className="mb-6 md:mb-10 max-w-2xl">
-        <div className="relative group">
-          <span className="material-symbols-outlined absolute left-3 md:left-5 top-1/2 -translate-y-1/2 text-outline-variant text-base md:text-2xl">search</span>
-          <Input
-            placeholder="Cari nama atau no HP..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full inset-search-3d border-0 rounded-xl md:rounded-3xl pl-9 md:pl-14 pr-3 md:pr-8 py-2 md:py-5 text-sm md:text-base focus:ring-0 focus:outline-none transition-all placeholder:text-outline-variant/60 font-medium text-on-surface"
-          />
-        </div>
-      </div>
-
-      {/* Pearl Glass Table Section */}
-      <section className="rounded-xl md:rounded-[2.5rem] p-3 md:p-10 pearl-glass-table">
-        <div className="overflow-x-auto">
-          <Table className="min-w-[640px] md:min-w-full w-full text-left border-collapse">
-            <TableHeader>
-              <TableRow className="border-b border-surface-container-high/50">
-                <TableHead className="pb-4 md:pb-8 pt-2 px-3 md:px-6 text-[9px] md:text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/60 font-bold font-headline">No</TableHead>
-                <TableHead className="pb-4 md:pb-8 pt-2 px-3 md:px-6 text-[9px] md:text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/60 font-bold font-headline">Nama Lengkap</TableHead>
-                <TableHead className="pb-4 md:pb-8 pt-2 px-3 md:px-6 text-[9px] md:text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/60 font-bold font-headline">No. HP</TableHead>
-                <TableHead className="pb-4 md:pb-8 pt-2 px-3 md:px-6 text-[9px] md:text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/60 font-bold font-headline">Email</TableHead>
-                <TableHead className="pb-4 md:pb-8 pt-2 px-3 md:px-6 text-right text-[9px] md:text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/60 font-bold font-headline">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody className="divide-y divide-surface-container/20">
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 md:py-12">Memuat data...</TableCell>
-                </TableRow>
-              ) : patients.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 md:py-12">Tidak ada pasien ditemukan</TableCell>
-                </TableRow>
-              ) : (
-                patients.map((patient, index) => {
-                  const queueNumber = (pagination.page - 1) * pagination.limit + index + 1
-                  return (
-                    <TableRow key={patient.id} className="group transition-all duration-300 hover:bg-white/40">
-                      <TableCell className="py-4 md:py-7 px-3 md:px-6">
-                        <span className="bg-surface-container/60 border border-surface-container p-1.5 md:p-2 px-2 md:px-3.5 rounded-lg md:rounded-xl text-primary font-bold text-[10px] md:text-xs shadow-sm">{formatQueueNumber(queueNumber)}</span>
-                      </TableCell>
-                      <TableCell className="py-4 md:py-7 px-3 md:px-6">
-                        <div className="flex items-center gap-2 md:gap-4">
-                          <div className="w-8 h-8 md:w-11 md:h-11 rounded-full bg-primary-fixed border border-white flex items-center justify-center text-primary font-bold shadow-sm uppercase text-xs md:text-base">
-                            {patient.name.charAt(0)}
-                          </div>
-                          <span className="font-bold text-on-surface text-xs md:text-[15px]">{patient.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-4 md:py-7 px-3 md:px-6 text-on-surface-variant font-medium text-xs md:text-base">{patient.phone || '-'}</TableCell>
-                      <TableCell className="py-4 md:py-7 px-3 md:px-6 text-on-surface-variant font-medium text-xs md:text-base">{patient.email || '-'}</TableCell>
-                      <TableCell className="py-4 md:py-7 px-3 md:px-6 text-right">
-                        <button
-                          onClick={() => router.push(`/admin/emr/${patient.id}`)}
-                          className="cta-3d-pill text-white px-3 md:px-7 py-1.5 md:py-3 rounded-full font-bold text-[10px] md:text-sm inline-flex items-center gap-1 md:gap-2.5 soft-rim-light font-headline"
-                        >
-                          <span className="material-symbols-outlined text-sm md:text-[20px]">history_edu</span>
-                          <span className="hidden sm:inline">Kelola EMR</span>
-                          <span className="sm:hidden">EMR</span>
-                        </button>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })
-              )}
-            </TableBody>
-          </Table>
-        </div>
-
-        {/* Pagination Section */}
-        {!loading && pagination.totalPages > 0 && (
-          <div className="mt-6 md:mt-12 pt-6 md:pt-10 border-t border-surface-container-high/50 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-xs md:text-sm text-on-surface-variant/80 font-medium italic text-center sm:text-left">
-              Menampilkan {patients.length > 0 ? ((pagination.page - 1) * pagination.limit + 1) : 0} -{' '}
-              {((pagination.page - 1) * pagination.limit + patients.length)} dari {pagination.total} pasien
+    <div className="bg-surface font-body text-on-surface antialiased min-h-screen">
+      <main className="p-8 lg:p-12">
+        {/* Header */}
+        <header className="flex justify-between items-end mb-12">
+          <div>
+            <h2 className="text-4xl font-headline font-bold text-primary tracking-tight">
+              Pilih Pasien untuk EMR
+            </h2>
+            <p className="text-on-surface-variant mt-2 font-medium opacity-70">
+              Cari dan kelola rekam medis elektronik pasien dengan presisi.
             </p>
-            <div className="flex gap-1 md:gap-2">
-              <button
-                onClick={() => handlePageChange(pagination.page - 1)}
-                disabled={pagination.page === 1}
-                className="w-8 h-8 md:w-11 md:h-11 flex items-center justify-center rounded-lg md:rounded-2xl bg-white/60 border border-white/80 text-on-surface transition-all hover:bg-primary-container/20 hover:text-primary shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <span className="material-symbols-outlined text-sm md:text-2xl">chevron_left</span>
-              </button>
-              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                let pageNum = i + 1
-                if (pagination.totalPages > 5) {
-                  if (pagination.page <= 3) pageNum = i + 1
-                  else if (pagination.page >= pagination.totalPages - 2) pageNum = pagination.totalPages - 4 + i
-                  else pageNum = pagination.page - 2 + i
-                }
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => handlePageChange(pageNum)}
-                    className={`w-8 h-8 md:w-11 md:h-11 flex items-center justify-center rounded-lg md:rounded-2xl transition-all text-xs md:text-base ${
-                      pagination.page === pageNum
-                        ? 'bg-[#815152] text-white font-bold shadow-lg shadow-primary/20'
-                        : 'bg-white/60 border border-white/80 text-on-surface hover:bg-primary-container/20 shadow-sm'
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                )
-              })}
-              <button
-                onClick={() => handlePageChange(pagination.page + 1)}
-                disabled={pagination.page === pagination.totalPages}
-                className="w-8 h-8 md:w-11 md:h-11 flex items-center justify-center rounded-lg md:rounded-2xl bg-white/60 border border-white/80 text-on-surface transition-all hover:bg-primary-container/20 hover:text-primary shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <span className="material-symbols-outlined text-sm md:text-2xl">chevron_right</span>
-              </button>
+          </div>
+        </header>
+
+        {/* Search Bar - glass-card style */}
+        <section className="glass-card rounded-[2rem] p-8 mb-12 border border-white/40 overflow-hidden relative">
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/5 rounded-full blur-3xl"></div>
+          <div className="relative">
+            <div className="relative group">
+              <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-primary/40 text-2xl">
+                search
+              </span>
+              <input
+                type="text"
+                placeholder="Cari nama atau nomor HP..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full h-14 bg-surface-container-low/50 border-none rounded-2xl pl-14 pr-5 font-body focus:ring-2 focus:ring-primary/20 transition-all text-sm outline-none placeholder:text-on-surface-variant/40"
+              />
             </div>
           </div>
-        )}
-      </section>
+        </section>
 
-      {/* Custom CSS - unchanged */}
-      <style jsx>{`
-        .inset-search-3d {
-          background: rgba(255, 255, 255, 0.4);
-          box-shadow: 
-            inset 2px 2px 6px rgba(129, 81, 82, 0.08),
-            inset -2px -2px 6px rgba(255, 255, 255, 0.8),
-            0 1px 0 rgba(255, 255, 255, 0.5);
-          border: 1px solid rgba(129, 81, 82, 0.05);
-        }
-        .pearl-glass-table {
-          background: rgba(255, 255, 255, 0.7);
-          backdrop-filter: blur(32px);
-          border: 1px solid rgba(255, 255, 255, 0.5);
-          box-shadow: 
-            0 20px 40px -10px rgba(129, 81, 82, 0.08),
-            0 1px 0 rgba(255, 255, 255, 0.8) inset,
-            0 0 0 1px rgba(220, 161, 161, 0.1);
-          position: relative;
-        }
-        .pearl-glass-table::before {
-          content: '';
-          position: absolute;
-          top: 0; left: 0; right: 0; bottom: 0;
-          border-radius: inherit;
-          padding: 1px;
-          background: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.3) 100%);
-          mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-          -webkit-mask-composite: xor;
-          mask-composite: exclude;
-          pointer-events: none;
-        }
-        .cta-3d-pill {
-          background: linear-gradient(145deg, #fceeee 0%, #DCA1A1 45%, #815152 100%);
-          box-shadow: 
-            0 6px 16px rgba(129, 81, 82, 0.15),
-            inset 0 1px 2px rgba(255, 255, 255, 0.6),
-            0 0 0 1px rgba(129, 81, 82, 0.05);
-          transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-        }
-        .cta-3d-pill:hover {
-          transform: translateY(-2px);
-          box-shadow: 
-            0 10px 24px rgba(129, 81, 82, 0.2),
-            inset 0 1px 2px rgba(255, 255, 255, 0.8);
-        }
-        .cta-3d-pill:active {
-          transform: translateY(1px);
-          box-shadow: 
-            0 2px 8px rgba(129, 81, 82, 0.1),
-            inset 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .soft-rim-light {
-          box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6) inset, 0 12px 24px -10px rgba(129, 81, 82, 0.1);
-        }
-      `}</style>
+        {/* Tabel Pasien */}
+        <div className="bg-surface-container-lowest rounded-[2rem] shadow-ambient overflow-hidden border border-white/20">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-surface-container-low/40">
+                  <th className="px-8 py-6 font-headline text-primary text-xs font-extrabold uppercase tracking-widest">No</th>
+                  <th className="px-8 py-6 font-headline text-primary text-xs font-extrabold uppercase tracking-widest">Nama Lengkap</th>
+                  <th className="px-8 py-6 font-headline text-primary text-xs font-extrabold uppercase tracking-widest hidden sm:table-cell">No. HP</th>
+                  <th className="px-8 py-6 font-headline text-primary text-xs font-extrabold uppercase tracking-widest hidden md:table-cell">Email</th>
+                  <th className="px-8 py-6 font-headline text-primary text-xs font-extrabold uppercase tracking-widest text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/10">
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} className="px-8 py-12 text-center text-on-surface-variant">
+                      Memuat data...
+                    </td>
+                  </tr>
+                ) : patients.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-8 py-12 text-center text-on-surface-variant">
+                      Tidak ada pasien ditemukan
+                    </td>
+                  </tr>
+                ) : (
+                  patients.map((patient, index) => {
+                    const queueNumber = (pagination.page - 1) * pagination.limit + index + 1
+                    return (
+                      <tr key={patient.id} className="hover:bg-surface-container-low/30 transition-colors group">
+                        <td className="px-8 py-6">
+                          <span className="font-headline font-black text-base text-primary/80">
+                            {formatQueueNumber(queueNumber)}
+                          </span>
+                        </td>
+                        <td className="px-8 py-6">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center text-primary font-bold shadow-sm uppercase">
+                              {patient.name.charAt(0)}
+                            </div>
+                            <span className="font-body font-medium text-on-surface/90">{patient.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 hidden sm:table-cell font-body text-on-surface-variant/80">
+                          {patient.phone || '-'}
+                        </td>
+                        <td className="px-8 py-6 hidden md:table-cell font-body text-on-surface-variant/80">
+                          {patient.email || '-'}
+                        </td>
+                        <td className="px-8 py-6 text-right">
+                          <button
+                            onClick={() => router.push(`/admin/emr/${patient.id}`)}
+                            className="px-5 py-1.5 rounded-full border border-primary/70 text-primary/80 font-label text-xs font-bold hover:bg-primary/5 transition-all disabled:opacity-50"
+                          >
+                            Kelola EMR
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {!loading && pagination.totalPages > 1 && (
+            <div className="px-8 py-6 bg-surface-container-low/20 flex items-center justify-between border-t border-outline-variant/10 flex-wrap gap-4">
+              <p className="text-sm text-on-surface-variant font-medium">
+                Menampilkan{' '}
+                <span className="font-bold text-primary">
+                  {patients.length > 0 ? (pagination.page - 1) * pagination.limit + 1 : 0}
+                </span>{' '}
+                -{' '}
+                <span className="font-bold text-primary">
+                  {(pagination.page - 1) * pagination.limit + patients.length}
+                </span>{' '}
+                dari <span className="font-bold text-primary">{pagination.total}</span> pasien
+              </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={pagination.page === 1}
+                  className="w-10 h-10 rounded-xl bg-surface-container-lowest text-primary flex items-center justify-center shadow-sm hover:bg-primary hover:text-white transition-all disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  <span className="material-symbols-outlined">chevron_left</span>
+                </button>
+                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                  let pageNum = pagination.page
+                  if (pagination.totalPages <= 5) pageNum = i + 1
+                  else if (pagination.page <= 3) pageNum = i + 1
+                  else if (pagination.page >= pagination.totalPages - 2)
+                    pageNum = pagination.totalPages - 4 + i
+                  else pageNum = pagination.page - 2 + i
+                  if (pageNum < 1 || pageNum > pagination.totalPages) return null
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => handlePageChange(pageNum)}
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all ${
+                        pagination.page === pageNum
+                          ? 'bg-primary text-white shadow-md'
+                          : 'bg-surface-container-lowest text-primary shadow-sm hover:bg-primary-container'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  )
+                })}
+                {pagination.totalPages > 5 && pagination.page < pagination.totalPages - 2 && (
+                  <span className="px-2 text-primary/40">...</span>
+                )}
+                {pagination.totalPages > 5 && pagination.page < pagination.totalPages - 2 && (
+                  <button
+                    onClick={() => handlePageChange(pagination.totalPages)}
+                    className="w-10 h-10 rounded-xl bg-surface-container-lowest text-primary flex items-center justify-center shadow-sm hover:bg-primary-container transition-all font-bold text-sm"
+                  >
+                    {pagination.totalPages}
+                  </button>
+                )}
+                <button
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={pagination.page === pagination.totalPages}
+                  className="w-10 h-10 rounded-xl bg-surface-container-lowest text-primary flex items-center justify-center shadow-sm hover:bg-primary hover:text-white transition-all disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  <span className="material-symbols-outlined">chevron_right</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <footer className="mt-12 text-center">
+          <p className="text-xs font-label text-on-surface-variant opacity-50">
+            © 2025 Salsa Dental Portal. Secured with AES-256 Clinical Grade Encryption.
+          </p>
+        </footer>
+      </main>
     </div>
   )
 }

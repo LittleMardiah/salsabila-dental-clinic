@@ -10,6 +10,44 @@ const reconcileSchema = z.object({
   notes: z.string().optional(),
 })
 
+/**
+ * @openapi
+ * /api/finance/reconcile:
+ *   get:
+ *     summary: Mendapatkan daftar rekonsiliasi harian
+ *     tags: [Finance]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Nomor halaman
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Jumlah item per halaman
+ *     responses:
+ *       200:
+ *         description: Daftar rekonsiliasi berhasil diambil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/DailyReconciliation'
+ *                 pagination:
+ *                   type: object
+ *       401:
+ *         description: Tidak terautentikasi
+ */
 export async function GET(request: Request) {
   try {
     const auth = await verifyAdminToken(request)
@@ -45,6 +83,41 @@ export async function GET(request: Request) {
   }
 }
 
+/**
+ * @openapi
+ * /api/finance/reconcile:
+ *   post:
+ *     summary: Menyimpan rekonsiliasi harian
+ *     tags: [Finance]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - date
+ *               - totalRecorded
+ *             properties:
+ *               date:
+ *                 type: string
+ *                 format: date
+ *               totalRecorded:
+ *                 type: number
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Rekonsiliasi berhasil disimpan
+ *       400:
+ *         description: Input tidak valid
+ *       401:
+ *         description: Tidak terautentikasi
+ *       409:
+ *         description: Rekonsiliasi sudah ada untuk tanggal tersebut
+ */
 export async function POST(request: Request) {
   try {
     const auth = await verifyAdminToken(request)

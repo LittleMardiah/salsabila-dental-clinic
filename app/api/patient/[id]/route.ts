@@ -2,6 +2,35 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/ServerAuth'
 
+/**
+ * @openapi
+ * /api/patient/{id}:
+ *   get:
+ *     summary: Mendapatkan data pasien berdasarkan ID
+ *     tags: [Patient]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID pasien
+ *     responses:
+ *       200:
+ *         description: Data pasien berhasil diambil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Patient'
+ *       400:
+ *         description: ID tidak valid
+ *       401:
+ *         description: Tidak terautentikasi
+ *       404:
+ *         description: Pasien tidak ditemukan
+ */
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }

@@ -3,14 +3,41 @@ import { RateLimit } from '@/lib/middleware/RateLimiter'
 import { z } from 'zod'
 import bcrypt from 'bcrypt'
 
-// Schema validasi input
 const verifyCodeSchema = z.object({
   code: z.string().length(8, { message: 'Kode harus 8 digit' })
 })
 
+/**
+ * @openapi
+ * /api/auth/admin/verify-code:
+ *   post:
+ *     summary: Verifikasi kode 8 digit (lapis 1 login admin)
+ *     description: Memverifikasi kode akses admin yang disimpan di .env. Jika benar, cookie `admin_code_verified` akan diset selama 5 menit.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - code
+ *             properties:
+ *               code:
+ *                 type: string
+ *                 length: 8
+ *                 example: "12345678"
+ *     responses:
+ *       200:
+ *         description: Kode valid, cookie diset
+ *       401:
+ *         description: Kode salah
+ *       429:
+ *         description: Terlalu banyak percobaan
+ *       400:
+ *         description: Input tidak valid
+ */
 export async function POST(request: NextRequest) {
   try {
-    // Parse dan validasi body
     const body = await request.json()
     const parsed = verifyCodeSchema.safeParse(body)
     const ip = request.headers.get('x-forwarded-for') || 'unknown'
@@ -41,7 +68,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Bandingkan kode (plain text atau hash)
     let isValid = false
     if (adminAccessCode.startsWith('$2b$')) {
       isValid = await bcrypt.compare(code, adminAccessCode)
@@ -56,7 +82,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Set cookie `admin_code_verified` (httpOnly, maxAge 300 detik = 5 menit)
     const response = NextResponse.json({
       success: true,
       message: 'Kode valid, silakan login'
@@ -66,7 +91,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 300, // 5 menit
+      maxAge: 300,
       path: '/',
     })
 

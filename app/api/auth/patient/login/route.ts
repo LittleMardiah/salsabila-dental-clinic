@@ -7,6 +7,48 @@ const patientLoginSchema = z.object({
   code: z.string().length(6),
 })
 
+/**
+ * @openapi
+ * /api/auth/patient/login:
+ *   post:
+ *     summary: Login pasien menggunakan kode 6 digit
+ *     description: Memverifikasi kode antrian yang diberikan admin, mengembalikan posisi dan total antrian, serta menyimpan cookie patient token.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - code
+ *             properties:
+ *               code:
+ *                 type: string
+ *                 length: 6
+ *                 example: "A3F9K2"
+ *     responses:
+ *       200:
+ *         description: Login berhasil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 queue_position:
+ *                   type: integer
+ *                 total_queue:
+ *                   type: integer
+ *                 queue_id:
+ *                   type: integer
+ *       400:
+ *         description: Format kode salah
+ *       404:
+ *         description: Kode tidak valid atau sudah kadaluarsa
+ *       500:
+ *         description: Server error
+ */
 export async function POST(request: Request) {
   let body
   try {
@@ -20,7 +62,6 @@ export async function POST(request: Request) {
   }
   const { code } = parsed.data
 
-  // Cari queue dengan patientCode, belum expired, status WAITING atau CALLED
   const queue = await prisma.queue.findFirst({
     where: {
       patientCode: code,
@@ -32,7 +73,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: 'Invalid or expired code' }, { status: 404 })
   }
 
-  // Hitung posisi
   const waitingCount = await prisma.queue.count({
     where: {
       date: queue.date,

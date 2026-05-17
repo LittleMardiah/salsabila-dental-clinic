@@ -1,3 +1,4 @@
+// app/api/cron/followup/route.ts
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Resend } from 'resend'
@@ -5,8 +6,42 @@ import { addAuditLog } from '@/lib/services/audit.service'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+/**
+ * @openapi
+ * /api/cron/followup:
+ *   get:
+ *     summary: Kirim email follow-up otomatis (cron job)
+ *     description: Dipanggil oleh cron-job.org setiap hari. Mengirim email pengingat H-1 kepada pasien yang memiliki jadwal follow-up besok.
+ *     tags: [Cron]
+ *     parameters:
+ *       - in: query
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Token rahasia untuk otorisasi cron (CRON_SECRET_TOKEN)
+ *     responses:
+ *       200:
+ *         description: Proses pengiriman selesai
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 sent:
+ *                   type: integer
+ *                 failed:
+ *                   type: integer
+ *                 errors:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *       401:
+ *         description: Token tidak valid
+ */
 export async function GET(request: Request) {
-  // Validasi token dari query parameter
   const url = new URL(request.url)
   const token = url.searchParams.get('token')
   
@@ -18,13 +53,11 @@ export async function GET(request: Request) {
     )
   }
 
-  // Tentukan tanggal besok (H+1)
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const tomorrow = new Date(today)
   tomorrow.setDate(tomorrow.getDate() + 1)
 
-  // Cari MedicalVisit dengan followUpDate = besok
   const visits = await prisma.medicalVisit.findMany({
     where: {
       followUpDate: {
@@ -44,7 +77,6 @@ export async function GET(request: Request) {
   let failed = 0
   const errors: string[] = []
 
-  // Kirim email untuk setiap visit
   for (const visit of visits) {
     const patientEmail = visit.patient.email
     if (!patientEmail) {
@@ -97,7 +129,6 @@ export async function GET(request: Request) {
     }
   }
 
-  // Catat eksekusi cron ke Audit Log
   await addAuditLog(
     'system',                                   
     'CRON_FOLLOWUP',                            
@@ -107,7 +138,6 @@ export async function GET(request: Request) {
     request.headers.get('x-forwarded-for') || 'cron-job.org'
   ).catch(err => console.error('[CRON] Failed to write audit log:', err))
 
-  // Return response
   return NextResponse.json({
     success: true,
     message: 'Follow-up emails processed',

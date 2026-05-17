@@ -8,7 +8,6 @@ import { Menu, X } from 'lucide-react'
 
 // Daftar semua menu (default)
 const ALL_MENU_ITEMS = [
-  { href: '/admin/dashboard', label: 'Dashboard', icon: 'dashboard', key: 'Dashboard' },
   { href: '/admin/queue', label: 'Antrian', icon: 'groups', key: 'Queue' },
   { href: '/admin/emr', label: 'EMR', icon: 'clinical_notes', key: 'EMR' },
   { href: '/admin/finance', label: 'Keuangan', icon: 'payments', key: 'Finance' },

@@ -1,3 +1,4 @@
+// app/api/backup/local/route.ts
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/middleware/auth'
@@ -5,6 +6,28 @@ import archiver from 'archiver'
 import fs from 'fs'
 import path from 'path'
 
+/**
+ * @openapi
+ * /api/backup/local:
+ *   get:
+ *     summary: Download backup lokal (ZIP)
+ *     description: Membuat file ZIP berisi seluruh database dan folder uploads, kemudian mengirimkannya sebagai file download.
+ *     tags: [Backup]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: File ZIP berisi backup
+ *         content:
+ *           application/zip:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       401:
+ *         description: Tidak terautentikasi
+ *       500:
+ *         description: Gagal membuat backup
+ */
 export async function GET(request: Request) {
   const auth = await verifyAdminToken(request)
   if (!auth.valid) {

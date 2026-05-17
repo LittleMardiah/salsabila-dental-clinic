@@ -86,6 +86,63 @@ async function compressImage(buffer: Buffer, mimetype: string): Promise<Buffer> 
   return buffer; 
 }
 
+/**
+ * @openapi
+ * /api/patient/{id}/emr:
+ *   post:
+ *     summary: Tambah atau update EMR pasien (kunjungan baru)
+ *     tags: [EMR]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID pasien
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - queueId
+ *               - diagnosa
+ *               - tindakan
+ *               - dokterPenanggungJawab
+ *             properties:
+ *               queueId:
+ *                 type: integer
+ *               keluhanUtama:
+ *                 type: string
+ *               diagnosa:
+ *                 type: string
+ *               tindakan:
+ *                 type: string
+ *               resepObat:
+ *                 type: string
+ *               catatanTambahan:
+ *                 type: string
+ *               dokterPenanggungJawab:
+ *                 type: string
+ *               followUpDate:
+ *                 type: string
+ *                 format: date
+ *               photos:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *     responses:
+ *       201:
+ *         description: EMR berhasil disimpan
+ *       400:
+ *         description: Input tidak valid
+ *       401:
+ *         description: Tidak terautentikasi
+ */
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -210,7 +267,38 @@ export async function POST(
   }, { status: 201 });
 }
 
-// GET: Histori EMR
+/**
+ * @openapi
+ * /api/patient/{id}/emr:
+ *   get:
+ *     summary: Mendapatkan histori EMR pasien
+ *     tags: [EMR]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID pasien
+ *     responses:
+ *       200:
+ *         description: Histori EMR berhasil diambil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/MedicalVisit'
+ *       401:
+ *         description: Tidak terautentikasi
+ */
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -279,6 +367,72 @@ async function deletePhysicalFile(fileUrl: string) {
   }
 }
 
+/**
+ * @openapi
+ * /api/patient/{id}/emr:
+ *   put:
+ *     summary: Mengupdate EMR yang sudah ada (beserta foto)
+ *     tags: [EMR]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID pasien
+ *       - in: query
+ *         name: visitId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID kunjungan yang akan diupdate
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - queueId
+ *               - diagnosa
+ *               - tindakan
+ *               - dokterPenanggungJawab
+ *             properties:
+ *               queueId:
+ *                 type: integer
+ *               keluhanUtama:
+ *                 type: string
+ *               diagnosa:
+ *                 type: string
+ *               tindakan:
+ *                 type: string
+ *               resepObat:
+ *                 type: string
+ *               catatanTambahan:
+ *                 type: string
+ *               dokterPenanggungJawab:
+ *                 type: string
+ *               followUpDate:
+ *                 type: string
+ *                 format: date
+ *               deletePhotoIds:
+ *                 type: string
+ *                 description: ID foto yang akan dihapus, dipisahkan koma
+ *               photos:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *     responses:
+ *       200:
+ *         description: EMR berhasil diupdate
+ *       400:
+ *         description: Input tidak valid
+ *       401:
+ *         description: Tidak terautentikasi
+ */
 export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }

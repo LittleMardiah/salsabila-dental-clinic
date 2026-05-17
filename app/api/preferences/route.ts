@@ -7,6 +7,31 @@ const preferenceSchema = z.object({
   hiddenMenus: z.array(z.string()),
 })
 
+/**
+ * @openapi
+ * /api/preferences:
+ *   get:
+ *     summary: Mendapatkan preferensi admin (menu yang disembunyikan)
+ *     tags: [Preferences]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Preferensi berhasil diambil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 hiddenMenus:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *       401:
+ *         description: Tidak terautentikasi
+ */
 export async function GET(request: Request) {
   const auth = await verifyAdminToken(request)
   if (!auth.valid) {
@@ -37,6 +62,35 @@ export async function GET(request: Request) {
   })
 }
 
+/**
+ * @openapi
+ * /api/preferences:
+ *   post:
+ *     summary: Menyimpan preferensi admin (menu yang disembunyikan)
+ *     tags: [Preferences]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - hiddenMenus
+ *             properties:
+ *               hiddenMenus:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Preferensi berhasil disimpan
+ *       400:
+ *         description: Input tidak valid
+ *       401:
+ *         description: Tidak terautentikasi
+ */
 export async function POST(request: Request) {
   const auth = await verifyAdminToken(request)
   if (!auth.valid) {

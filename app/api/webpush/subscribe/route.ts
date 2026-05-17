@@ -2,6 +2,44 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyPatientToken } from '@/lib/middleware/auth'
 
+/**
+ * @openapi
+ * /api/webpush/subscribe:
+ *   post:
+ *     summary: Menyimpan subscription endpoint browser untuk web push
+ *     tags: [WebPush]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - subscription
+ *             properties:
+ *               subscription:
+ *                 type: object
+ *                 properties:
+ *                   endpoint:
+ *                     type: string
+ *                   keys:
+ *                     type: object
+ *                     properties:
+ *                       p256dh:
+ *                         type: string
+ *                       auth:
+ *                         type: string
+ *     responses:
+ *       200:
+ *         description: Subscription berhasil disimpan
+ *       400:
+ *         description: Data tidak valid
+ *       401:
+ *         description: Token pasien tidak valid
+ */
+
 export async function POST(request: Request) {
   // Verifikasi patient token
   const authResult = await verifyPatientToken(request)

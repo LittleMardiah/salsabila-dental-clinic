@@ -1,3 +1,4 @@
+// app/admin/finance/page.tsx
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
@@ -162,128 +163,136 @@ export default function FinancePage() {
   }
 
   return (
-    <div className="p-3 sm:p-4 md:p-6 lg:p-8 min-h-screen">
-      <h2 className="font-display font-bold text-xl sm:text-2xl md:text-3xl tracking-tight text-on-surface mb-4 sm:mb-6 md:mb-8">Keuangan</h2>
-
-      {/* Stats Cards - sudah responsif */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-8 mb-6 sm:mb-8 md:mb-12">
-        <div className="bg-white/60 backdrop-blur-sm rounded-2xl sm:rounded-[2rem] md:rounded-[2.5rem] p-4 sm:p-6 md:p-8 border border-white/50 shadow-soft-3d">
-          <div className="flex justify-between items-start mb-3 sm:mb-4 md:mb-6">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-white rounded-xl md:rounded-2xl shadow-sm flex items-center justify-center border border-primary/5">
-              <span className="material-symbols-outlined text-primary text-base sm:text-xl md:text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>account_balance_wallet</span>
-            </div>
-            <div className="bg-secondary/10 text-secondary text-[9px] sm:text-[10px] md:text-[11px] font-bold px-2 sm:px-3 py-1 rounded-lg border border-secondary/20">+12.5%</div>
+    <div className="bg-surface font-body text-on-surface antialiased min-h-screen">
+      <main className="p-8 lg:p-12">
+        {/* Header dengan tombol di kanan */}
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 mb-12">
+          <div>
+            <h2 className="text-4xl font-headline font-bold text-primary tracking-tight">
+              Keuangan
+            </h2>
+            <p className="text-on-surface-variant mt-2 font-medium opacity-70">
+              Kelola transaksi dan pendapatan klinik dengan presisi.
+            </p>
           </div>
-          <p className="text-on-surface-variant text-[9px] sm:text-[10px] md:text-[11px] font-bold uppercase tracking-wider mb-1 opacity-70">Total Pendapatan Hari Ini</p>
-          <h3 className="text-lg sm:text-2xl md:text-3xl font-display font-black text-on-surface tracking-tight">{formatCurrency(totalRevenue)}</h3>
-        </div>
-
-        <div className="bg-white/60 backdrop-blur-sm rounded-2xl sm:rounded-[2rem] md:rounded-[2.5rem] p-4 sm:p-6 md:p-8 border border-white/50 shadow-soft-3d">
-          <div className="flex justify-between items-start mb-3 sm:mb-4 md:mb-6">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-white rounded-xl md:rounded-2xl shadow-sm flex items-center justify-center border border-primary-container/5">
-              <span className="material-symbols-outlined text-primary-container text-base sm:text-xl md:text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>pending_actions</span>
-            </div>
-            <div className="bg-primary/10 text-primary text-[9px] sm:text-[10px] md:text-[11px] font-bold px-2 sm:px-3 py-1 rounded-lg border border-primary/20">{pendingTransactions.length} Tertunda</div>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={exportToExcel}
+              className="px-6 py-3 rounded-full border border-outline-variant/30 text-primary/80 font-label font-bold text-sm hover:bg-white/50 transition-all"
+            >
+              Ekspor Excel
+            </button>
+            <button
+              onClick={exportToPDF}
+              className="px-6 py-3 rounded-full border border-outline-variant/30 text-primary/80 font-label font-bold text-sm hover:bg-white/50 transition-all"
+            >
+              Ekspor PDF
+            </button>
+            <Link href="/admin/finance/reconcile">
+              <button className="px-8 py-3 rounded-full border-2 border-primary/30 bg-white/80 backdrop-blur-sm text-primary font-extrabold text-sm shadow-md flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-95 hover:bg-white hover:border-primary/50">
+                <span className="material-symbols-outlined text-lg text-primary">account_balance</span>
+                Rekonsiliasi Hari ini
+              </button>
+            </Link>
           </div>
-          <p className="text-on-surface-variant text-[9px] sm:text-[10px] md:text-[11px] font-bold uppercase tracking-wider mb-1 opacity-70">Pending Transaksi</p>
-          <h3 className="text-lg sm:text-2xl md:text-3xl font-display font-black text-on-surface tracking-tight">{formatCurrency(totalPending)}</h3>
-        </div>
+        </header>
 
-        <div className="bg-white/60 backdrop-blur-sm rounded-2xl sm:rounded-[2rem] md:rounded-[2.5rem] p-4 sm:p-6 md:p-8 border border-white/50 shadow-soft-3d">
-          <div className="flex justify-between items-start mb-3 sm:mb-4 md:mb-6">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-white rounded-xl md:rounded-2xl shadow-sm flex items-center justify-center border border-secondary/5">
-              <span className="material-symbols-outlined text-secondary text-base sm:text-xl md:text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+        {/* Statistik Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex justify-between items-start mb-4">
+              <div className="w-10 h-10 rounded-xl bg-white/60 flex items-center justify-center">
+                <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>account_balance_wallet</span>
+              </div>
+              <span className="text-secondary text-xs font-bold bg-secondary/10 px-2 py-1 rounded-full">+12.5%</span>
             </div>
-            <div className="bg-surface-variant/50 text-on-surface-variant text-[9px] sm:text-[10px] md:text-[11px] font-bold px-2 sm:px-3 py-1 rounded-lg border border-outline-variant/30">{confirmedTransactions.length} Sukses</div>
+            <p className="text-on-surface-variant text-xs font-label font-bold uppercase tracking-wider mb-1">Total Pendapatan Hari Ini</p>
+            <h3 className="font-headline text-3xl font-extrabold text-primary/80">{formatCurrency(totalRevenue)}</h3>
           </div>
-          <p className="text-on-surface-variant text-[9px] sm:text-[10px] md:text-[11px] font-bold uppercase tracking-wider mb-1 opacity-70">Confirmed Transaksi</p>
-          <h3 className="text-lg sm:text-2xl md:text-3xl font-display font-black text-on-surface tracking-tight">{formatCurrency(totalRevenue)}</h3>
-        </div>
-      </div>
-
-      {/* Export & Reconcile Buttons Row - responsif */}
-      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4 mb-5 sm:mb-6">
-        <div className="flex gap-2 flex-wrap justify-center sm:justify-start">
-          <button onClick={exportToExcel} className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 sm:px-4 sm:py-2 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shadow-md transition-all">Ekspor Excel</button>
-          <button onClick={exportToPDF} className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 sm:px-4 sm:py-2 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shadow-md transition-all">Ekspor PDF</button>
-        </div>
-        <Link href="/admin/finance/reconcile" className="w-full sm:w-auto">
-          <button className="bg-gradient-to-r from-[#dca1a1] to-[#9e6465] text-white px-4 py-2 sm:px-6 sm:py-2 rounded-2xl font-extrabold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md text-xs sm:text-sm w-full sm:w-auto">
-            <span className="material-symbols-outlined text-base sm:text-lg">account_balance</span>
-            Rekonsiliasi Hari ini
-          </button>
-        </Link>
-      </div>
-
-      {/* Main Table Card */}
-      <div className="bg-white/60 backdrop-blur-sm rounded-2xl sm:rounded-[2rem] md:rounded-[3rem] p-3 sm:p-4 md:p-6 border border-white/50 shadow-soft-3d">
-        <div className="flex items-center gap-2 mb-4 sm:mb-6 md:mb-8 bg-surface-container/30 w-fit p-1 rounded-xl sm:rounded-[1.5rem] border border-white/40">
-          <button
-            onClick={() => setActiveTab('pending')}
-            className={`px-4 sm:px-6 md:px-10 py-1.5 sm:py-2 md:py-3 rounded-[1rem] sm:rounded-[1.25rem] font-bold text-[10px] sm:text-xs md:text-sm flex items-center gap-1 sm:gap-2 transition-all ${
-              activeTab === 'pending'
-                ? 'bg-white text-[#663a3b] shadow-sm border border-primary/5'
-                : 'text-on-surface-variant/60 hover:text-primary hover:bg-white/50'
-            }`}
-          >
-            {activeTab === 'pending' && <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary-container animate-pulse"></span>}
-            Pending
-          </button>
-          <button
-            onClick={() => setActiveTab('confirmed')}
-            className={`px-4 sm:px-6 md:px-10 py-1.5 sm:py-2 md:py-3 rounded-[1rem] sm:rounded-[1.25rem] font-bold text-[10px] sm:text-xs md:text-sm transition-all ${
-              activeTab === 'confirmed'
-                ? 'bg-white text-[#663a3b] shadow-sm border border-primary/5'
-                : 'text-on-surface-variant/60 hover:text-primary hover:bg-white/50'
-            }`}
-          >
-            Confirmed
-          </button>
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex justify-between items-start mb-4">
+              <div className="w-10 h-10 rounded-xl bg-white/60 flex items-center justify-center">
+                <span className="material-symbols-outlined text-primary-container text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>pending_actions</span>
+              </div>
+              <span className="text-primary text-xs font-bold bg-primary/10 px-2 py-1 rounded-full">{pendingTransactions.length} Tertunda</span>
+            </div>
+            <p className="text-on-surface-variant text-xs font-label font-bold uppercase tracking-wider mb-1">Pending Transaksi</p>
+            <h3 className="font-headline text-3xl font-extrabold text-primary/80">{formatCurrency(totalPending)}</h3>
+          </div>
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex justify-between items-start mb-4">
+              <div className="w-10 h-10 rounded-xl bg-white/60 flex items-center justify-center">
+                <span className="material-symbols-outlined text-secondary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+              </div>
+              <span className="text-on-surface-variant text-xs font-bold bg-surface-variant/50 px-2 py-1 rounded-full">{confirmedTransactions.length} Sukses</span>
+            </div>
+            <p className="text-on-surface-variant text-xs font-label font-bold uppercase tracking-wider mb-1">Confirmed Transaksi</p>
+            <h3 className="font-headline text-3xl font-extrabold text-primary/80">{formatCurrency(totalRevenue)}</h3>
+          </div>
         </div>
 
-        <div className="bg-white/40 rounded-2xl overflow-hidden border border-white/60">
+        {/* Tabel Transaksi */}
+        <div className="bg-surface-container-lowest rounded-[2rem] shadow-ambient overflow-hidden border border-white/20">
+          <div className="flex items-center gap-2 p-4 border-b border-outline-variant/10 bg-surface-container-low/20">
+            <button
+              onClick={() => setActiveTab('pending')}
+              className={`px-6 py-2 rounded-full font-label font-bold text-sm transition-all ${
+                activeTab === 'pending'
+                  ? 'bg-primary text-white shadow-md'
+                  : 'text-on-surface-variant hover:bg-white/50'
+              }`}
+            >
+              Pending
+            </button>
+            <button
+              onClick={() => setActiveTab('confirmed')}
+              className={`px-6 py-2 rounded-full font-label font-bold text-sm transition-all ${
+                activeTab === 'confirmed'
+                  ? 'bg-primary text-white shadow-md'
+                  : 'text-on-surface-variant hover:bg-white/50'
+              }`}
+            >
+              Confirmed
+            </button>
+          </div>
           <div className="overflow-x-auto">
-            <table className="min-w-[640px] w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-white/30">
-                  <th className="py-3 sm:py-5 md:py-7 px-2 sm:px-4 md:px-6 lg:px-10 text-[9px] sm:text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-on-surface-variant/70">No Antrian</th>
-                  <th className="py-3 sm:py-5 md:py-7 px-2 sm:px-4 md:px-6 lg:px-10 text-[9px] sm:text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-on-surface-variant/70">Nama Pasien</th>
-                  <th className="py-3 sm:py-5 md:py-7 px-2 sm:px-4 md:px-6 lg:px-10 text-[9px] sm:text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-on-surface-variant/70 hidden sm:table-cell">Tanggal</th>
-                  <th className="py-3 sm:py-5 md:py-7 px-2 sm:px-4 md:px-6 lg:px-10 text-[9px] sm:text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-on-surface-variant/70">Total Tagihan</th>
-                  <th className="py-3 sm:py-5 md:py-7 px-2 sm:px-4 md:px-6 lg:px-10 text-[9px] sm:text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-on-surface-variant/70 text-right">Aksi</th>
+                <tr className="bg-surface-container-low/40">
+                  <th className="px-8 py-6 font-headline text-primary text-xs font-extrabold uppercase tracking-widest">No Antrian</th>
+                  <th className="px-8 py-6 font-headline text-primary text-xs font-extrabold uppercase tracking-widest">Nama Pasien</th>
+                  <th className="px-8 py-6 font-headline text-primary text-xs font-extrabold uppercase tracking-widest hidden sm:table-cell">Tanggal</th>
+                  <th className="px-8 py-6 font-headline text-primary text-xs font-extrabold uppercase tracking-widest">Total Tagihan</th>
+                  <th className="px-8 py-6 font-headline text-primary text-xs font-extrabold uppercase tracking-widest text-right">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/40">
+              <tbody className="divide-y divide-outline-variant/10">
                 {activeTab === 'pending' && pendingLoading && (
-                  <tr><td colSpan={5} className="text-center py-6 sm:py-8 md:py-10">Loading...</td></tr>
+                  <tr><td colSpan={5} className="px-8 py-12 text-center text-on-surface-variant">Memuat data...</td></tr>
                 )}
                 {activeTab === 'pending' && pendingTransactions.length === 0 && !pendingLoading && (
-                  <tr><td colSpan={5} className="text-center py-6 sm:py-8 md:py-10">Tidak ada transaksi pending</td></tr>
+                  <tr><td colSpan={5} className="px-8 py-12 text-center text-on-surface-variant">Tidak ada transaksi pending</td></tr>
                 )}
-                {activeTab === 'pending' && pendingTransactions.map((t: Transaction) => (
-                  <tr key={t.id} className="group hover:bg-white/60 transition-all duration-300">
-                    <td className="py-3 sm:py-5 md:py-6 px-2 sm:px-4 md:px-6 lg:px-10">
-                      <span className="font-display font-black text-on-surface/90 text-[10px] sm:text-xs md:text-sm tracking-tight bg-white px-2 sm:px-3 py-1 rounded-lg border border-primary/5 shadow-sm">
-                        #{t.queue.queueNumber.toString().padStart(3, '0')}
-                      </span>
+                {activeTab === 'pending' && pendingTransactions.map((t) => (
+                  <tr key={t.id} className="hover:bg-surface-container-low/30 transition-colors group">
+                    <td className="px-8 py-6 font-headline font-black text-base text-primary/80">
+                      #{t.queue.queueNumber.toString().padStart(3, '0')}
                     </td>
-                    <td className="py-3 sm:py-5 md:py-6 px-2 sm:px-4 md:px-6 lg:px-10">
-                      <div className="flex items-center gap-2 sm:gap-4">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-xl md:rounded-2xl bg-primary-fixed-dim/30 border border-primary-fixed flex items-center justify-center font-bold text-primary text-[10px] sm:text-xs shadow-sm">
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center text-primary font-bold uppercase">
                           {t.patient.name.charAt(0)}
                         </div>
-                        <div>
-                          <p className="font-bold text-on-surface text-xs sm:text-sm">{t.patient.name}</p>
-                        </div>
+                        <span className="font-body font-medium text-on-surface/90">{t.patient.name}</span>
                       </div>
                     </td>
-                    <td className="py-3 sm:py-5 md:py-6 px-2 sm:px-4 md:px-6 lg:px-10 text-xs sm:text-sm font-medium text-on-surface-variant/80 hidden sm:table-cell">
+                    <td className="px-8 py-6 hidden sm:table-cell font-body text-on-surface-variant/80">
                       {format(new Date(t.createdAt), 'dd MMM yyyy, HH:mm', { locale: id })}
                     </td>
-                    <td className="py-3 sm:py-5 md:py-6 px-2 sm:px-4 md:px-6 lg:px-10 text-xs sm:text-sm font-black text-[#663a3b]">
+                    <td className="px-8 py-6 font-body font-bold text-primary/90">
                       {t.amount ? formatCurrency(t.amount) : '-'}
                     </td>
-                    <td className="py-3 sm:py-5 md:py-6 px-2 sm:px-4 md:px-6 lg:px-10 text-right">
+                    <td className="px-8 py-6 text-right">
                       <button
                         onClick={() => {
                           setSelectedTransaction(t)
@@ -291,7 +300,7 @@ export default function FinancePage() {
                           setConfirmMethod(t.paymentMethod === 'TRANSFER' ? 'TRANSFER' : 'CASH')
                           setConfirmDialogOpen(true)
                         }}
-                        className="bg-[#fdf0f0] text-primary border border-primary/20 hover:bg-primary hover:text-white px-3 py-1.5 sm:px-4 sm:py-2 md:px-6 md:py-2.5 rounded-xl text-[10px] sm:text-xs md:text-xs font-bold transition-all duration-300 shadow-sm active:scale-95"
+                        className="px-5 py-1.5 rounded-full border border-primary/70 text-primary/80 font-label text-xs font-bold hover:bg-primary/5 transition-all"
                       >
                         Konfirmasi
                       </button>
@@ -299,36 +308,32 @@ export default function FinancePage() {
                   </tr>
                 ))}
                 {activeTab === 'confirmed' && confirmedLoading && (
-                  <tr><td colSpan={5} className="text-center py-6 sm:py-8 md:py-10">Loading...</td></tr>
+                  <tr><td colSpan={5} className="px-8 py-12 text-center text-on-surface-variant">Memuat data...</td></tr>
                 )}
                 {activeTab === 'confirmed' && confirmedTransactions.length === 0 && !confirmedLoading && (
-                  <tr><td colSpan={5} className="text-center py-6 sm:py-8 md:py-10">Tidak ada transaksi confirmed</td></tr>
+                  <tr><td colSpan={5} className="px-8 py-12 text-center text-on-surface-variant">Tidak ada transaksi confirmed</td></tr>
                 )}
-                {activeTab === 'confirmed' && confirmedTransactions.map((t: Transaction) => (
-                  <tr key={t.id} className="group hover:bg-white/60 transition-all duration-300">
-                    <td className="py-3 sm:py-5 md:py-6 px-2 sm:px-4 md:px-6 lg:px-10">
-                      <span className="font-display font-black text-on-surface/90 text-[10px] sm:text-xs md:text-sm tracking-tight bg-white px-2 sm:px-3 py-1 rounded-lg border border-primary/5 shadow-sm">
-                        #{t.queue.queueNumber.toString().padStart(3, '0')}
-                      </span>
+                {activeTab === 'confirmed' && confirmedTransactions.map((t) => (
+                  <tr key={t.id} className="hover:bg-surface-container-low/30 transition-colors group">
+                    <td className="px-8 py-6 font-headline font-black text-base text-primary/80">
+                      #{t.queue.queueNumber.toString().padStart(3, '0')}
                     </td>
-                    <td className="py-3 sm:py-5 md:py-6 px-2 sm:px-4 md:px-6 lg:px-10">
-                      <div className="flex items-center gap-2 sm:gap-4">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-xl md:rounded-2xl bg-secondary-container/20 border border-secondary/20 flex items-center justify-center font-bold text-secondary text-[10px] sm:text-xs shadow-sm">
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center text-primary font-bold uppercase">
                           {t.patient.name.charAt(0)}
                         </div>
-                        <div>
-                          <p className="font-bold text-on-surface text-xs sm:text-sm">{t.patient.name}</p>
-                        </div>
+                        <span className="font-body font-medium text-on-surface/90">{t.patient.name}</span>
                       </div>
                     </td>
-                    <td className="py-3 sm:py-5 md:py-6 px-2 sm:px-4 md:px-6 lg:px-10 text-xs sm:text-sm font-medium text-on-surface-variant/80 hidden sm:table-cell">
+                    <td className="px-8 py-6 hidden sm:table-cell font-body text-on-surface-variant/80">
                       {format(new Date(t.createdAt), 'dd MMM yyyy, HH:mm', { locale: id })}
                     </td>
-                    <td className="py-3 sm:py-5 md:py-6 px-2 sm:px-4 md:px-6 lg:px-10 text-xs sm:text-sm font-black text-[#663a3b]">
+                    <td className="px-8 py-6 font-body font-bold text-primary/90">
                       {t.amount ? formatCurrency(t.amount) : '-'}
                     </td>
-                    <td className="py-3 sm:py-5 md:py-6 px-2 sm:px-4 md:px-6 lg:px-10 text-right">
-                      <span className="text-secondary text-[10px] sm:text-xs font-bold">Confirmed</span>
+                    <td className="px-8 py-6 text-right">
+                      <span className="text-secondary font-label text-xs font-bold">Confirmed</span>
                     </td>
                   </tr>
                 ))}
@@ -336,29 +341,35 @@ export default function FinancePage() {
             </table>
           </div>
         </div>
-      </div>
 
-      {/* Dialog Konfirmasi - sudah responsif */}
+        <footer className="mt-12 text-center">
+          <p className="text-xs font-label text-on-surface-variant opacity-50">
+            © 2025 Salsa Dental Portal. Secured with AES-256 Clinical Grade Encryption.
+          </p>
+        </footer>
+      </main>
+
+      {/* Dialog Konfirmasi */}
       <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-        <DialogContent className="bg-white/95 backdrop-blur-md rounded-2xl sm:rounded-3xl max-w-[90%] sm:max-w-md">
+        <DialogContent className="diamond-glass rounded-3xl max-w-md p-6">
           <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg">Konfirmasi Pembayaran</DialogTitle>
+            <DialogTitle className="font-headline font-bold text-xl text-primary/80">Konfirmasi Pembayaran</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 sm:space-y-4">
+          <div className="space-y-4 mt-4">
             <div>
-              <Label className="text-xs sm:text-sm">Jumlah (Rp)</Label>
+              <Label className="font-label text-sm font-bold text-on-surface/80">Jumlah (Rp)</Label>
               <Input
                 type="number"
                 value={confirmAmount}
                 onChange={(e) => setConfirmAmount(e.target.value)}
                 placeholder="Masukkan jumlah"
-                className="text-sm"
+                className="high-gloss-input rounded-xl border-none"
               />
             </div>
             <div>
-              <Label className="text-xs sm:text-sm">Metode Pembayaran</Label>
+              <Label className="font-label text-sm font-bold text-on-surface/80">Metode Pembayaran</Label>
               <Select value={confirmMethod} onValueChange={(v: any) => setConfirmMethod(v)}>
-                <SelectTrigger className="text-sm">
+                <SelectTrigger className="high-gloss-input rounded-xl border-none">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -369,18 +380,22 @@ export default function FinancePage() {
             </div>
             {confirmMethod === 'TRANSFER' && (
               <div>
-                <Label className="text-xs sm:text-sm">Upload Bukti Transfer</Label>
+                <Label className="font-label text-sm font-bold text-on-surface/80">Upload Bukti Transfer</Label>
                 <Input
                   type="file"
                   accept="image/*,.pdf"
                   onChange={(e) => setProofFile(e.target.files?.[0] || null)}
-                  className="text-sm"
+                  className="high-gloss-input rounded-xl border-none"
                 />
               </div>
             )}
-            <Button onClick={handleConfirm} disabled={confirmMutation.isPending} className="w-full text-sm">
+            <button
+              onClick={handleConfirm}
+              disabled={confirmMutation.isPending}
+              className="floating-gradient-btn w-full py-3 rounded-full text-white font-headline font-bold text-sm transition-all disabled:opacity-50"
+            >
               {confirmMutation.isPending ? 'Memproses...' : 'Konfirmasi'}
-            </Button>
+            </button>
           </div>
         </DialogContent>
       </Dialog>

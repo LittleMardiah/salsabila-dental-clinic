@@ -2,6 +2,23 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyPatientToken } from '@/lib/middleware/auth'
 
+/**
+ * @openapi
+ * /api/queue/board:
+ *   get:
+ *     summary: Mendapatkan informasi papan antrian untuk pasien (posisi, antrian dipanggil, dll)
+ *     tags: [Patient]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Data papan antrian berhasil diambil
+ *       401:
+ *         description: Token pasien tidak valid
+ *       404:
+ *         description: Antrian tidak ditemukan
+ */
+
 export async function GET(request: Request) {
   const auth = await verifyPatientToken(request)
   if (!auth.valid) {

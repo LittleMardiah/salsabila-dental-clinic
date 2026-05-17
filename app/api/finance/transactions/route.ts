@@ -2,6 +2,51 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/middleware/auth'
 
+/**
+ * @openapi
+ * /api/finance/transactions:
+ *   get:
+ *     summary: Mendapatkan daftar transaksi keuangan
+ *     tags: [Finance]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter berdasarkan tanggal (YYYY-MM-DD)
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [PENDING, CONFIRMED]
+ *         description: Filter berdasarkan status transaksi
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Nomor halaman
+ *     responses:
+ *       200:
+ *         description: Daftar transaksi berhasil diambil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Transaction'
+ *                 pagination:
+ *                   type: object
+ *       401:
+ *         description: Tidak terautentikasi
+ */
 export async function GET(request: Request) {
   const auth = await verifyAdminToken(request)
   if (!auth.valid) {
