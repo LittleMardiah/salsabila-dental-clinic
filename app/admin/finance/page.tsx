@@ -2,25 +2,9 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
-import { id } from 'date-fns/locale'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { id as localeId } from 'date-fns/locale' // alias untuk menghindari konflik
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
@@ -41,12 +25,6 @@ interface Transaction {
 }
 
 export default function FinancePage() {
-  const queryClient = useQueryClient()
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
-  const [confirmAmount, setConfirmAmount] = useState('')
-  const [confirmMethod, setConfirmMethod] = useState<'CASH' | 'TRANSFER'>('CASH')
-  const [proofFile, setProofFile] = useState<File | null>(null)
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'pending' | 'confirmed'>('pending')
   const today = format(new Date(), 'yyyy-MM-dd')
 
@@ -67,45 +45,6 @@ export default function FinancePage() {
       return res.json()
     },
   })
-
-  const confirmMutation = useMutation({
-    mutationFn: async ({ id, amount, paymentMethod, proof }: { id: number; amount: number; paymentMethod: string; proof?: File }) => {
-      const formData = new FormData()
-      formData.append('amount', amount.toString())
-      formData.append('paymentMethod', paymentMethod)
-      if (proof) formData.append('proof', proof)
-      const res = await fetch(`/api/finance/transactions/${id}/confirm`, { method: 'POST', body: formData })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || 'Gagal konfirmasi')
-      }
-      return res.json()
-    },
-    onSuccess: () => {
-      toast.success('Transaksi berhasil dikonfirmasi')
-      queryClient.invalidateQueries({ queryKey: ['transactions'] })
-      setConfirmDialogOpen(false)
-      setSelectedTransaction(null)
-      setConfirmAmount('')
-      setProofFile(null)
-    },
-    onError: (error: Error) => toast.error(error.message),
-  })
-
-  const handleConfirm = () => {
-    if (!selectedTransaction) return
-    const amountNum = parseFloat(confirmAmount)
-    if (isNaN(amountNum) || amountNum <= 0) {
-      toast.error('Amount harus lebih dari 0')
-      return
-    }
-    confirmMutation.mutate({
-      id: selectedTransaction.id,
-      amount: amountNum,
-      paymentMethod: confirmMethod,
-      proof: confirmMethod === 'TRANSFER' ? proofFile || undefined : undefined,
-    })
-  }
 
   const pendingTransactions: Transaction[] = pendingData?.data || []
   const confirmedTransactions: Transaction[] = confirmedData?.data || []
@@ -165,7 +104,6 @@ export default function FinancePage() {
   return (
     <div className="bg-surface font-body text-on-surface antialiased min-h-screen">
       <main className="p-8 lg:p-12">
-        {/* Header dengan tombol di kanan */}
         <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 mb-12">
           <div>
             <h2 className="text-4xl font-headline font-bold text-primary tracking-tight">
@@ -197,7 +135,6 @@ export default function FinancePage() {
           </div>
         </header>
 
-        {/* Statistik Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           <div className="glass-card rounded-2xl p-6">
             <div className="flex justify-between items-start mb-4">
@@ -231,7 +168,6 @@ export default function FinancePage() {
           </div>
         </div>
 
-        {/* Tabel Transaksi */}
         <div className="bg-surface-container-lowest rounded-[2rem] shadow-ambient overflow-hidden border border-white/20">
           <div className="flex items-center gap-2 p-4 border-b border-outline-variant/10 bg-surface-container-low/20">
             <button
@@ -287,23 +223,17 @@ export default function FinancePage() {
                       </div>
                     </td>
                     <td className="px-8 py-6 hidden sm:table-cell font-body text-on-surface-variant/80">
-                      {format(new Date(t.createdAt), 'dd MMM yyyy, HH:mm', { locale: id })}
+                      {format(new Date(t.createdAt), 'dd MMM yyyy, HH:mm', { locale: localeId })}
                     </td>
                     <td className="px-8 py-6 font-body font-bold text-primary/90">
                       {t.amount ? formatCurrency(t.amount) : '-'}
                     </td>
                     <td className="px-8 py-6 text-right">
-                      <button
-                        onClick={() => {
-                          setSelectedTransaction(t)
-                          setConfirmAmount(t.amount?.toString() || '')
-                          setConfirmMethod(t.paymentMethod === 'TRANSFER' ? 'TRANSFER' : 'CASH')
-                          setConfirmDialogOpen(true)
-                        }}
-                        className="px-5 py-1.5 rounded-full border border-primary/70 text-primary/80 font-label text-xs font-bold hover:bg-primary/5 transition-all"
-                      >
-                        Konfirmasi
-                      </button>
+                      <Link href={`/admin/finance/confirm/${t.id}`}>
+                        <button className="px-5 py-1.5 rounded-full border border-primary/70 text-primary/80 font-label text-xs font-bold hover:bg-primary/5 transition-all">
+                          Konfirmasi
+                        </button>
+                      </Link>
                     </td>
                   </tr>
                 ))}
@@ -327,7 +257,7 @@ export default function FinancePage() {
                       </div>
                     </td>
                     <td className="px-8 py-6 hidden sm:table-cell font-body text-on-surface-variant/80">
-                      {format(new Date(t.createdAt), 'dd MMM yyyy, HH:mm', { locale: id })}
+                      {format(new Date(t.createdAt), 'dd MMM yyyy, HH:mm', { locale: localeId })}
                     </td>
                     <td className="px-8 py-6 font-body font-bold text-primary/90">
                       {t.amount ? formatCurrency(t.amount) : '-'}
@@ -348,57 +278,6 @@ export default function FinancePage() {
           </p>
         </footer>
       </main>
-
-      {/* Dialog Konfirmasi */}
-      <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-        <DialogContent className="diamond-glass rounded-3xl max-w-md p-6">
-          <DialogHeader>
-            <DialogTitle className="font-headline font-bold text-xl text-primary/80">Konfirmasi Pembayaran</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 mt-4">
-            <div>
-              <Label className="font-label text-sm font-bold text-on-surface/80">Jumlah (Rp)</Label>
-              <Input
-                type="number"
-                value={confirmAmount}
-                onChange={(e) => setConfirmAmount(e.target.value)}
-                placeholder="Masukkan jumlah"
-                className="high-gloss-input rounded-xl border-none"
-              />
-            </div>
-            <div>
-              <Label className="font-label text-sm font-bold text-on-surface/80">Metode Pembayaran</Label>
-              <Select value={confirmMethod} onValueChange={(v: any) => setConfirmMethod(v)}>
-                <SelectTrigger className="high-gloss-input rounded-xl border-none">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="CASH">Tunai</SelectItem>
-                  <SelectItem value="TRANSFER">Transfer</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {confirmMethod === 'TRANSFER' && (
-              <div>
-                <Label className="font-label text-sm font-bold text-on-surface/80">Upload Bukti Transfer</Label>
-                <Input
-                  type="file"
-                  accept="image/*,.pdf"
-                  onChange={(e) => setProofFile(e.target.files?.[0] || null)}
-                  className="high-gloss-input rounded-xl border-none"
-                />
-              </div>
-            )}
-            <button
-              onClick={handleConfirm}
-              disabled={confirmMutation.isPending}
-              className="floating-gradient-btn w-full py-3 rounded-full text-white font-headline font-bold text-sm transition-all disabled:opacity-50"
-            >
-              {confirmMutation.isPending ? 'Memproses...' : 'Konfirmasi'}
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

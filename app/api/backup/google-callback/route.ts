@@ -1,3 +1,4 @@
+// app/api/backup/google-callback/route.ts
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/middleware/auth'
@@ -22,27 +23,34 @@ import { verifyAdminToken } from '@/lib/middleware/auth'
  *         description: Pesan error jika ada
  *     responses:
  *       302:
- *         description: Redirect ke halaman backup dengan status
+ *         description: Redirect ke halaman pengaturan dengan status
  */
 export async function GET(request: Request) {
   const url = new URL(request.url)
   const code = url.searchParams.get('code')
   const error = url.searchParams.get('error')
-  
+  const baseRedirect = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/admin/settings`
+
   if (error) {
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/admin/backup?error=oauth_failed`)
+    console.error('[OAuth Callback] Error dari Google:', error)
+    return NextResponse.redirect(`${baseRedirect}?error=oauth_failed`)
   }
   if (!code) {
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/admin/backup?error=missing_code`)
+    console.error('[OAuth Callback] Tidak ada kode otorisasi')
+    return NextResponse.redirect(`${baseRedirect}?error=missing_code`)
   }
 
   // Verifikasi admin (ambil dari cookie)
   const auth = await verifyAdminToken(request)
   if (!auth.valid) {
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/admin/backup?error=unauthorized`)
+    console.error('[OAuth Callback] Admin tidak terautentikasi')
+    return NextResponse.redirect(`${baseRedirect}?error=unauthorized`)
   }
 
+  console.log('[OAuth Callback] Admin', auth.username, 'memulai pertukaran token')
+
   // Tukar code dengan access token dan refresh token
+  const redirectUri = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/backup/google-callback`
   const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -50,15 +58,18 @@ export async function GET(request: Request) {
       code,
       client_id: process.env.GOOGLE_CLIENT_ID!,
       client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-      redirect_uri: `${process.env.NEXTAUTH_URL}/api/backup/google-callback`,
+      redirect_uri: redirectUri,
       grant_type: 'authorization_code',
     }),
   })
   const tokens = await tokenResponse.json()
   
   if (tokens.error) {
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/admin/backup?error=token_exchange_failed`)
+    console.error('[OAuth Callback] Gagal tukar token:', tokens.error)
+    return NextResponse.redirect(`${baseRedirect}?error=token_exchange_failed`)
   }
+
+  console.log('[OAuth Callback] Token berhasil diperoleh, menyimpan ke database')
 
   // Simpan token ke database (AdminPreference)
   await prisma.adminPreference.upsert({
@@ -77,5 +88,6 @@ export async function GET(request: Request) {
     },
   })
 
-  return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/admin/backup?connected=true`)
+  console.log('[OAuth Callback] Token tersimpan, redirect ke', baseRedirect)
+  return NextResponse.redirect(`${baseRedirect}?connected=true`)
 }
