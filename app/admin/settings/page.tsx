@@ -1,8 +1,16 @@
-// app/admin/settings/page.tsx
 'use client'
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 // Daftar menu yang tersedia untuk disembunyikan (tanpa Settings sendiri)
 const MENUS = [
@@ -17,6 +25,10 @@ export default function SettingsPage() {
   const [hiddenMenus, setHiddenMenus] = useState<string[]>([])
   const [isGoogleConnected, setIsGoogleConnected] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [restoreModalOpen, setRestoreModalOpen] = useState(false)
+  const [restoreCode, setRestoreCode] = useState('')
+  const [restoreFile, setRestoreFile] = useState<File | null>(null)
+  const [isRestoring, setIsRestoring] = useState(false)
 
   // Preferensi Menu
   const { data, isLoading, error } = useQuery({
@@ -121,6 +133,36 @@ export default function SettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['preferences'] })
     } catch (err: any) {
       toast.error(err.message)
+    }
+  }
+
+  // Fungsi untuk restore
+  const handleRestore = async () => {
+    if (!restoreFile) {
+      toast.error('Pilih file backup terlebih dahulu')
+      return
+    }
+    setIsRestoring(true)
+    const formData = new FormData()
+    formData.append('code', restoreCode)
+    formData.append('backupFile', restoreFile)
+    try {
+      const res = await fetch('/api/backup/restore', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success('Restore berhasil! Database telah diganti.')
+        setRestoreModalOpen(false)
+        setRestoreCode('')
+        setRestoreFile(null)
+        // reload halaman untuk melihat perubahan data
+        window.location.reload()
+      } else {
+        toast.error(data.error || 'Restore gagal')
+      }
+    } catch (err) {
+      toast.error('Terjadi kesalahan')
+    } finally {
+      setIsRestoring(false)
     }
   }
 
@@ -298,6 +340,19 @@ export default function SettingsPage() {
                   </>
                 )}
               </div>
+              {/* Tombol Restore */}
+              <div className="mt-6 pt-6 border-t border-outline-variant/20">
+                <button
+                  onClick={() => setRestoreModalOpen(true)}
+                  className="w-full py-3 px-4 bg-amber-600 text-white rounded-xl font-headline font-bold hover:bg-amber-700 transition-all flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-lg">restore</span>
+                  Restore dari Backup
+                </button>
+                <p className="text-xs text-on-surface-variant mt-2 text-center">
+                  * Memerlukan kode 8 digit. Semua data saat ini akan diganti dengan data dari backup.
+                </p>
+              </div>
             </div>
           </section>
         </div>
@@ -308,6 +363,48 @@ export default function SettingsPage() {
           </p>
         </footer>
       </main>
+
+      {/* Modal Restore */}
+      <Dialog open={restoreModalOpen} onOpenChange={setRestoreModalOpen}>
+        <DialogContent className="bg-surface rounded-2xl max-w-md p-6">
+          <DialogHeader>
+            <DialogTitle className="font-headline font-bold text-xl text-primary">Restore Database</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <p className="text-sm text-on-surface-variant">
+              Pilih file backup (.zip) dan masukkan kode 8 digit untuk mengembalikan data.
+              <span className="block text-error font-bold mt-2">⚠️ Semua data saat ini akan DIHAPUS dan diganti dengan data dari backup!</span>
+            </p>
+            <div>
+              <Label className="font-label text-sm font-bold text-on-surface/80">Kode Restore (8 digit)</Label>
+              <Input
+                type="password"
+                maxLength={8}
+                value={restoreCode}
+                onChange={(e) => setRestoreCode(e.target.value)}
+                placeholder="Masukkan kode 8 digit"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="font-label text-sm font-bold text-on-surface/80">File Backup</Label>
+              <Input
+                type="file"
+                accept=".zip,.json"
+                onChange={(e) => setRestoreFile(e.target.files?.[0] || null)}
+                className="mt-1"
+              />
+            </div>
+            <Button
+              onClick={handleRestore}
+              disabled={isRestoring}
+              className="w-full bg-amber-600 hover:bg-amber-700"
+            >
+              {isRestoring ? 'Merestore...' : 'Restore Sekarang'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
