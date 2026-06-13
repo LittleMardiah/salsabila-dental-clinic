@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { NextRequest, NextResponse } from 'next/server'
 import { RateLimit } from '@/lib/middleware/RateLimiter'
 import { z } from 'zod'

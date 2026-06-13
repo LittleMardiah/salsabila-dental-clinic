@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyPatientToken } from '@/lib/middleware/auth'
@@ -89,7 +91,7 @@ export async function GET(request: Request) {
       patientNameMasked: maskName(currentCalled.patient.name),
       calledAt: currentCalled.calledAt,
     } : null,
-    nextQueues: nextQueues.map(q => ({
+    nextQueues: nextQueues.map((q:any) => ({
       number: formatQueueNumber(q.queueNumber),
       patientNameMasked: maskName(q.patient.name),
       isMe: q.id === myQueue.id,

@@ -1,10 +1,11 @@
-import { NextResponse } from 'next/server'
+export const dynamic = 'force-dynamic'
+
+import { NextResponse } from 'next/server' 
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/middleware/auth'
 import { writeFile, mkdir } from 'fs/promises'
 import { v4 as uuidv4 } from 'uuid'
-import { PaymentMethod, TransactionStatus } from '@prisma/client'
 import { addAuditLog } from '@/lib/services/audit.service'
 import sharp from 'sharp'
 import path from 'path'
@@ -141,8 +142,8 @@ export async function POST(
       where: { id: transactionId },
       data: {
         amount,
-        paymentMethod: paymentMethodStr as PaymentMethod,
-        status: TransactionStatus.CONFIRMED,
+        paymentMethod: paymentMethodStr as 'CASH' | 'TRANSFER',
+        status: 'CONFIRMED',
         confirmedAt: new Date(),
         receiptUrl: receiptUrl ?? undefined,
       },

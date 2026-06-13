@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/ServerAuth'
@@ -68,7 +70,7 @@ export async function GET(
     },
   })
 
-  const formattedQueues = queues.map(q => ({
+  const formattedQueues = queues.map((q: any) => ({
     id: q.id,
     label: `A-${q.queueNumber.toString().padStart(2, '0')} - ${new Date(q.createdAt).toLocaleTimeString()}`,
   }))

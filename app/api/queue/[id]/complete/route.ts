@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/ServerAuth'
@@ -55,7 +57,7 @@ export async function PATCH(
       return NextResponse.json({ success: false, error: 'Queue can only be completed if status is CALLED' }, { status: 400 })
     }
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: any) => {
       const updatedQueue = await tx.queue.update({
         where: { id: queueId },
         data: { status: 'COMPLETED', completedAt: new Date() },

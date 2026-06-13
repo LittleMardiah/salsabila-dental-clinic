@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic'
+
+// app/api/patient/[id]/emr/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
@@ -319,7 +322,8 @@ export async function GET(
     orderBy: { createdAt: 'desc' },
   });
 
-  const formattedVisits = visits.map(visit => ({
+  // ✅ PERBAIKAN: tambahkan tipe any untuk parameter visit dan photo
+  const formattedVisits = visits.map((visit: any) => ({
     id: visit.id,
     queueId: visit.queueId,
     keluhanUtama: visit.keluhanUtama,
@@ -331,7 +335,7 @@ export async function GET(
     followUpDate: visit.followUpDate,
     createdAt: visit.createdAt,
     updatedAt: visit.updatedAt,
-    photos: visit.photos.map(photo => ({
+    photos: visit.photos.map((photo: any) => ({
       id: photo.id,
       url: photo.fileUrl,
       fileName: photo.fileName,
@@ -512,9 +516,9 @@ export async function PUT(
   );
 
   if (validated.deletePhotoIds) {
-    const idsToDelete = validated.deletePhotoIds.split(',').map(id => parseInt(id.trim()));
+    const idsToDelete = validated.deletePhotoIds.split(',').map((id: string) => parseInt(id.trim()));
     for (const id of idsToDelete) {
-      const photo = existingVisit.photos.find(p => p.id === id);
+      const photo = existingVisit.photos.find((p: any) => p.id === id);
       if (photo) {
         await deletePhysicalFile(photo.fileUrl);
         await prisma.medicalPhoto.delete({ where: { id: photo.id } });

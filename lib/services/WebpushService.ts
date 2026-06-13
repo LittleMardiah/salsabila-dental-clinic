@@ -1,4 +1,3 @@
-// lib/services/WebpushService.ts
 import webpush from 'web-push'
 import { prisma } from '@/lib/prisma'
 
@@ -49,7 +48,7 @@ export async function sendNotification(queueId: number, patientName: string, que
     console.error(`[sendNotification] Gagal untuk queue ${queueId}:`, err.message)
     if (err.statusCode === 410) {
       console.log(`[sendNotification] Menghapus subscription invalid untuk queue ${queueId}`)
-      await prisma.webPushSubscription.delete({ where: { queueId } }).catch(e => console.error(e))
+      await prisma.webPushSubscription.delete({ where: { queueId } }).catch((e: any) => console.error(e))
     }
     return false
   }

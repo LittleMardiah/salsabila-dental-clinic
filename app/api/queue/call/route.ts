@@ -1,7 +1,8 @@
+export const dynamic = 'force-dynamic'
+
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/ServerAuth'
-import { QueueStatus } from '@prisma/client'
 import { sendNotification } from '@/lib/services/WebpushService'
 import { addAuditLog } from '@/lib/services/audit.service' 
 
@@ -24,7 +25,6 @@ import { addAuditLog } from '@/lib/services/audit.service'
  *         description: Gagal update database
  */
 
-
 export async function POST(request: Request) {
   const cookieHeader = request.headers.get('cookie') || ''
   console.log('[CALL] Cookie header received:', cookieHeader)
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
   today.setHours(0, 0, 0, 0)
 
   const nextQueue = await prisma.queue.findFirst({
-    where: { date: today, status: QueueStatus.WAITING },
+    where: { date: today, status: 'WAITING' },
     orderBy: { queueNumber: 'asc' },
     include: { patient: true, webPushSubscription: true },
   })
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
   try {
     await prisma.queue.update({
       where: { id: nextQueue.id },
-      data: { status: QueueStatus.CALLED, calledAt: new Date() },
+      data: { status: 'CALLED', calledAt: new Date() },
     })
 
     if (nextQueue.webPushSubscription) {

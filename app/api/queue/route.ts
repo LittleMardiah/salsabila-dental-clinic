@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
@@ -281,7 +283,7 @@ export async function GET(request: NextRequest) {
       take: limit,
     })
 
-    const formattedQueues = queues.map(q => ({
+    const formattedQueues = queues.map((q:any) => ({
       id: q.id,
       queueNumber: q.queueNumber,
       patientName: q.patient.name,

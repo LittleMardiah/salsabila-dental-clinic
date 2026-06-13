@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 // app/api/auth/admin/check/route.ts
 import { NextResponse } from 'next/server'
 import { verifyAdminToken } from '@/lib/ServerAuth'

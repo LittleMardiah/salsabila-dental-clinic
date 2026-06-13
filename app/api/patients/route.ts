@@ -1,4 +1,5 @@
-// app/api/patients/route.ts
+export const dynamic = 'force-dynamic'
+
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/ServerAuth'
@@ -62,7 +63,6 @@ export async function GET(request: Request) {
   const validLimit = Math.min(100, Math.max(1, limit))
   const skip = (validPage - 1) * validLimit
 
-  // Build where clause (case-sensitive search – cukup untuk demo)
   const where = search
     ? {
         OR: [

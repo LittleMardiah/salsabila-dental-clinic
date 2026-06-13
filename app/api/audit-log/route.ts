@@ -1,4 +1,6 @@
-import { NextResponse } from 'next/server'
+export const dynamic = 'force-dynamic'
+
+import { NextResponse } from 'next/server' 
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/middleware/auth'
 
@@ -123,7 +125,8 @@ export async function GET(request: Request) {
   ])
 
   if (mode === 'admin') {
-    const transformed = logs.map(log => ({
+    // ✅ PERBAIKAN: gunakan any untuk tipe log (karena tipe dari Prisma tidak langsung diekspor sebagai type)
+    const transformed = logs.map((log: any) => ({
       id: log.id,
       timestamp: log.createdAt,
       admin: log.adminId,

@@ -1,4 +1,3 @@
-// app/page.tsx
 'use client'
 
 import { useEffect, useRef } from 'react'
@@ -25,7 +24,6 @@ export default function Home() {
     }
   }
 
-  // Attach event listener ke elemen dengan id 'faq-trigger' setelah komponen siap
   useEffect(() => {
     const element = document.getElementById('faq-trigger')
     if (element) {
