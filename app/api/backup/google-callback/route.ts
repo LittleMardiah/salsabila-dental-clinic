@@ -1,6 +1,5 @@
 export const dynamic = 'force-dynamic'
 
-// app/api/backup/google-callback/route.ts
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/middleware/auth'
@@ -31,7 +30,11 @@ export async function GET(request: Request) {
   const url = new URL(request.url)
   const code = url.searchParams.get('code')
   const error = url.searchParams.get('error')
-  const baseRedirect = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/admin/settings`
+  
+  const baseUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : process.env.NEXTAUTH_URL || 'http://localhost:3000'
+  const baseRedirect = `${baseUrl}/admin/settings`
 
   if (error) {
     console.error('[OAuth Callback] Error dari Google:', error)
@@ -52,7 +55,7 @@ export async function GET(request: Request) {
   console.log('[OAuth Callback] Admin', auth.username, 'memulai pertukaran token')
 
   // Tukar code dengan access token dan refresh token
-  const redirectUri = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/backup/google-callback`
+  const redirectUri = `${baseUrl}/api/backup/google-callback`
   const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
