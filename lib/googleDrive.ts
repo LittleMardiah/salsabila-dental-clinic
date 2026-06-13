@@ -8,11 +8,16 @@ if (!process.env.GOOGLE_PRIVATE_KEY) {
   console.error('[GoogleDrive] ERROR: GOOGLE_PRIVATE_KEY is not set');
 }
 
+let privateKey = process.env.GOOGLE_PRIVATE_KEY || '';
+privateKey = privateKey.replace(/^"|"$/g, '');
+privateKey = privateKey.replace(/\\n/g, '\n');
+
 // Inisialisasi auth dengan Service Account
+// FIX: Gunakan opsi credentials dengan private_key yang sudah diproses
 const auth = new google.auth.GoogleAuth({
   credentials: {
     client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    private_key: privateKey,
   },
   scopes: ['https://www.googleapis.com/auth/drive.file'],
 })
@@ -30,6 +35,9 @@ export async function testDriveConnection(): Promise<{ success: boolean; error?:
     return { success: true };
   } catch (err: any) {
     console.error('[GoogleDrive] Connection test failed:', err.message);
+    if (err.message && err.message.includes('DECODER routines')) {
+      console.error('[GoogleDrive] DECODER error indicates corrupted private key format. Ensure GOOGLE_PRIVATE_KEY has correct newlines.');
+    }
     return { success: false, error: err.message };
   }
 }
