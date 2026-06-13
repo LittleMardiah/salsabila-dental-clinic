@@ -141,7 +141,6 @@ export default function FinancePage() {
               <div className="w-10 h-10 rounded-xl bg-white/60 flex items-center justify-center">
                 <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>account_balance_wallet</span>
               </div>
-              <span className="text-secondary text-xs font-bold bg-secondary/10 px-2 py-1 rounded-full">+12.5%</span>
             </div>
             <p className="text-on-surface-variant text-xs font-label font-bold uppercase tracking-wider mb-1">Total Pendapatan Hari Ini</p>
             <h3 className="font-headline text-3xl font-extrabold text-primary/80">{formatCurrency(totalRevenue)}</h3>
