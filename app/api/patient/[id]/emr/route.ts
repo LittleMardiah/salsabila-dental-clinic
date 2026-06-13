@@ -1,17 +1,15 @@
+// app/api/patient/[id]/emr/route.ts
 export const dynamic = 'force-dynamic'
 
-// app/api/patient/[id]/emr/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { verifyAdminToken } from '@/lib/ServerAuth';
 import { randomUUID } from 'crypto';
-import { writeFile, mkdir } from 'fs/promises';
 import { addAuditLog } from '@/lib/services/audit.service'; 
-import fs from 'fs';
-import path from 'path';
 import sharp from 'sharp';
 import busboy from 'busboy';
+import { uploadFileToDrive, deleteFileFromDrive, getFileUrl, getOrCreateEmrFolder } from '@/lib/googleDrive';
 
 const emrSchema = z.object({
   queueId: z.coerce.number().int().positive('queueId harus berupa angka'),
@@ -89,63 +87,6 @@ async function compressImage(buffer: Buffer, mimetype: string): Promise<Buffer> 
   return buffer; 
 }
 
-/**
- * @openapi
- * /api/patient/{id}/emr:
- *   post:
- *     summary: Tambah atau update EMR pasien (kunjungan baru)
- *     tags: [EMR]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID pasien
- *     requestBody:
- *       required: true
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             required:
- *               - queueId
- *               - diagnosa
- *               - tindakan
- *               - dokterPenanggungJawab
- *             properties:
- *               queueId:
- *                 type: integer
- *               keluhanUtama:
- *                 type: string
- *               diagnosa:
- *                 type: string
- *               tindakan:
- *                 type: string
- *               resepObat:
- *                 type: string
- *               catatanTambahan:
- *                 type: string
- *               dokterPenanggungJawab:
- *                 type: string
- *               followUpDate:
- *                 type: string
- *                 format: date
- *               photos:
- *                 type: array
- *                 items:
- *                   type: string
- *                   format: binary
- *     responses:
- *       201:
- *         description: EMR berhasil disimpan
- *       400:
- *         description: Input tidak valid
- *       401:
- *         description: Tidak terautentikasi
- */
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -239,22 +180,17 @@ export async function POST(
   );
 
   const uploadedPhotos = [];
-  const baseUploadDir = path.join(process.cwd(), 'public', 'uploads', 'emr');
-  const visitDir = path.join(baseUploadDir, `patient_${patientId}`, `visit_${visit.id}`);
-  await mkdir(visitDir, { recursive: true });
-
   for (const file of files) {
     const compressedBuffer = await compressImage(file.buffer, file.mimetype);
-    const fileExt = path.extname(file.originalname);
-    const fileName = `${randomUUID()}${fileExt}`;
-    const relativeFilePath = `uploads/emr/patient_${patientId}/visit_${visit.id}/${fileName}`;
-    const absoluteFilePath = path.join(process.cwd(), 'public', relativeFilePath);
-    await writeFile(absoluteFilePath, compressedBuffer);
-    const fileUrl = `/${relativeFilePath}`;
+    const fileExt = file.originalname.split('.').pop();
+    const fileName = `${randomUUID()}.${fileExt}`;
+    const folderId = await getOrCreateEmrFolder(patientId, visit.id);
+    const { fileId, webViewLink } = await uploadFileToDrive(compressedBuffer, fileName, file.mimetype, folderId);
     const photo = await prisma.medicalPhoto.create({
       data: {
         visitId: visit.id,
-        fileUrl,
+        fileId: fileId,
+        fileUrl: webViewLink,
         fileName: file.originalname,
       },
     });
@@ -270,38 +206,6 @@ export async function POST(
   }, { status: 201 });
 }
 
-/**
- * @openapi
- * /api/patient/{id}/emr:
- *   get:
- *     summary: Mendapatkan histori EMR pasien
- *     tags: [EMR]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID pasien
- *     responses:
- *       200:
- *         description: Histori EMR berhasil diambil
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/MedicalVisit'
- *       401:
- *         description: Tidak terautentikasi
- */
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -322,8 +226,7 @@ export async function GET(
     orderBy: { createdAt: 'desc' },
   });
 
-  // ✅ PERBAIKAN: tambahkan tipe any untuk parameter visit dan photo
-  const formattedVisits = visits.map((visit: any) => ({
+  const formattedVisits = await Promise.all(visits.map(async (visit: any) => ({
     id: visit.id,
     queueId: visit.queueId,
     keluhanUtama: visit.keluhanUtama,
@@ -335,13 +238,13 @@ export async function GET(
     followUpDate: visit.followUpDate,
     createdAt: visit.createdAt,
     updatedAt: visit.updatedAt,
-    photos: visit.photos.map((photo: any) => ({
+    photos: await Promise.all(visit.photos.map(async (photo: any) => ({
       id: photo.id,
-      url: photo.fileUrl,
+      url: photo.fileId ? await getFileUrl(photo.fileId) : photo.fileUrl,
       fileName: photo.fileName,
       uploadedAt: photo.uploadedAt,
-    })),
-  }));
+    }))),
+  })));
 
   return NextResponse.json({ success: true, data: formattedVisits });
 }
@@ -358,85 +261,16 @@ const updateEmrSchema = z.object({
   deletePhotoIds: z.string().optional(),
 });
 
-async function deletePhysicalFile(fileUrl: string) {
-  if (!fileUrl) return;
-  const absolutePath = path.join(process.cwd(), 'public', fileUrl);
+async function deletePhotoFromDrive(fileId: string) {
+  if (!fileId) return;
   try {
-    if (fs.existsSync(absolutePath)) {
-      await fs.promises.unlink(absolutePath);
-      console.log(`Deleted file: ${absolutePath}`);
-    }
+    await deleteFileFromDrive(fileId);
+    console.log(`Deleted file from Drive: ${fileId}`);
   } catch (err) {
-    console.error(`Failed to delete file ${absolutePath}:`, err);
+    console.error(`Failed to delete file from Drive: ${fileId}`, err);
   }
 }
 
-/**
- * @openapi
- * /api/patient/{id}/emr:
- *   put:
- *     summary: Mengupdate EMR yang sudah ada (beserta foto)
- *     tags: [EMR]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID pasien
- *       - in: query
- *         name: visitId
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID kunjungan yang akan diupdate
- *     requestBody:
- *       required: true
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             required:
- *               - queueId
- *               - diagnosa
- *               - tindakan
- *               - dokterPenanggungJawab
- *             properties:
- *               queueId:
- *                 type: integer
- *               keluhanUtama:
- *                 type: string
- *               diagnosa:
- *                 type: string
- *               tindakan:
- *                 type: string
- *               resepObat:
- *                 type: string
- *               catatanTambahan:
- *                 type: string
- *               dokterPenanggungJawab:
- *                 type: string
- *               followUpDate:
- *                 type: string
- *                 format: date
- *               deletePhotoIds:
- *                 type: string
- *                 description: ID foto yang akan dihapus, dipisahkan koma
- *               photos:
- *                 type: array
- *                 items:
- *                   type: string
- *                   format: binary
- *     responses:
- *       200:
- *         description: EMR berhasil diupdate
- *       400:
- *         description: Input tidak valid
- *       401:
- *         description: Tidak terautentikasi
- */
 export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -519,30 +353,25 @@ export async function PUT(
     const idsToDelete = validated.deletePhotoIds.split(',').map((id: string) => parseInt(id.trim()));
     for (const id of idsToDelete) {
       const photo = existingVisit.photos.find((p: any) => p.id === id);
-      if (photo) {
-        await deletePhysicalFile(photo.fileUrl);
+      if (photo && photo.fileId) {
+        await deletePhotoFromDrive(photo.fileId);
         await prisma.medicalPhoto.delete({ where: { id: photo.id } });
       }
     }
   }
 
   const uploadedPhotos = [];
-  const baseUploadDir = path.join(process.cwd(), 'public', 'uploads', 'emr');
-  const visitDir = path.join(baseUploadDir, `patient_${patientId}`, `visit_${visitId}`);
-  await mkdir(visitDir, { recursive: true });
-
   for (const file of files) {
     const compressedBuffer = await compressImage(file.buffer, file.mimetype);
-    const fileExt = path.extname(file.originalname);
-    const fileName = `${randomUUID()}${fileExt}`;
-    const relativeFilePath = `uploads/emr/patient_${patientId}/visit_${visitId}/${fileName}`;
-    const absoluteFilePath = path.join(process.cwd(), 'public', relativeFilePath);
-    await writeFile(absoluteFilePath, compressedBuffer);
-    const fileUrl = `/${relativeFilePath}`;
+    const fileExt = file.originalname.split('.').pop();
+    const fileName = `${randomUUID()}.${fileExt}`;
+    const folderId = await getOrCreateEmrFolder(patientId, updatedVisit.id);
+    const { fileId, webViewLink } = await uploadFileToDrive(compressedBuffer, fileName, file.mimetype, folderId);
     const photo = await prisma.medicalPhoto.create({
       data: {
         visitId: updatedVisit.id,
-        fileUrl,
+        fileId: fileId,
+        fileUrl: webViewLink,
         fileName: file.originalname,
       },
     });

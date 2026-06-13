@@ -77,7 +77,10 @@ model MedicalPhoto {
   fileUrl    String
   fileName   String
   uploadedAt DateTime     @default(now())
+  fileId     String?
   visit      MedicalVisit @relation(fields: [visitId], references: [id], onDelete: Cascade)
+
+  @@index([fileId])
 }
 
 model Transaction {
