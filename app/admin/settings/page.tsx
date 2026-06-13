@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-// Daftar menu yang tersedia untuk disembunyikan (tanpa Settings sendiri)
 const MENUS = [
   { key: 'Queue', label: 'Antrian', icon: 'group' },
   { key: 'EMR', label: 'EMR', icon: 'medical_services' },
@@ -29,6 +28,7 @@ export default function SettingsPage() {
   const [restoreCode, setRestoreCode] = useState('')
   const [restoreFile, setRestoreFile] = useState<File | null>(null)
   const [isRestoring, setIsRestoring] = useState(false)
+  const [driveStorage, setDriveStorage] = useState<{ used: number | null; limit: number | null }>({ used: null, limit: null })
 
   // Preferensi Menu
   const { data, isLoading, error } = useQuery({
@@ -42,8 +42,32 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (data?.hiddenMenus) setHiddenMenus(data.hiddenMenus)
-    if (data?.googleAccessToken) setIsGoogleConnected(!!data.googleAccessToken)
+    if (data?.googleAccessToken) {
+      setIsGoogleConnected(!!data.googleAccessToken)
+      if (data.googleAccessToken) {
+        fetchDriveStorage() 
+      }
+    }
   }, [data])
+
+  // Fungsi untuk mengambil storage quota dari Google Drive
+  const fetchDriveStorage = async () => {
+    try {
+      const res = await fetch('/api/drive/storage')
+      if (res.ok) {
+        const data = await res.json()
+        setDriveStorage({
+          used: data.used / (1024 ** 3),
+          limit: data.limit / (1024 ** 3),
+        })
+      } else {
+        setDriveStorage({ used: null, limit: null })
+      }
+    } catch (err) {
+      console.error('Failed to fetch drive storage', err)
+      setDriveStorage({ used: null, limit: null })
+    }
+  }
 
   const updateMutation = useMutation({
     mutationFn: async (hidden: string[]) => {
@@ -76,12 +100,13 @@ export default function SettingsPage() {
     updateMutation.mutate(hiddenMenus)
   }
 
-  // --- Backup ---
+  // Backup
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     if (urlParams.get('connected') === 'true') {
       toast.success('Google Drive terhubung')
       setIsGoogleConnected(true)
+      fetchDriveStorage() 
       window.history.replaceState({}, '', '/admin/settings')
     }
     if (urlParams.get('error')) toast.error('Gagal menghubungkan Google Drive')
@@ -130,13 +155,13 @@ export default function SettingsPage() {
       if (!res.ok) throw new Error('Gagal memutuskan akses')
       toast.success('Akses Google Drive dicabut')
       setIsGoogleConnected(false)
+      setDriveStorage({ used: null, limit: null })
       queryClient.invalidateQueries({ queryKey: ['preferences'] })
     } catch (err: any) {
       toast.error(err.message)
     }
   }
 
-  // Fungsi untuk restore
   const handleRestore = async () => {
     if (!restoreFile) {
       toast.error('Pilih file backup terlebih dahulu')
@@ -154,7 +179,6 @@ export default function SettingsPage() {
         setRestoreModalOpen(false)
         setRestoreCode('')
         setRestoreFile(null)
-        // reload halaman untuk melihat perubahan data
         window.location.reload()
       } else {
         toast.error(data.error || 'Restore gagal')
@@ -172,15 +196,10 @@ export default function SettingsPage() {
   return (
     <div className="bg-surface font-body text-on-surface antialiased min-h-screen">
       <main className="p-8 lg:p-12">
-        {/* Header */}
         <header className="flex justify-between items-end mb-12">
           <div>
-            <h2 className="text-4xl font-headline font-bold text-primary tracking-tight">
-              Pengaturan
-            </h2>
-            <p className="text-on-surface-variant mt-2 font-medium opacity-70">
-              Konfigurasi pengalaman klinis dengan mengelola visibilitas modul dan pastikan integritas data melalui sistem pencadangan otomatis.
-            </p>
+            <h2 className="text-4xl font-headline font-bold text-primary tracking-tight">Pengaturan</h2>
+            <p className="text-on-surface-variant mt-2 font-medium opacity-70">Konfigurasi ...</p>
           </div>
         </header>
 
@@ -197,25 +216,14 @@ export default function SettingsPage() {
               </div>
               <div className="space-y-3">
                 {MENUS.map(menu => (
-                  <label
-                    key={menu.key}
-                    className="flex items-center justify-between p-4 rounded-2xl bg-white/40 hover:bg-white/60 transition-all cursor-pointer group"
-                  >
+                  <label key={menu.key} className="flex items-center justify-between p-4 rounded-2xl bg-white/40 hover:bg-white/60 transition-all cursor-pointer group">
                     <div className="flex items-center gap-4">
-                      <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors text-2xl">
-                        {menu.icon}
-                      </span>
+                      <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors text-2xl">{menu.icon}</span>
                       <span className="font-body font-medium">{menu.label}</span>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={hiddenMenus.includes(menu.key)}
-                      onChange={() => handleToggle(menu.key)}
-                      className="w-6 h-6 rounded-lg border-outline-variant text-primary focus:ring-primary/20 cursor-pointer"
-                    />
+                    <input type="checkbox" checked={hiddenMenus.includes(menu.key)} onChange={() => handleToggle(menu.key)} className="w-6 h-6 rounded-lg border-outline-variant text-primary focus:ring-primary/20 cursor-pointer" />
                   </label>
                 ))}
-                {/* Menu Settings selalu tidak bisa disembunyikan */}
                 <div className="flex items-center justify-between p-4 rounded-2xl bg-primary/5 opacity-60 border border-primary/10">
                   <div className="flex items-center gap-4">
                     <span className="material-symbols-outlined text-primary text-2xl">settings</span>
@@ -224,11 +232,7 @@ export default function SettingsPage() {
                   <span className="material-symbols-outlined text-primary text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>lock</span>
                 </div>
               </div>
-              <button
-                onClick={handleSavePreferences}
-                disabled={updateMutation.isPending}
-                className="mt-8 w-full py-3 rounded-full bg-gradient-to-br from-primary to-on-primary-container text-white font-headline font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
-              >
+              <button onClick={handleSavePreferences} disabled={updateMutation.isPending} className="mt-8 w-full py-3 rounded-full bg-gradient-to-br from-primary to-on-primary-container text-white font-headline font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50">
                 {updateMutation.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
               </button>
             </div>
@@ -253,13 +257,8 @@ export default function SettingsPage() {
                 </div>
                 <div className="flex-1 text-center sm:text-left">
                   <h3 className="text-lg font-headline font-bold text-on-surface mb-2">Arsip Data Klinik (ZIP)</h3>
-                  <p className="text-sm text-on-surface-variant mb-6 leading-relaxed">
-                    Unduh salinan lengkap basis data pasien, rekam medis, dan laporan keuangan dalam format terenkripsi yang aman.
-                  </p>
-                  <button
-                    onClick={downloadLocalBackup}
-                    className="px-6 py-3 rounded-full bg-white border border-outline-variant/30 text-primary font-headline font-bold shadow-sm hover:shadow-md hover:bg-surface-container-low transition-all flex items-center justify-center gap-2 w-full sm:w-auto"
-                  >
+                  <p className="text-sm text-on-surface-variant mb-6 leading-relaxed">Unduh salinan lengkap basis data pasien, rekam medis, dan laporan keuangan dalam format terenkripsi yang aman.</p>
+                  <button onClick={downloadLocalBackup} className="px-6 py-3 rounded-full bg-white border border-outline-variant/30 text-primary font-headline font-bold shadow-sm hover:shadow-md hover:bg-surface-container-low transition-all flex items-center justify-center gap-2 w-full sm:w-auto">
                     <span className="material-symbols-outlined text-lg">download</span>
                     Unduh ZIP Sekarang
                   </button>
@@ -272,11 +271,7 @@ export default function SettingsPage() {
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
                 <div className="flex gap-4">
                   <div className="w-16 h-16 rounded-2xl flex items-center justify-center">
-                    <img
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuABFCtcVUAMenwB4wUMYjCxH0b_y_RkCyf5FjM8tuomMXM1OYY7dXABSUWy2HJEp82wjgqk1yLZw0tUJcThCHBxY3bZ827wmXQ8e02C2GeXl0hQunVt_J9lMyLq0F4CHR8Ozy4oZ5VpcfovODVu-a_w4CM6uT9DJB9cxgkKzFXkOvel1t8qgQLDM9nkyZ_FqpkOkxT7Hfb5X1p1xEMwYojJNyVJIVQoTnCy4BcXRHv6aRuRv6k8awpWs2gYbxuCLeH5PXAW98CGFug"
-                      alt="Sync Icon"
-                      className="w-10 h-10 object-contain"
-                    />
+                    <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuABFCtcVUAMenwB4wUMYjCxH0b_y_RkCyf5FjM8tuomMXM1OYY7dXABSUWy2HJEp82wjgqk1yLZw0tUJcThCHBxY3bZ827wmXQ8e02C2GeXl0hQunVt_J9lMyLq0F4CHR8Ozy4oZ5VpcfovODVu-a_w4CM6uT9DJB9cxgkKzFXkOvel1t8qgQLDM9nkyZ_FqpkOkxT7Hfb5X1p1xEMwYojJNyVJIVQoTnCy4BcXRHv6aRuRv6k8awpWs2gYbxuCLeH5PXAW98CGFug" alt="Sync Icon" className="w-10 h-10 object-contain" />
                   </div>
                   <div>
                     <h3 className="text-lg font-headline font-bold text-on-surface">Sinkronisasi Google Drive</h3>
@@ -301,107 +296,74 @@ export default function SettingsPage() {
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2 mb-4">
                     <div>
                       <p className="text-xs text-on-surface-variant font-bold uppercase tracking-widest mb-1">Status Penyimpanan</p>
-                      <p className="text-xl font-headline font-extrabold text-primary">12.4 GB <span className="text-sm font-medium text-on-surface-variant">/ 15 GB</span></p>
+                      {/* ✅ Tampilkan data storage dinamis */}
+                      {driveStorage.used !== null && driveStorage.limit !== null ? (
+                        <>
+                          <p className="text-xl font-headline font-extrabold text-primary">{driveStorage.used.toFixed(1)} GB <span className="text-sm font-medium text-on-surface-variant">/ {driveStorage.limit.toFixed(0)} GB</span></p>
+                          <div className="w-full h-3 bg-white rounded-full overflow-hidden border border-white/20 mt-2">
+                            <div className="h-full bg-gradient-to-r from-primary to-secondary rounded-full" style={{ width: `${(driveStorage.used / driveStorage.limit) * 100}%` }}></div>
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-sm text-on-surface-variant italic">Gagal mengambil data penyimpanan</p>
+                      )}
                     </div>
                     <p className="text-xs text-on-surface-variant italic">Terakhir sinkron: 2 menit yang lalu</p>
-                  </div>
-                  <div className="w-full h-3 bg-white rounded-full overflow-hidden border border-white/20">
-                    <div className="h-full bg-gradient-to-r from-primary to-secondary w-[82%] rounded-full"></div>
                   </div>
                 </div>
               )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {!isGoogleConnected ? (
-                  <button
-                    onClick={connectGoogleDrive}
-                    className="col-span-2 py-3 px-4 bg-white/60 hover:bg-white border border-outline-variant/20 rounded-xl font-headline font-bold text-on-surface-variant text-sm transition-all flex items-center justify-center gap-2"
-                  >
+                  <button onClick={connectGoogleDrive} className="col-span-2 py-3 px-4 bg-white/60 hover:bg-white border border-outline-variant/20 rounded-xl font-headline font-bold text-on-surface-variant text-sm transition-all flex items-center justify-center gap-2">
                     <span className="material-symbols-outlined text-lg">cloud_queue</span>
                     Hubungkan Google Drive
                   </button>
                 ) : (
                   <>
-                    <button
-                      onClick={uploadToDrive}
-                      disabled={isUploading}
-                      className="py-3 px-4 bg-white/60 hover:bg-white border border-outline-variant/20 rounded-xl font-headline font-bold text-on-surface-variant text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
+                    <button onClick={uploadToDrive} disabled={isUploading} className="py-3 px-4 bg-white/60 hover:bg-white border border-outline-variant/20 rounded-xl font-headline font-bold text-on-surface-variant text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50">
                       <span className="material-symbols-outlined text-lg">settings_backup_restore</span>
                       {isUploading ? 'Mengupload...' : 'Backup'}
                     </button>
-                    <button
-                      onClick={disconnectGoogleDrive}
-                      className="py-3 px-4 bg-white/60 hover:bg-white border border-outline-variant/20 rounded-xl font-headline font-bold text-error/70 text-sm transition-all flex items-center justify-center gap-2"
-                    >
+                    <button onClick={disconnectGoogleDrive} className="py-3 px-4 bg-white/60 hover:bg-white border border-outline-variant/20 rounded-xl font-headline font-bold text-error/70 text-sm transition-all flex items-center justify-center gap-2">
                       <span className="material-symbols-outlined text-lg">link_off</span>
                       Putuskan Akses
                     </button>
                   </>
                 )}
               </div>
-              {/* Tombol Restore */}
               <div className="mt-6 pt-6 border-t border-outline-variant/20">
-                <button
-                  onClick={() => setRestoreModalOpen(true)}
-                  className="w-full py-3 px-4 bg-amber-600 text-white rounded-xl font-headline font-bold hover:bg-amber-700 transition-all flex items-center justify-center gap-2"
-                >
+                <button onClick={() => setRestoreModalOpen(true)} className="w-full py-3 px-4 bg-amber-600 text-white rounded-xl font-headline font-bold hover:bg-amber-700 transition-all flex items-center justify-center gap-2">
                   <span className="material-symbols-outlined text-lg">restore</span>
                   Restore dari Backup
                 </button>
-                <p className="text-xs text-on-surface-variant mt-2 text-center">
-                  * Memerlukan kode 8 digit. Semua data saat ini akan diganti dengan data dari backup.
-                </p>
+                <p className="text-xs text-on-surface-variant mt-2 text-center">* Memerlukan kode 8 digit. Semua data saat ini akan diganti dengan data dari backup.</p>
               </div>
             </div>
           </section>
         </div>
 
         <footer className="mt-12 text-center">
-          <p className="text-xs font-label text-on-surface-variant opacity-50">
-            © 2025 Salsa Dental Portal. Secured with AES-256 Clinical Grade Encryption.
-          </p>
+          <p className="text-xs font-label text-on-surface-variant opacity-50">© 2025 Salsa Dental Portal. Secured with AES-256 Clinical Grade Encryption.</p>
         </footer>
       </main>
 
-      {/* Modal Restore */}
       <Dialog open={restoreModalOpen} onOpenChange={setRestoreModalOpen}>
         <DialogContent className="bg-surface rounded-2xl max-w-md p-6">
           <DialogHeader>
             <DialogTitle className="font-headline font-bold text-xl text-primary">Restore Database</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-4">
-            <p className="text-sm text-on-surface-variant">
-              Pilih file backup (.zip) dan masukkan kode 8 digit untuk mengembalikan data.
-              <span className="block text-error font-bold mt-2">⚠️ Semua data saat ini akan DIHAPUS dan diganti dengan data dari backup!</span>
-            </p>
+            <p className="text-sm text-on-surface-variant">Pilih file backup (.zip) dan masukkan kode 8 digit untuk mengembalikan data.<span className="block text-error font-bold mt-2">⚠️ Semua data saat ini akan DIHAPUS dan diganti dengan data dari backup!</span></p>
             <div>
               <Label className="font-label text-sm font-bold text-on-surface/80">Kode Restore (8 digit)</Label>
-              <Input
-                type="password"
-                maxLength={8}
-                value={restoreCode}
-                onChange={(e) => setRestoreCode(e.target.value)}
-                placeholder="Masukkan kode 8 digit"
-                className="mt-1"
-              />
+              <Input type="password" maxLength={8} value={restoreCode} onChange={(e) => setRestoreCode(e.target.value)} placeholder="Masukkan kode 8 digit" className="mt-1" />
             </div>
             <div>
               <Label className="font-label text-sm font-bold text-on-surface/80">File Backup</Label>
-              <Input
-                type="file"
-                accept=".zip,.json"
-                onChange={(e) => setRestoreFile(e.target.files?.[0] || null)}
-                className="mt-1"
-              />
+              <Input type="file" accept=".zip,.json" onChange={(e) => setRestoreFile(e.target.files?.[0] || null)} className="mt-1" />
             </div>
-            <Button
-              onClick={handleRestore}
-              disabled={isRestoring}
-              className="w-full bg-amber-600 hover:bg-amber-700"
-            >
-              {isRestoring ? 'Merestore...' : 'Restore Sekarang'}
-            </Button>
+            <Button onClick={handleRestore} disabled={isRestoring} className="w-full bg-amber-600 hover:bg-amber-700">{isRestoring ? 'Merestore...' : 'Restore Sekarang'}</Button>
           </div>
         </DialogContent>
       </Dialog>
