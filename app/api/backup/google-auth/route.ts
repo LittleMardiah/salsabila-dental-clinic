@@ -1,3 +1,4 @@
+// app/api/backup/google-auth/route.ts
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
@@ -14,9 +15,15 @@ import { NextResponse } from 'next/server'
  *         description: Redirect ke halaman otorisasi Google
  */
 export async function GET() {
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : process.env.NEXTAUTH_URL || 'http://localhost:3000'
+  // ✅ PERBAIKAN: Hardcode sementara untuk memastikan tidak ada kesalahan dinamis
+  // Ganti dengan domain Anda yang sebenarnya
+  const baseUrl = 'https://salsabila-dental-clinic.vercel.app'
+  
+  // Atau gunakan logika dinamis dengan fallback yang jelas
+  // const baseUrl = process.env.VERCEL_URL 
+  //   ? `https://${process.env.VERCEL_URL}`
+  //   : process.env.NEXTAUTH_URL || 'http://localhost:3000'
+  
   const redirectUri = `${baseUrl}/api/backup/google-callback`
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code&scope=https://www.googleapis.com/auth/drive.file&access_type=offline&prompt=consent`
   

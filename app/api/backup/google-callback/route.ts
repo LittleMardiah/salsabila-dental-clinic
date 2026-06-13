@@ -1,3 +1,4 @@
+// app/api/backup/google-callback/route.ts
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
@@ -31,9 +32,7 @@ export async function GET(request: Request) {
   const code = url.searchParams.get('code')
   const error = url.searchParams.get('error')
   
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : process.env.NEXTAUTH_URL || 'http://localhost:3000'
+  const baseUrl = 'https://salsabila-dental-clinic.vercel.app'
   const baseRedirect = `${baseUrl}/admin/settings`
 
   if (error) {
