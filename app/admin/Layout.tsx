@@ -1,12 +1,11 @@
-// app/admin/layout.tsx
 'use client'
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { Menu, X } from 'lucide-react'
+import { Menu, X, LogOut } from 'lucide-react'
+import { toast } from 'sonner'
 
-// Daftar semua menu (default)
 const ALL_MENU_ITEMS = [
   { href: '/admin/queue', label: 'Antrian', icon: 'groups', key: 'Queue' },
   { href: '/admin/emr', label: 'EMR', icon: 'clinical_notes', key: 'EMR' },
@@ -18,7 +17,6 @@ const ALL_MENU_ITEMS = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [username, setUsername] = useState('Admin')
-  const [userRole, setUserRole] = useState('Super Admin')
   const [menuItems, setMenuItems] = useState(ALL_MENU_ITEMS)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -31,7 +29,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         if (res.ok) {
           const data = await res.json()
           setUsername(data.username || 'Admin')
-          setUserRole(data.role || 'Super Admin')
         }
       } catch (error) {
         console.error('Failed to fetch admin data')
@@ -60,6 +57,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, [isLoginPage])
 
+  // Event listener untuk refresh sidebar
   useEffect(() => {
     const handleUpdate = () => {
       const refresh = async () => {
@@ -77,18 +75,39 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => window.removeEventListener('preferences-updated', handleUpdate)
   }, [])
 
-  // Tutup sidebar saat pindah halaman di mobile
   useEffect(() => {
     setSidebarOpen(false)
   }, [pathname])
+
+  const handleLogout = async () => {
+    try {
+      const res = await fetch('/api/auth/admin/logout', { method: 'POST' })
+      if (res.ok) {
+        toast.success('Logout berhasil')
+        window.location.href = '/'
+      } else {
+        toast.error('Gagal logout')
+      }
+    } catch (error) {
+      toast.error('Terjadi kesalahan')
+    }
+  }
 
   if (isLoginPage) {
     return <>{children}</>
   }
 
+  // Redirect jika masih ada yang akses /admin/dashboard ke /admin/queue
+  if (pathname === '/admin/dashboard') {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/admin/queue'
+    }
+    return null
+  }
+
   return (
     <div className="bg-[#fff8f7] text-[#1e1b1b] min-h-screen flex">
-      {/* Desktop Sidebar (tampil di layar >= 1024px) */}
+      {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-72 bg-white/40 backdrop-blur-md border-r border-white/20 h-screen sticky top-0 flex-col p-6 gap-8 overflow-y-auto shadow-[10px_0px_30px_rgba(0,0,0,0.03)] z-20">
         <div className="flex items-center gap-3 px-2">
           <span className="text-2xl font-bold tracking-tight text-[#815152]">Salsa Dental</span>
@@ -106,9 +125,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     : 'text-[#514443] hover:bg-white/60 hover:shadow-sm'
                 }`}
               >
-                <span
-                  className={`material-symbols-outlined ${isActive ? 'icon-filled' : 'icon-outline'}`}
-                >
+                <span className={`material-symbols-outlined ${isActive ? 'icon-filled' : 'icon-outline'}`}>
                   {item.icon}
                 </span>
                 <span className="font-label text-sm">{item.label}</span>
@@ -118,30 +135,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
       </aside>
 
-      {/* Mobile drawer sidebar (overlay) */}
+      {/* Mobile drawer sidebar */}
       <>
-        {/* Overlay */}
         {sidebarOpen && (
-          <div
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity"
-            onClick={() => setSidebarOpen(false)}
-          />
+          <div className="fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity" onClick={() => setSidebarOpen(false)} />
         )}
-        {/* Drawer */}
-        <aside
-          className={`
-            fixed top-0 left-0 h-full w-72 bg-white/40 backdrop-blur-md border-r border-white/20
-            flex flex-col p-6 gap-8 overflow-y-auto z-50 transform transition-transform duration-300 ease-in-out lg:hidden
-            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          `}
-        >
+        <aside className={`fixed top-0 left-0 h-full w-72 bg-white/40 backdrop-blur-md border-r border-white/20 flex flex-col p-6 gap-8 overflow-y-auto z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="flex items-center justify-between gap-3 px-2">
             <span className="text-2xl font-bold tracking-tight text-[#815152]">Salsa Dental</span>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="p-2 rounded-full hover:bg-white/60 transition-colors"
-              aria-label="Close menu"
-            >
+            <button title="." onClick={() => setSidebarOpen(false)} className="p-2 rounded-full hover:bg-white/60 transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -159,9 +161,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       : 'text-[#514443] hover:bg-white/60 hover:shadow-sm'
                   }`}
                 >
-                  <span
-                    className={`material-symbols-outlined ${isActive ? 'icon-filled' : 'icon-outline'}`}
-                  >
+                  <span className={`material-symbols-outlined ${isActive ? 'icon-filled' : 'icon-outline'}`}>
                     {item.icon}
                   </span>
                   <span className="font-label text-sm">{item.label}</span>
@@ -174,14 +174,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Main content */}
       <main className="flex-1 flex flex-col min-w-0">
-        {/* Header dengan tombol hamburger (mobile) */}
         <header className="h-20 bg-white/70 backdrop-blur-lg sticky top-0 z-10 flex items-center justify-between px-4 md:px-8">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-md hover:bg-white/60 transition-colors"
-              aria-label="Open menu"
-            >
+            <button title="." onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 rounded-md hover:bg-white/60 transition-colors">
               <Menu className="w-5 h-5 text-[#514443]" />
             </button>
             <div className="flex flex-col">
@@ -189,7 +184,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <p className="text-xs text-[#514443] hidden md:block">Selamat datang di Salsa Dental Clinic</p>
             </div>
           </div>
-          {/* Sesion timer dan profil dihapus */}
+          <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-2 rounded-full bg-red-100 text-red-700 hover:bg-red-200 transition-all font-medium text-sm">
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">Logout</span>
+          </button>
         </header>
 
         <div className="p-4 md:p-6 lg:p-8 flex flex-col gap-8 max-w-7xl">
