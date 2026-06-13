@@ -204,67 +204,67 @@ export default function QueuePage() {
 
   return (
     <div className="bg-surface font-body text-on-surface antialiased min-h-screen">
-      <main className="p-8 lg:p-12">
+      <main className="p-4 sm:p-6 md:p-8 lg:p-12">
         {/* Header */}
-        <header className="flex justify-between items-end mb-12">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8 sm:mb-12">
           <div>
-            <h2 className="text-4xl font-headline font-bold text-primary tracking-tight">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-headline font-bold text-primary tracking-tight">
               Manajemen Antrian
             </h2>
-            <p className="text-on-surface-variant mt-2 font-medium opacity-70">
+            <p className="text-sm sm:text-base text-on-surface-variant mt-2 font-medium opacity-70">
               Kelola antrian pasien harian dengan sistem panggil otomatis.
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3 w-full sm:w-auto">
             <button
               onClick={() => setManualModalOpen(true)}
-              className="px-6 py-3 rounded-full border border-outline-variant/30 text-primary/80 font-label font-bold text-sm hover:bg-primary/5 transition-all"
+              className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 sm:py-3 rounded-full border border-outline-variant/30 text-primary/80 font-label font-bold text-sm hover:bg-primary/5 transition-all"
             >
               Manual Registration
             </button>
             <button
               onClick={() => setOnlineModalOpen(true)}
-              className="px-6 py-3 rounded-full bg-gradient-to-r from-[#DCA1A1] to-[#663a3b] text-white font-label font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[0.98] transition-all"
+              className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 sm:py-3 rounded-full bg-gradient-to-r from-[#DCA1A1] to-[#663a3b] text-white font-label font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[0.98] transition-all"
             >
               Online Registration
             </button>
           </div>
-        </header>
+        </div>
 
         {/* Statistik Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-ambient border border-outline-variant/5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8 sm:mb-12">
+          <div className="bg-surface-container-lowest p-4 sm:p-6 rounded-2xl shadow-ambient border border-outline-variant/5">
             <p className="text-on-surface-variant text-xs font-label font-bold uppercase tracking-widest mb-1">Total Antrian</p>
-            <h3 className="font-headline text-3xl font-extrabold text-primary/80">{totalQueues}</h3>
+            <h3 className="font-headline text-2xl sm:text-3xl font-extrabold text-primary/80">{totalQueues}</h3>
           </div>
-          <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-ambient border border-outline-variant/5">
+          <div className="bg-surface-container-lowest p-4 sm:p-6 rounded-2xl shadow-ambient border border-outline-variant/5">
             <p className="text-on-surface-variant text-xs font-label font-bold uppercase tracking-widest mb-1">Menunggu</p>
-            <h3 className="font-headline text-3xl font-extrabold text-primary/80">{waitingQueues}</h3>
+            <h3 className="font-headline text-2xl sm:text-3xl font-extrabold text-primary/80">{waitingQueues}</h3>
           </div>
-          <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-ambient border border-outline-variant/5">
+          <div className="bg-surface-container-lowest p-4 sm:p-6 rounded-2xl shadow-ambient border border-outline-variant/5">
             <p className="text-on-surface-variant text-xs font-label font-bold uppercase tracking-widest mb-1">Sedang Dilayani</p>
-            <h3 className="font-headline text-3xl font-extrabold text-secondary/80">{calledQueues}</h3>
+            <h3 className="font-headline text-2xl sm:text-3xl font-extrabold text-secondary/80">{calledQueues}</h3>
           </div>
         </div>
 
         {/* Tabel Antrian */}
-        <div className="bg-surface-container-lowest rounded-[2rem] shadow-ambient overflow-hidden border border-white/20">
+        <div className="bg-surface-container-lowest rounded-2xl sm:rounded-[2rem] shadow-ambient overflow-hidden border border-white/20">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="min-w-[640px] w-full text-left border-collapse">
               <thead>
                 <tr className="bg-surface-container-low/40">
-                  <th className="px-8 py-6 font-headline text-primary text-xs font-extrabold uppercase tracking-widest">No</th>
-                  <th className="px-8 py-6 font-headline text-primary text-xs font-extrabold uppercase tracking-widest">Nama Pasien</th>
-                  <th className="px-8 py-6 font-headline text-primary text-xs font-extrabold uppercase tracking-widest hidden sm:table-cell">Kontak</th>
-                  <th className="px-8 py-6 font-headline text-primary text-xs font-extrabold uppercase tracking-widest hidden md:table-cell">Waktu Daftar</th>
-                  <th className="px-8 py-6 font-headline text-primary text-xs font-extrabold uppercase tracking-widest">Status</th>
-                  <th className="px-8 py-6 font-headline text-primary text-xs font-extrabold uppercase tracking-widest text-right">Aksi</th>
+                  <th className="px-3 py-4 sm:px-6 sm:py-5 md:px-8 md:py-6 font-headline text-primary text-xs font-extrabold uppercase tracking-widest">No</th>
+                  <th className="px-3 py-4 sm:px-6 sm:py-5 md:px-8 md:py-6 font-headline text-primary text-xs font-extrabold uppercase tracking-widest">Nama Pasien</th>
+                  <th className="px-3 py-4 sm:px-6 sm:py-5 md:px-8 md:py-6 font-headline text-primary text-xs font-extrabold uppercase tracking-widest hidden sm:table-cell">Kontak</th>
+                  <th className="px-3 py-4 sm:px-6 sm:py-5 md:px-8 md:py-6 font-headline text-primary text-xs font-extrabold uppercase tracking-widest hidden md:table-cell">Waktu Daftar</th>
+                  <th className="px-3 py-4 sm:px-6 sm:py-5 md:px-8 md:py-6 font-headline text-primary text-xs font-extrabold uppercase tracking-widest">Status</th>
+                  <th className="px-3 py-4 sm:px-6 sm:py-5 md:px-8 md:py-6 font-headline text-primary text-xs font-extrabold uppercase tracking-widest text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
                 {queues.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-8 py-12 text-center text-on-surface-variant">
+                    <td colSpan={6} className="px-4 py-12 text-center text-on-surface-variant">
                       Tidak ada antrian hari ini.
                     </td>
                   </tr>
@@ -272,13 +272,13 @@ export default function QueuePage() {
                   queues.map((queue) => (
                     <tr key={queue.id} className="hover:bg-surface-container-low/30 transition-colors group">
                       <td
-                        className="px-8 py-6 font-headline font-black text-base cursor-pointer hover:text-primary/70 transition-colors"
+                        className="px-3 py-4 sm:px-6 sm:py-5 md:px-8 md:py-6 font-headline font-black text-base cursor-pointer hover:text-primary/70 transition-colors"
                         onClick={() => handleQueueNumberClick(queue.queueNumber, (queue as any).patientCode)}
                       >
                         {formatQueueNumber(queue.queueNumber)}
                       </td>
-                      <td className="px-8 py-6 font-body font-medium text-on-surface/90">{queue.patientName}</td>
-                      <td className="px-8 py-6 hidden sm:table-cell">
+                      <td className="px-3 py-4 sm:px-6 sm:py-5 md:px-8 md:py-6 font-body font-medium text-on-surface/90">{queue.patientName}</td>
+                      <td className="px-3 py-4 sm:px-6 sm:py-5 md:px-8 md:py-6 hidden sm:table-cell">
                         <div className="flex gap-2">
                           {queue.phone && (
                             <a
@@ -298,20 +298,20 @@ export default function QueuePage() {
                           )}
                         </div>
                       </td>
-                      <td className="px-8 py-6 font-body font-medium text-on-surface-variant/80 hidden md:table-cell">
+                      <td className="px-3 py-4 sm:px-6 sm:py-5 md:px-8 md:py-6 font-body font-medium text-on-surface-variant/80 hidden md:table-cell">
                         {format(new Date(queue.createdAt), 'HH:mm', { locale: id })}
                       </td>
-                      <td className="px-8 py-6">
-                        <span className={`px-3 py-1 text-[10px] font-label font-black uppercase rounded-full tracking-wider ${getStatusBadgeClass(queue.status)}`}>
+                      <td className="px-3 py-4 sm:px-6 sm:py-5 md:px-8 md:py-6">
+                        <span className={`px-2 py-1 sm:px-3 sm:py-1 text-[10px] font-label font-black uppercase rounded-full tracking-wider ${getStatusBadgeClass(queue.status)}`}>
                           {getStatusLabel(queue.status)}
                         </span>
                       </td>
-                      <td className="px-8 py-6 text-right">
+                      <td className="px-3 py-4 sm:px-6 sm:py-5 md:px-8 md:py-6 text-right">
                         {queue.status === 'WAITING' && (
                           <button
                             onClick={() => callMutation.mutate()}
                             disabled={callMutation.isPending}
-                            className="px-5 py-1.5 rounded-full border border-primary/70 text-primary/80 font-label text-xs font-bold hover:bg-primary/5 transition-all disabled:opacity-50"
+                            className="px-3 py-1.5 sm:px-4 sm:py-1.5 rounded-full border border-primary/70 text-primary/80 font-label text-xs font-bold hover:bg-primary/5 transition-all disabled:opacity-50"
                           >
                             Panggil
                           </button>
@@ -320,7 +320,7 @@ export default function QueuePage() {
                           <button
                             onClick={() => completeMutation.mutate(queue.id)}
                             disabled={completeMutation.isPending}
-                            className="px-5 py-1.5 rounded-full bg-primary/80 text-white font-label text-xs font-bold hover:bg-primary/90 transition-all disabled:opacity-50"
+                            className="px-3 py-1.5 sm:px-4 sm:py-1.5 rounded-full bg-primary/80 text-white font-label text-xs font-bold hover:bg-primary/90 transition-all disabled:opacity-50"
                           >
                             Selesai
                           </button>
@@ -343,9 +343,9 @@ export default function QueuePage() {
 
       {/* Modal Online Registration */}
       <Dialog open={onlineModalOpen} onOpenChange={setOnlineModalOpen}>
-        <DialogContent className="bg-surface-container-lowest rounded-2xl max-w-md p-6">
+        <DialogContent className="bg-surface-container-lowest rounded-2xl max-w-md p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="font-headline font-bold text-xl text-primary/80">Tambah Pasien Online</DialogTitle>
+            <DialogTitle className="font-headline font-bold text-lg sm:text-xl text-primary/80">Tambah Pasien Online</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleOnlineSubmit} className="space-y-4 mt-4">
             <div>
@@ -377,9 +377,9 @@ export default function QueuePage() {
 
       {/* Modal Manual Registration */}
       <Dialog open={manualModalOpen} onOpenChange={setManualModalOpen}>
-        <DialogContent className="bg-surface-container-lowest rounded-2xl max-w-md p-6">
+        <DialogContent className="bg-surface-container-lowest rounded-2xl max-w-md p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="font-headline font-bold text-xl text-primary/80">Tambah Pasien Manual</DialogTitle>
+            <DialogTitle className="font-headline font-bold text-lg sm:text-xl text-primary/80">Tambah Pasien Manual</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleManualSubmit} className="space-y-4 mt-4">
             <div>

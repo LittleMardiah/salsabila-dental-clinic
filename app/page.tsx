@@ -44,12 +44,6 @@ export default function Home() {
       <nav className="fixed top-0 w-full z-50 glass-card border-b-0">
         <div className="flex justify-between items-center w-full px-8 h-24 max-w-7xl mx-auto">
           <div className="text-2xl font-extrabold tracking-tight text-primary">Salsa Dental</div>
-          <Link href="/patient/login">
-            <button className="bg-gradient-to-r from-[#dca1a1] to-[#815152] text-white px-8 py-3.5 rounded-full font-bold transition-all duration-300 hover:shadow-float hover:-translate-y-1 active:translate-y-0 relative overflow-hidden group">
-              <span className="relative z-10">Ambil Antrian Sekarang</span>
-              <span className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-[-20deg]"></span>
-            </button>
-          </Link>
         </div>
       </nav>
 
