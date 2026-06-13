@@ -23,7 +23,8 @@ const emrSchema = z.object({
 
 async function parseMultipartForm(req: NextRequest): Promise<{ fields: any; files: any[] }> {
   return new Promise((resolve, reject) => {
-    const bb = busboy({ headers: Object.fromEntries(req.headers) });
+    const headers = Object.fromEntries(req.headers);
+    const bb = busboy({ headers });
     const fields: any = {};
     const files: any[] = [];
 
@@ -50,29 +51,34 @@ async function parseMultipartForm(req: NextRequest): Promise<{ fields: any; file
     });
     bb.on('error', (err) => reject(err));
 
-    const reader = req.body?.getReader();
-    if (!reader) return reject(new Error('No body'));
-    const chunks: Buffer[] = [];
-    const readStream = async () => {
-      try {
-        let done = false;
-        while (!done) {
-          const { value, done: doneReading } = await reader.read();
-          if (value) chunks.push(Buffer.from(value));
-          done = doneReading;
-        }
-        const buffer = Buffer.concat(chunks);
-        bb.end(buffer);
-      } catch (err) {
-        reject(err);
-      }
-    };
-    readStream();
+    req.arrayBuffer()
+      .then(buffer => {
+        bb.end(Buffer.from(buffer));
+      })
+      .catch(err => reject(err));
   });
 }
 
+// Tambahkan fungsi validasi magic number untuk memastikan file benar-benar PNG/JPG
+function validateImageFormat(buffer: Buffer): { valid: boolean; mime: string | null } {
+  if (buffer.length < 8) return { valid: false, mime: null };
+  // PNG signature: 89 50 4E 47 0D 0A 1A 0A
+  const isPng = buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47 &&
+                buffer[4] === 0x0D && buffer[5] === 0x0A && buffer[6] === 0x1A && buffer[7] === 0x0A;
+  // JPEG signature: FF D8
+  const isJpeg = buffer[0] === 0xFF && buffer[1] === 0xD8;
+  if (isPng) return { valid: true, mime: 'image/png' };
+  if (isJpeg) return { valid: true, mime: 'image/jpeg' };
+  return { valid: false, mime: null };
+}
+
 async function compressImage(buffer: Buffer, mimetype: string): Promise<Buffer> {
-  if (mimetype === 'image/jpeg' || mimetype === 'image/png') {
+  const { valid, mime } = validateImageFormat(buffer);
+  if (!valid) {
+    throw new Error('File bukan PNG atau JPEG yang valid (magic number mismatch)');
+  }
+  const actualMime = mime || mimetype;
+  if (actualMime === 'image/jpeg' || actualMime === 'image/png') {
     try {
       return await sharp(buffer)
         .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
@@ -182,6 +188,11 @@ export async function POST(
   for (const file of files) {
     try {
       console.log(`[EMR Upload] Processing file: ${file.originalname}`);
+      const { valid, mime: detectedMime } = validateImageFormat(file.buffer);
+      if (!valid) {
+        throw new Error(`File ${file.originalname} tidak dikenali sebagai PNG/JPEG yang valid`);
+      }
+      console.log(`[EMR Upload] Valid image format: ${detectedMime}`);
       const compressedBuffer = await compressImage(file.buffer, file.mimetype);
       const fileExt = file.originalname.split('.').pop();
       const fileName = `${randomUUID()}.${fileExt}`;
@@ -374,6 +385,10 @@ export async function PUT(
   const uploadedPhotos = [];
   for (const file of files) {
     try {
+      const { valid, mime: detectedMime } = validateImageFormat(file.buffer);
+      if (!valid) {
+        throw new Error(`File ${file.originalname} tidak dikenali sebagai PNG/JPEG yang valid`);
+      }
       const compressedBuffer = await compressImage(file.buffer, file.mimetype);
       const fileExt = file.originalname.split('.').pop();
       const fileName = `${randomUUID()}.${fileExt}`;

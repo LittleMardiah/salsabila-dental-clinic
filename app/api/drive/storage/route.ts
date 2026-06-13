@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyAdminToken } from '@/lib/middleware/auth';
+import { verifyAdminToken } from '@/lib/ServerAuth';
 
 async function refreshAccessToken(refreshToken: string): Promise<string | null> {
   const response = await fetch('https://oauth2.googleapis.com/token', {
@@ -18,9 +18,10 @@ async function refreshAccessToken(refreshToken: string): Promise<string | null> 
 }
 
 export async function GET(request: Request) {
+  // FIX: Sesuaikan pemanggilan verifyAdminToken karena sekarang menggunakan ServerAuth
   const auth = await verifyAdminToken(request);
   if (!auth.valid) {
-    return NextResponse.json({ error: auth.error }, { status: auth.status });
+    return NextResponse.json({ error: auth.error }, { status: auth.status || 401 });
   }
 
   const pref = await prisma.adminPreference.findUnique({
