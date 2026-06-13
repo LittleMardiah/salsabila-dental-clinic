@@ -1,4 +1,3 @@
-// app/api/patient/[id]/emr/route.ts
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -181,20 +180,32 @@ export async function POST(
 
   const uploadedPhotos = [];
   for (const file of files) {
-    const compressedBuffer = await compressImage(file.buffer, file.mimetype);
-    const fileExt = file.originalname.split('.').pop();
-    const fileName = `${randomUUID()}.${fileExt}`;
-    const folderId = await getOrCreateEmrFolder(patientId, visit.id);
-    const { fileId, webViewLink } = await uploadFileToDrive(compressedBuffer, fileName, file.mimetype, folderId);
-    const photo = await prisma.medicalPhoto.create({
-      data: {
-        visitId: visit.id,
-        fileId: fileId,
-        fileUrl: webViewLink,
-        fileName: file.originalname,
-      },
-    });
-    uploadedPhotos.push(photo);
+    try {
+      console.log(`[EMR Upload] Processing file: ${file.originalname}`);
+      const compressedBuffer = await compressImage(file.buffer, file.mimetype);
+      const fileExt = file.originalname.split('.').pop();
+      const fileName = `${randomUUID()}.${fileExt}`;
+      console.log(`[EMR Upload] Getting folder for patient ${patientId}, visit ${visit.id}`);
+      const folderId = await getOrCreateEmrFolder(patientId, visit.id);
+      console.log(`[EMR Upload] Folder ID: ${folderId}`);
+      const { fileId, webViewLink } = await uploadFileToDrive(compressedBuffer, fileName, file.mimetype, folderId);
+      console.log(`[EMR Upload] Uploaded fileId: ${fileId}`);
+      const photo = await prisma.medicalPhoto.create({
+        data: {
+          visitId: visit.id,
+          fileId: fileId,
+          fileUrl: webViewLink,
+          fileName: file.originalname,
+        },
+      });
+      uploadedPhotos.push(photo);
+    } catch (err: any) {
+      console.error(`[EMR Upload] Error for file ${file.originalname}:`, err);
+      return NextResponse.json(
+        { success: false, error: `Upload failed for ${file.originalname}: ${err.message}` },
+        { status: 500 }
+      );
+    }
   }
 
   console.log(`[Audit] Admin ${adminUsername} upserted medical visit for patient ${patientId} (visit ${visit.id}) with ${uploadedPhotos.length} photos`);
@@ -362,20 +373,28 @@ export async function PUT(
 
   const uploadedPhotos = [];
   for (const file of files) {
-    const compressedBuffer = await compressImage(file.buffer, file.mimetype);
-    const fileExt = file.originalname.split('.').pop();
-    const fileName = `${randomUUID()}.${fileExt}`;
-    const folderId = await getOrCreateEmrFolder(patientId, updatedVisit.id);
-    const { fileId, webViewLink } = await uploadFileToDrive(compressedBuffer, fileName, file.mimetype, folderId);
-    const photo = await prisma.medicalPhoto.create({
-      data: {
-        visitId: updatedVisit.id,
-        fileId: fileId,
-        fileUrl: webViewLink,
-        fileName: file.originalname,
-      },
-    });
-    uploadedPhotos.push(photo);
+    try {
+      const compressedBuffer = await compressImage(file.buffer, file.mimetype);
+      const fileExt = file.originalname.split('.').pop();
+      const fileName = `${randomUUID()}.${fileExt}`;
+      const folderId = await getOrCreateEmrFolder(patientId, updatedVisit.id);
+      const { fileId, webViewLink } = await uploadFileToDrive(compressedBuffer, fileName, file.mimetype, folderId);
+      const photo = await prisma.medicalPhoto.create({
+        data: {
+          visitId: updatedVisit.id,
+          fileId: fileId,
+          fileUrl: webViewLink,
+          fileName: file.originalname,
+        },
+      });
+      uploadedPhotos.push(photo);
+    } catch (err: any) {
+      console.error(`[EMR Upload] Error updating file ${file.originalname}:`, err);
+      return NextResponse.json(
+        { success: false, error: `Upload failed for ${file.originalname}: ${err.message}` },
+        { status: 500 }
+      );
+    }
   }
 
   console.log(`[Audit] Admin ${adminUsername} updated medical visit ${visitId} for patient ${patientId}, added ${uploadedPhotos.length} photos`);
