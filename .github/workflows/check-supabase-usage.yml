@@ -1,0 +1,45 @@
+name: Check Supabase Storage Usage
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # setiap 6 jam
+  workflow_dispatch:        # bisa dijalankan manual
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install rclone
+        run: |
+          curl https://rclone.org/install.sh | sudo bash
+          mkdir -p ~/.config/rclone
+
+      - name: Create rclone config from secret
+        env:
+          RCLONE_CONF: ${{ secrets.RCLONE_CONF }}
+        run: |
+          echo "$RCLONE_CONF" > ~/.config/rclone/rclone.conf
+
+      - name: Get bucket size
+        id: size
+        run: |
+          SIZE=$(rclone size supabase:${{ secrets.SUPABASE_BUCKET_NAME }} --json | jq '.bytes')
+          echo "SIZE=$SIZE" >> $GITHUB_ENV
+          echo "Size: $SIZE bytes"
+
+      - name: Send alert if usage > 400 MB (419,430,400 bytes)
+        if: env.SIZE > 419430400
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+        run: |
+          SIZE_MB=$(( $SIZE / 1048576 ))
+          curl -X POST https://api.resend.com/emails \
+            -H "Authorization: Bearer ${RESEND_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"from\": \"monitor@salsadental.vercel.app\",
+              \"to\": \"${ADMIN_EMAIL}\",
+              \"subject\": \"[PERINGATAN] Supabase Storage hampir penuh!\",
+              \"text\": \"Penggunaan bucket emr-photos saat ini: ${SIZE_MB} MB (dari 500 MB). Segera lakukan backup melalui dashboard admin.\"
+            }"

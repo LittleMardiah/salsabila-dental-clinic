@@ -1,0 +1,44 @@
+name: Restore Supabase Storage from Google Drive
+
+on:
+  workflow_dispatch:
+    inputs:
+      backup_folder:
+        description: 'Nama folder backup (contoh: 2026-06-16_14-30-00)'
+        required: true
+        type: string
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install rclone
+        run: |
+          curl https://rclone.org/install.sh | sudo bash
+          mkdir -p ~/.config/rclone
+
+      - name: Create rclone config
+        env:
+          RCLONE_CONF: ${{ secrets.RCLONE_CONF }}
+        run: |
+          echo "$RCLONE_CONF" > ~/.config/rclone/rclone.conf
+
+      - name: Restore from Google Drive to Supabase
+        run: |
+          rclone copy "gdrive-oauth:Backup Salsa Dental/${{ github.event.inputs.backup_folder }}/" supabase:${{ secrets.SUPABASE_BUCKET_NAME }}/ --progress --verbose
+
+      - name: Send notification
+        if: success()
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+        run: |
+          curl -X POST https://api.resend.com/emails \
+            -H "Authorization: Bearer ${RESEND_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"from\": \"restore@salsadental.vercel.app\",
+              \"to\": \"${ADMIN_EMAIL}\",
+              \"subject\": \"[SUCCESS] Restore Salsa Dental - ${{ github.event.inputs.backup_folder }}\",
+              \"text\": \"Restore folder ${{ github.event.inputs.backup_folder }} berhasil ke Supabase.\"
+            }"
