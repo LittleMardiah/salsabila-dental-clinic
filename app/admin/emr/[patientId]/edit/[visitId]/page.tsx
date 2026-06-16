@@ -1,3 +1,4 @@
+// FIX: Perbaiki halaman edit untuk mengambil dan menampilkan foto yang sudah ada
 // app/admin/emr/[patientId]/edit/[visitId]/page.tsx
 'use client'
 import { useState, useEffect } from 'react'
@@ -15,6 +16,7 @@ interface VisitData {
   catatanTambahan: string | null
   dokterPenanggungJawab: string
   followUpDate: string | null
+  photos?: any[] // FIX: tambahkan photos
 }
 
 export default function EditEMRPage() {
@@ -32,10 +34,12 @@ export default function EditEMRPage() {
         const patientData = await patientRes.json()
         setPatientName(patientData.name)
 
-        const visitRes = await fetch(`/api/patient/${patientId}/emr`)
+        // FIX: Gunakan query parameter visitId untuk mengambil satu visit beserta photos
+        const visitRes = await fetch(`/api/patient/${patientId}/emr?visitId=${visitId}`)
         if (!visitRes.ok) throw new Error('Failed to fetch visits')
         const visitData = await visitRes.json()
-        const found = visitData.data?.find((v: any) => v.id === parseInt(visitId as string))
+        // Karena response bisa berupa array, ambil yang pertama
+        const found = visitData.data?.[0] || visitData.data?.find((v: any) => v.id === parseInt(visitId as string))
         if (found) {
           setVisit({
             id: found.id,
@@ -47,6 +51,7 @@ export default function EditEMRPage() {
             catatanTambahan: found.catatanTambahan,
             dokterPenanggungJawab: found.dokterPenanggungJawab,
             followUpDate: found.followUpDate,
+            photos: found.photos || [], // FIX: simpan photos
           })
         } else {
           toast.error('Data kunjungan tidak ditemukan')
@@ -106,6 +111,7 @@ export default function EditEMRPage() {
               followUpDate: visit.followUpDate ? visit.followUpDate.split('T')[0] : '',
             }}
             visitId={visit.id}
+            existingPhotos={visit.photos || []} 
             onSuccess={() => {
               toast.success('EMR berhasil diperbarui')
               router.push(`/admin/emr/${patientId}`)

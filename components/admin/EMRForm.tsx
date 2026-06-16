@@ -1,4 +1,3 @@
-// components/admin/EMRForm.tsx
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
@@ -25,14 +24,17 @@ interface EMRFormProps {
   visitId?: number
   onSuccess: () => void
   onHistoryClick?: () => void
+  existingPhotos?: any[] 
 }
 
-export default function EMRForm({ patientId, initialData, visitId, onSuccess, onHistoryClick }: EMRFormProps) {
+export default function EMRForm({ patientId, initialData, visitId, onSuccess, onHistoryClick, existingPhotos = [] }: EMRFormProps) {
   const [files, setFiles] = useState<File[]>([])
   const [previews, setPreviews] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [completedQueues, setCompletedQueues] = useState<{ id: number; label: string }[]>([])
   const [fetchingQueues, setFetchingQueues] = useState(true)
+  const [existingPhotoList, setExistingPhotoList] = useState<any[]>(existingPhotos)
+  const [deletedPhotoIds, setDeletedPhotoIds] = useState<number[]>([])
 
   const dateInputRef = useRef<HTMLInputElement>(null)
 
@@ -41,6 +43,10 @@ export default function EMRForm({ patientId, initialData, visitId, onSuccess, on
     defaultValues: initialData || {},
     mode: 'onChange',
   })
+
+  useEffect(() => {
+    setExistingPhotoList(existingPhotos)
+  }, [existingPhotos])
 
   useEffect(() => {
     const fetchCompletedQueues = async () => {
@@ -88,6 +94,11 @@ export default function EMRForm({ patientId, initialData, visitId, onSuccess, on
     setPreviews(newPreviews)
   }
 
+  const removeExistingPhoto = (photoId: number) => {
+    setExistingPhotoList(prev => prev.filter(p => p.id !== photoId))
+    setDeletedPhotoIds(prev => [...prev, photoId])
+  }
+
   const onSubmit = async (data: EMRFormData) => {
     setLoading(true)
     const formData = new FormData()
@@ -100,6 +111,10 @@ export default function EMRForm({ patientId, initialData, visitId, onSuccess, on
     formData.append('dokterPenanggungJawab', data.dokterPenanggungJawab)
     if (data.followUpDate) formData.append('followUpDate', data.followUpDate)
     files.forEach(file => formData.append('photos', file))
+
+    if (deletedPhotoIds.length > 0) {
+      formData.append('deletePhotoIds', deletedPhotoIds.join(','))
+    }
 
     const url = visitId
       ? `/api/patient/${patientId}/emr?visitId=${visitId}`
@@ -114,6 +129,8 @@ export default function EMRForm({ patientId, initialData, visitId, onSuccess, on
         reset()
         setFiles([])
         setPreviews([])
+        setDeletedPhotoIds([]) 
+        setExistingPhotoList([])
         onSuccess()
       } else {
         toast.error('Error', { description: result.error || 'Gagal menyimpan EMR' })
@@ -284,8 +301,23 @@ export default function EMRForm({ patientId, initialData, visitId, onSuccess, on
               <h3 className="text-lg font-headline font-bold text-primary">Dokumentasi Foto</h3>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
+              {/* Tampilkan foto yang sudah ada */}
+              {existingPhotoList.map((photo) => (
+                <div key={photo.id} className="relative aspect-square rounded-2xl overflow-hidden group shadow-md ring-2 ring-white/50 transition-all hover:scale-105">
+                  <img src={photo.url} alt={photo.fileName || 'Foto EMR'} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <button
+                      type="button"
+                      onClick={() => removeExistingPhoto(photo.id)}
+                      className="bg-white rounded-full p-2 text-error hover:scale-110 transition"
+                    >
+                      <span className="material-symbols-outlined text-sm">delete</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
               {previews.map((src, idx) => (
-                <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden group shadow-md ring-2 ring-white/50 transition-all hover:scale-105">
+                <div key={`preview-${idx}`} className="relative aspect-square rounded-2xl overflow-hidden group shadow-md ring-2 ring-white/50 transition-all hover:scale-105">
                   <img src={src} alt="preview" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <button type="button" onClick={() => removeFile(idx)} className="bg-white rounded-full p-2 text-error hover:scale-110 transition">
@@ -300,6 +332,9 @@ export default function EMRForm({ patientId, initialData, visitId, onSuccess, on
                 <span className="text-xs text-on-surface-variant/70 font-label">Unggah</span>
               </label>
             </div>
+            {deletedPhotoIds.length > 0 && (
+              <p className="text-xs text-on-surface-variant mt-2">{deletedPhotoIds.length} foto akan dihapus saat disimpan.</p>
+            )}
           </div>
         </div>
       </div>
