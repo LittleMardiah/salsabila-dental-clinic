@@ -1,4 +1,3 @@
-// app/api/backup/google-callback/route.ts
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'

@@ -15,7 +15,7 @@ import { NextResponse } from 'next/server'
  *         description: Redirect ke halaman otorisasi Google
  */
 export async function GET() {
-  // ✅ PERBAIKAN: Hardcode sementara untuk memastikan tidak ada kesalahan dinamis
+  // PERBAIKAN: Hardcode sementara untuk memastikan tidak ada kesalahan dinamis
   // Ganti dengan domain Anda yang sebenarnya
   const baseUrl = 'https://salsabila-dental-clinic.vercel.app'
   

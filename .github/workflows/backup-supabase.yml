@@ -1,0 +1,88 @@
+name: Backup Supabase Storage to Google Drive
+
+on:
+  workflow_dispatch:                     # manual trigger dari tombol atau API
+  # schedule:                            # (aktifkan setelah uji coba)
+  #   - cron: '0 2 * * 0'                # setiap Minggu jam 2 UTC
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install rclone
+        run: |
+          curl https://rclone.org/install.sh | sudo bash
+          mkdir -p ~/.config/rclone
+
+      - name: Create rclone config from secret
+        env:
+          RCLONE_CONF: ${{ secrets.RCLONE_CONF }}
+        run: |
+          echo "$RCLONE_CONF" > ~/.config/rclone/rclone.conf
+
+      - name: Sync from Supabase to Google Drive
+        run: |
+          TIMESTAMP=$(date +'%Y-%m-%d_%H-%M-%S')
+          echo "TIMESTAMP=${TIMESTAMP}" >> $GITHUB_ENV
+          rclone sync supabase:${{ secrets.SUPABASE_BUCKET_NAME }} "gdrive-oauth:Backup Salsa Dental/$TIMESTAMP/" \
+            --progress \
+            --checksum \
+            --verbose \
+            --retries 3 \
+            --low-level-retries 5
+
+      - name: Verify sync integrity (checksum)
+        run: |
+          rclone check supabase:${{ secrets.SUPABASE_BUCKET_NAME }} "gdrive-oauth:Backup Salsa Dental/${{ env.TIMESTAMP }}/" \
+            --checksum \
+            --one-way
+
+      - name: Delete all files from Supabase if verification passed
+        if: success()
+        run: |
+          rclone delete supabase:${{ secrets.SUPABASE_BUCKET_NAME }} --verbose
+
+      - name: Send success notification
+        if: success()
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+        run: |
+          if [ -n "$RESEND_API_KEY" ] && [ -n "$ADMIN_EMAIL" ]; then
+            curl -X POST https://api.resend.com/emails \
+              -H "Authorization: Bearer ${RESEND_API_KEY}" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"from\": \"backup@salsadental.vercel.app\",
+                \"to\": \"${ADMIN_EMAIL}\",
+                \"subject\": \"[SUCCESS] Backup Salsa Dental - ${{ env.TIMESTAMP }}\",
+                \"text\": \"Backup folder: Backup Salsa Dental/${{ env.TIMESTAMP }}. All files verified and Supabase cleaned.\"
+              }"
+          else
+            echo "Skipping email notification (RESEND_API_KEY or ADMIN_EMAIL not set)"
+          fi
+
+      - name: Send failure notification
+        if: failure()
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+        run: |
+          if [ -n "$RESEND_API_KEY" ] && [ -n "$ADMIN_EMAIL" ]; then
+            curl -X POST https://api.resend.com/emails \
+              -H "Authorization: Bearer ${RESEND_API_KEY}" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"from\": \"backup@salsadental.vercel.app\",
+                \"to\": \"${ADMIN_EMAIL}\",
+                \"subject\": \"[FAILED] Backup Salsa Dental\",
+                \"text\": \"Workflow failed. Check log: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
+              }"
+          else
+            echo "Skipping email notification (RESEND_API_KEY or ADMIN_EMAIL not set)"
+          fi
