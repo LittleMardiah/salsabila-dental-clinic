@@ -41,6 +41,8 @@ export default function EditEMRPage() {
         // Karena response bisa berupa array, ambil yang pertama
         const found = visitData.data?.[0] || visitData.data?.find((v: any) => v.id === parseInt(visitId as string))
         if (found) {
+          // FIX: Log untuk debugging
+          console.log('[EditEMRPage] found photos:', found.photos)
           setVisit({
             id: found.id,
             queueId: found.queueId,

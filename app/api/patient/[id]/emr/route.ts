@@ -1,4 +1,3 @@
-// FIX: Perbaiki GET untuk mendukung parameter visitId dan error handling URL foto
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -12,7 +11,6 @@ import busboy from 'busboy';
 import {
   uploadFileToDriveWithAdmin,
   deleteFileFromDriveWithAdmin,
-  getFileUrlWithAdmin,
   getOrCreateEmrFolderWithAdmin,
 } from '@/lib/googleDrive';
 
@@ -242,7 +240,6 @@ export async function POST(
   }, { status: 201 });
 }
 
-// GET dengan dukungan parameter visitId dan error handling URL
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -291,22 +288,13 @@ export async function GET(
     followUpDate: visit.followUpDate,
     createdAt: visit.createdAt,
     updatedAt: visit.updatedAt,
-    photos: await Promise.all(visit.photos.map(async (photo: any) => {
-      let url = photo.fileUrl;
-      if (photo.fileId) {
-        try {
-          url = await getFileUrlWithAdmin(photo.fileId, adminUsername);
-        } catch (err) {
-          console.error(`[GET EMR] Failed to get URL for photo ${photo.id}:`, err);
-          url = photo.fileUrl;
-        }
-      }
-      return {
-        id: photo.id,
-        url,
-        fileName: photo.fileName,
-        uploadedAt: photo.uploadedAt,
-      };
+    photos: visit.photos.map((photo: any) => ({
+      id: photo.id,
+      fileId: photo.fileId,
+      fileName: photo.fileName,
+      uploadedAt: photo.uploadedAt,
+      // FIX: URL proxy untuk ditampilkan di frontend
+      url: `/api/drive/image/${photo.fileId}`,
     })),
   })));
 

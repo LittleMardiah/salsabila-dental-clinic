@@ -1,3 +1,4 @@
+// components/admin/EMRHistory.tsx - FIX: navigasi langsung dengan window.location.href
 'use client'
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
@@ -6,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import Lightbox from 'yet-another-react-lightbox'
 import 'yet-another-react-lightbox/styles.css'
 import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
 
 interface Visit {
   id: number
@@ -28,7 +28,6 @@ interface EMRHistoryProps {
 }
 
 export default function EMRHistory({ patientId }: EMRHistoryProps) {
-  const router = useRouter() // FIX: tambahkan router
   const [visits, setVisits] = useState<Visit[]>([])
   const [loading, setLoading] = useState(true)
   const [lightboxOpen, setLightboxOpen] = useState(false)
@@ -56,9 +55,12 @@ export default function EMRHistory({ patientId }: EMRHistoryProps) {
     setLightboxOpen(true)
   }
 
-  // Fungsi untuk navigasi ke halaman edit
+  // FIX: Navigasi langsung menggunakan window.location.href untuk memastikan berhasil di dalam modal
   const handleEditClick = (visitId: number) => {
-    router.push(`/admin/emr/${patientId}/edit/${visitId}`)
+    const targetUrl = `/admin/emr/${patientId}/edit/${visitId}`
+    console.log('[EMRHistory] Navigasi ke:', targetUrl)
+    // Gunakan window.location.href agar navigasi pasti terjadi, menghindari masalah modal/konteks
+    window.location.href = targetUrl
   }
 
   return (
