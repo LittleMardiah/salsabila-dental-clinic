@@ -29,6 +29,12 @@ export default function SettingsPage() {
   const [restoreFile, setRestoreFile] = useState<File | null>(null)
   const [isRestoring, setIsRestoring] = useState(false)
   const [driveStorage, setDriveStorage] = useState<{ used: number | null; limit: number | null }>({ used: null, limit: null })
+  // FIX: Tambahkan state untuk trigger backup foto
+  const [isTriggeringBackup, setIsTriggeringBackup] = useState(false)
+
+  // FIX: Tambahkan state untuk ukuran bucket Supabase
+  const [supabaseStorage, setSupabaseStorage] = useState<{ sizeMB: number | null; fileCount: number | null }>({ sizeMB: null, fileCount: null })
+  const [isLoadingSupabaseSize, setIsLoadingSupabaseSize] = useState(false)
 
   // Preferensi Menu
   const { data, isLoading, error } = useQuery({
@@ -45,9 +51,11 @@ export default function SettingsPage() {
     if (data?.googleAccessToken) {
       setIsGoogleConnected(!!data.googleAccessToken)
       if (data.googleAccessToken) {
-        fetchDriveStorage() 
+        fetchDriveStorage()
       }
     }
+    // FIX: Ambil ukuran bucket Supabase saat halaman dimuat
+    fetchSupabaseStorageSize()
   }, [data])
 
   // Fungsi untuk mengambil storage quota dari Google Drive
@@ -66,6 +74,28 @@ export default function SettingsPage() {
     } catch (err) {
       console.error('Failed to fetch drive storage', err)
       setDriveStorage({ used: null, limit: null })
+    }
+  }
+
+  // FIX: Fungsi untuk mengambil ukuran bucket Supabase
+  const fetchSupabaseStorageSize = async () => {
+    setIsLoadingSupabaseSize(true)
+    try {
+      const res = await fetch('/api/storage/size')
+      if (res.ok) {
+        const data = await res.json()
+        setSupabaseStorage({
+          sizeMB: data.sizeMB,
+          fileCount: data.fileCount,
+        })
+      } else {
+        setSupabaseStorage({ sizeMB: null, fileCount: null })
+      }
+    } catch (err) {
+      console.error('Failed to fetch supabase storage size', err)
+      setSupabaseStorage({ sizeMB: null, fileCount: null })
+    } finally {
+      setIsLoadingSupabaseSize(false)
     }
   }
 
@@ -106,7 +136,7 @@ export default function SettingsPage() {
     if (urlParams.get('connected') === 'true') {
       toast.success('Google Drive terhubung')
       setIsGoogleConnected(true)
-      fetchDriveStorage() 
+      fetchDriveStorage()
       window.history.replaceState({}, '', '/admin/settings')
     }
     if (urlParams.get('error')) toast.error('Gagal menghubungkan Google Drive')
@@ -162,6 +192,26 @@ export default function SettingsPage() {
     }
   }
 
+  // FIX: Fungsi untuk memicu backup foto via GitHub Actions
+  const triggerBackup = async () => {
+    setIsTriggeringBackup(true)
+    try {
+      const res = await fetch('/api/backup/trigger', { method: 'POST' })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success('Backup foto dimulai! Cek email untuk notifikasi.')
+        // FIX: Refresh ukuran bucket setelah backup (delay 10 detik)
+        setTimeout(fetchSupabaseStorageSize, 10000)
+      } else {
+        toast.error(data.error || 'Gagal memicu backup foto')
+      }
+    } catch (err) {
+      toast.error('Terjadi kesalahan jaringan')
+    } finally {
+      setIsTriggeringBackup(false)
+    }
+  }
+
   const handleRestore = async () => {
     if (!restoreFile) {
       toast.error('Pilih file backup terlebih dahulu')
@@ -188,6 +238,22 @@ export default function SettingsPage() {
     } finally {
       setIsRestoring(false)
     }
+  }
+
+  // FIX: Tentukan warna progress bar berdasarkan threshold
+  const getThresholdColor = (sizeMB: number) => {
+    if (sizeMB < 300) return 'bg-green-500'
+    if (sizeMB < 400) return 'bg-yellow-500'
+    return 'bg-red-500'
+  }
+
+  // FIX: Tentukan pesan peringatan
+  const getThresholdMessage = (sizeMB: number) => {
+    if (sizeMB === null) return 'Loading...'
+    if (sizeMB < 100) return 'Aman, ruang kosong banyak.'
+    if (sizeMB < 300) return 'Cukup aman, masih ada ruang.'
+    if (sizeMB < 400) return 'Mulai penuh, segera backup!'
+    return '⚠️ KRITIS! Segera backup untuk menghindari error upload!'
   }
 
   if (isLoading) return <div className="bg-surface min-h-screen flex items-center justify-center">Loading...</div>
@@ -245,6 +311,88 @@ export default function SettingsPage() {
                 <span className="material-symbols-outlined text-2xl">cloud_sync</span>
               </div>
               <h3 className="text-xl font-headline font-bold text-on-primary-fixed-variant">Backup Data</h3>
+            </div>
+
+            {/* FIX: Supabase Storage Usage - Indikator ukuran bucket */}
+            <div className="glass-card rounded-[2rem] p-6 md:p-8 border border-white/40 relative overflow-hidden">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 bg-primary-container/20 rounded-2xl text-primary">
+                  <span className="material-symbols-outlined text-2xl">storage</span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-headline font-bold text-on-surface">Penyimpanan Supabase</h3>
+                  <p className="text-sm text-on-surface-variant">Bucket: <code className="bg-white/30 px-2 py-0.5 rounded text-xs font-mono">emr-photos</code></p>
+                </div>
+                <div className="ml-auto">
+                  <button
+                    onClick={fetchSupabaseStorageSize}
+                    disabled={isLoadingSupabaseSize}
+                    className="p-2 rounded-full bg-white/40 hover:bg-white/60 transition-colors disabled:opacity-50"
+                    title="Refresh ukuran"
+                  >
+                    <span className="material-symbols-outlined text-lg">refresh</span>
+                  </button>
+                </div>
+              </div>
+
+              {isLoadingSupabaseSize ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-pulse text-on-surface-variant">Memuat ukuran storage...</div>
+                </div>
+              ) : supabaseStorage.sizeMB !== null ? (
+                <div>
+                  <div className="flex justify-between items-end mb-2">
+                    <div>
+                      <span className="text-2xl font-headline font-bold text-primary">
+                        {supabaseStorage.sizeMB.toFixed(2)} MB
+                      </span>
+                      <span className="text-sm text-on-surface-variant ml-2">dari 500 MB</span>
+                    </div>
+                    <span className="text-sm text-on-surface-variant">
+                      {supabaseStorage.fileCount} file
+                    </span>
+                  </div>
+
+                  <div className="w-full h-4 bg-white rounded-full overflow-hidden border border-white/20">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${getThresholdColor(supabaseStorage.sizeMB)}`}
+                      style={{ width: `${Math.min((supabaseStorage.sizeMB / 500) * 100, 100)}%` }}
+                    />
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between">
+                    <p className={`text-sm font-medium ${supabaseStorage.sizeMB >= 400 ? 'text-error font-bold animate-pulse' : 'text-on-surface-variant'}`}>
+                      {getThresholdMessage(supabaseStorage.sizeMB)}
+                    </p>
+                    <p className="text-xs text-on-surface-variant opacity-60">
+                      {Math.max(0, 500 - supabaseStorage.sizeMB).toFixed(2)} MB tersisa
+                    </p>
+                  </div>
+
+                  {/* FIX: Peringatan threshold 400 MB */}
+                  {supabaseStorage.sizeMB >= 400 && (
+                    <div className="mt-3 p-3 bg-error/10 border border-error/30 rounded-xl flex items-start gap-3">
+                      <span className="material-symbols-outlined text-error text-lg">warning</span>
+                      <div>
+                        <p className="text-error font-bold text-sm">Storage hampir penuh!</p>
+                        <p className="text-xs text-error/80">Segera lakukan backup foto untuk menghindari error upload.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {supabaseStorage.sizeMB >= 100 && supabaseStorage.sizeMB < 400 && (
+                    <div className="mt-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl flex items-start gap-3">
+                      <span className="material-symbols-outlined text-yellow-500 text-lg">info</span>
+                      <div>
+                        <p className="text-yellow-600 font-bold text-sm">Peringatan</p>
+                        <p className="text-xs text-yellow-600/80">Ukuran storage mulai menipis. Backup segera untuk mengosongkan ruang.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-on-surface-variant italic">Gagal mengambil ukuran storage. Periksa koneksi Supabase.</p>
+              )}
             </div>
 
             {/* Local Backup */}
@@ -313,9 +461,10 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* FIX: Ubah grid menjadi 3 kolom untuk tombol Backup Foto */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {!isGoogleConnected ? (
-                  <button onClick={connectGoogleDrive} className="col-span-2 py-3 px-4 bg-white/60 hover:bg-white border border-outline-variant/20 rounded-xl font-headline font-bold text-on-surface-variant text-sm transition-all flex items-center justify-center gap-2">
+                  <button onClick={connectGoogleDrive} className="col-span-3 py-3 px-4 bg-white/60 hover:bg-white border border-outline-variant/20 rounded-xl font-headline font-bold text-on-surface-variant text-sm transition-all flex items-center justify-center gap-2">
                     <span className="material-symbols-outlined text-lg">cloud_queue</span>
                     Hubungkan Google Drive
                   </button>
@@ -323,7 +472,12 @@ export default function SettingsPage() {
                   <>
                     <button onClick={uploadToDrive} disabled={isUploading} className="py-3 px-4 bg-white/60 hover:bg-white border border-outline-variant/20 rounded-xl font-headline font-bold text-on-surface-variant text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50">
                       <span className="material-symbols-outlined text-lg">settings_backup_restore</span>
-                      {isUploading ? 'Mengupload...' : 'Backup'}
+                      {isUploading ? 'Mengupload...' : 'Backup Database'}
+                    </button>
+                    {/* FIX: Tombol Backup Foto */}
+                    <button onClick={triggerBackup} disabled={isTriggeringBackup} className="py-3 px-4 bg-white/60 hover:bg-white border border-outline-variant/20 rounded-xl font-headline font-bold text-on-surface-variant text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                      <span className="material-symbols-outlined text-lg">cloud_upload</span>
+                      {isTriggeringBackup ? 'Memproses...' : 'Backup Foto'}
                     </button>
                     <button onClick={disconnectGoogleDrive} className="py-3 px-4 bg-white/60 hover:bg-white border border-outline-variant/20 rounded-xl font-headline font-bold text-error/70 text-sm transition-all flex items-center justify-center gap-2">
                       <span className="material-symbols-outlined text-lg">link_off</span>
