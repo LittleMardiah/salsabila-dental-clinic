@@ -1,3 +1,4 @@
+// FIX: Perbaiki GET untuk mendukung parameter visitId dan error handling URL foto
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -241,6 +242,7 @@ export async function POST(
   }, { status: 201 });
 }
 
+// GET dengan dukungan parameter visitId dan error handling URL
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -256,11 +258,26 @@ export async function GET(
     return NextResponse.json({ success: false, error: 'Invalid patient ID' }, { status: 400 });
   }
 
-  const visits = await prisma.medicalVisit.findMany({
-    where: { patientId },
-    include: { photos: { orderBy: { uploadedAt: 'asc' } } },
-    orderBy: { createdAt: 'desc' },
-  });
+  const url = new URL(req.url);
+  const visitIdParam = url.searchParams.get('visitId');
+
+  let visits;
+  if (visitIdParam) {
+    const visitId = parseInt(visitIdParam);
+    if (isNaN(visitId)) {
+      return NextResponse.json({ success: false, error: 'Invalid visitId' }, { status: 400 });
+    }
+    visits = await prisma.medicalVisit.findMany({
+      where: { id: visitId, patientId },
+      include: { photos: { orderBy: { uploadedAt: 'asc' } } },
+    });
+  } else {
+    visits = await prisma.medicalVisit.findMany({
+      where: { patientId },
+      include: { photos: { orderBy: { uploadedAt: 'asc' } } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 
   const formattedVisits = await Promise.all(visits.map(async (visit: any) => ({
     id: visit.id,
@@ -274,12 +291,23 @@ export async function GET(
     followUpDate: visit.followUpDate,
     createdAt: visit.createdAt,
     updatedAt: visit.updatedAt,
-    photos: await Promise.all(visit.photos.map(async (photo: any) => ({
-      id: photo.id,
-      url: photo.fileId ? await getFileUrlWithAdmin(photo.fileId, adminUsername) : photo.fileUrl,
-      fileName: photo.fileName,
-      uploadedAt: photo.uploadedAt,
-    }))),
+    photos: await Promise.all(visit.photos.map(async (photo: any) => {
+      let url = photo.fileUrl;
+      if (photo.fileId) {
+        try {
+          url = await getFileUrlWithAdmin(photo.fileId, adminUsername);
+        } catch (err) {
+          console.error(`[GET EMR] Failed to get URL for photo ${photo.id}:`, err);
+          url = photo.fileUrl;
+        }
+      }
+      return {
+        id: photo.id,
+        url,
+        fileName: photo.fileName,
+        uploadedAt: photo.uploadedAt,
+      };
+    })),
   })));
 
   return NextResponse.json({ success: true, data: formattedVisits });
