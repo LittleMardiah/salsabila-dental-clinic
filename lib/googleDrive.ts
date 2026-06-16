@@ -1,12 +1,14 @@
 import { google } from 'googleapis'
 import { Readable } from 'stream'
+import { prisma } from '@/lib/prisma'
 
+// Service Account Auth (untuk backup & folder structure)
 let auth: any = null;
 
 function getGoogleAuth() {
   if (auth) return auth;
 
-  // Coba dari GOOGLE_CREDENTIALS_BASE64 dulu
+  // Coba dari GOOGLE_CREDENTIALS_BASE64
   const base64Credentials = process.env.GOOGLE_CREDENTIALS_BASE64;
   if (base64Credentials) {
     try {
@@ -56,6 +58,171 @@ async function getDriveInstance() {
   return drive;
 }
 
+// OAuth2 Admin Auth (Untuk upload foto emr & bukti transfer)
+// Fungsi untuk mendapatkan OAuth2 client dari admin yang sudah login dengan mengambil token dari adminPreference di database
+export async function getOAuth2ClientForAdmin(adminUsername: string) {
+  // Ambil preferensi admin dari database
+  const pref = await prisma.adminPreference.findUnique({
+    where: { adminId: adminUsername },
+  });
+
+  if (!pref?.googleAccessToken || !pref?.googleRefreshToken) {
+    throw new Error(
+      'Admin belum menghubungkan Google Drive. Silakan hubungkan di halaman Pengaturan.'
+    );
+  }
+
+  // Buat OAuth2 client dengan credentials dari environment
+  const oauth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_REDIRECT_URI || 'https://salsabila-dental-clinic.vercel.app/api/backup/google-callback'
+  );
+
+  oauth2Client.setCredentials({
+    access_token: pref.googleAccessToken,
+    refresh_token: pref.googleRefreshToken,
+    expiry_date: pref.googleTokenExpiry?.getTime(),
+  });
+
+  // Jika token expired, refresh otomatis
+  if (pref.googleTokenExpiry && new Date() > pref.googleTokenExpiry) {
+    console.log('[GoogleDrive OAuth] Token expired, refreshing...');
+    try {
+      const { credentials } = await oauth2Client.refreshAccessToken();
+      // Update token di database
+      await prisma.adminPreference.update({
+        where: { adminId: adminUsername },
+        data: {
+          googleAccessToken: credentials.access_token!,
+          googleTokenExpiry: new Date(credentials.expiry_date!),
+        },
+      });
+      oauth2Client.setCredentials(credentials);
+      console.log('[GoogleDrive OAuth] Token refreshed successfully');
+    } catch (err) {
+      console.error('[GoogleDrive OAuth] Failed to refresh token:', err);
+      throw new Error('Token Google Drive expired dan gagal di-refresh. Silakan hubungkan ulang di Pengaturan.');
+    }
+  }
+
+  return oauth2Client;
+}
+
+// Mendapatkan Drive instance untuk admin (OAuth2)
+export async function getDriveClientForAdmin(adminUsername: string) {
+  const oauth2Client = await getOAuth2ClientForAdmin(adminUsername);
+  return google.drive({ version: 'v3', auth: oauth2Client });
+}
+
+// Upload file menggunakan OAuth2 admin (untuk EMR dan bukti transfer)
+export async function uploadFileToDriveWithAdmin(
+  fileBuffer: Buffer,
+  fileName: string,
+  mimeType: string,
+  parentFolderId: string,
+  adminUsername: string
+) {
+  const driveInstance = await getDriveClientForAdmin(adminUsername);
+  const fileMetadata: any = {
+    name: fileName,
+    parents: [parentFolderId],
+  };
+  const media = {
+    mimeType,
+    body: Readable.from(fileBuffer),
+  };
+  console.log(`[GoogleDrive OAuth] Uploading file: ${fileName} to folder: ${parentFolderId} by admin: ${adminUsername}`);
+  const response = await driveInstance.files.create({
+    requestBody: fileMetadata,
+    media: media,
+    fields: 'id, webViewLink',
+  });
+  console.log(`[GoogleDrive OAuth] Upload success, fileId: ${response.data.id}`);
+  return {
+    fileId: response.data.id!,
+    webViewLink: response.data.webViewLink!,
+  };
+}
+
+// Delete file menggunakan OAuth2 admin
+export async function deleteFileFromDriveWithAdmin(fileId: string, adminUsername: string) {
+  const driveInstance = await getDriveClientForAdmin(adminUsername);
+  console.log(`[GoogleDrive OAuth] Deleting file: ${fileId} by admin: ${adminUsername}`);
+  await driveInstance.files.delete({ fileId });
+  console.log(`[GoogleDrive OAuth] Deleted file: ${fileId}`);
+}
+
+// Get file URL menggunakan OAuth2 admin
+export async function getFileUrlWithAdmin(fileId: string, adminUsername: string): Promise<string> {
+  const driveInstance = await getDriveClientForAdmin(adminUsername);
+  try {
+    console.log(`[GoogleDrive OAuth] Creating public permission for file: ${fileId}`);
+    await driveInstance.permissions.create({
+      fileId,
+      requestBody: {
+        type: 'anyone',
+        role: 'reader',
+        allowFileDiscovery: false,
+      },
+    });
+  } catch (err: any) {
+    if (!err.message?.includes('duplicate')) {
+      console.error('[GoogleDrive OAuth] Failed to create permission for file:', fileId, err);
+    } else {
+      console.log(`[GoogleDrive OAuth] Permission already exists for file: ${fileId}`);
+    }
+  }
+  const file = await driveInstance.files.get({ fileId, fields: 'webViewLink' });
+  return file.data.webViewLink!;
+}
+
+// Mendapatkan atau membuat folder EMR menggunakan OAuth2 admin
+export async function getOrCreateEmrFolderWithAdmin(
+  patientId: number,
+  visitId: number,
+  adminUsername: string
+): Promise<string> {
+  const driveInstance = await getDriveClientForAdmin(adminUsername);
+  console.log(`[GoogleDrive OAuth] Getting/Creating EMR folder for patient ${patientId}, visit ${visitId}`);
+
+  // Fungsi internal untuk mencari atau membuat folder
+  async function findOrCreateFolder(parentId: string | undefined, folderName: string): Promise<string> {
+    const query = `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false${parentId ? ` and '${parentId}' in parents` : ''}`;
+    console.log(`[GoogleDrive OAuth] Looking for folder: ${folderName}`);
+    const res = await driveInstance.files.list({
+      q: query,
+      fields: 'files(id)',
+      pageSize: 1,
+    });
+    if (res.data.files && res.data.files.length > 0) {
+      const folderId = res.data.files[0].id!;
+      console.log(`[GoogleDrive OAuth] Folder found: ${folderName} -> ${folderId}`);
+      return folderId;
+    }
+    console.log(`[GoogleDrive OAuth] Folder not found, creating: ${folderName}`);
+    const fileMetadata: any = {
+      name: folderName,
+      mimeType: 'application/vnd.google-apps.folder',
+      parents: parentId ? [parentId] : ['root'],
+    };
+    const folder = await driveInstance.files.create({
+      requestBody: fileMetadata,
+      fields: 'id',
+    });
+    console.log(`[GoogleDrive OAuth] Folder created, id: ${folder.data.id}`);
+    return folder.data.id!;
+  }
+
+  const rootFolderId = await findOrCreateFolder(undefined, 'SalsaDental');
+  const emrFolderId = await findOrCreateFolder(rootFolderId, 'EMR');
+  const patientFolderId = await findOrCreateFolder(emrFolderId, `patient_${patientId}`);
+  const visitFolderId = await findOrCreateFolder(patientFolderId, `visit_${visitId}`);
+  console.log(`[GoogleDrive OAuth] Final folder ID: ${visitFolderId}`);
+  return visitFolderId;
+}
+
+// FUNGSI LAMA (Service Account) - TETAP ADA UNTUK BACKUP
 export async function testDriveConnection(): Promise<{ success: boolean; error?: string }> {
   try {
     const driveInstance = await getDriveInstance();
@@ -75,7 +242,7 @@ export async function testDriveConnection(): Promise<{ success: boolean; error?:
 }
 
 /**
- * Upload file ke Google Drive
+ * Upload file ke Google Drive (menggunakan Service Account)
  * @param fileBuffer - Buffer file
  * @param fileName - Nama file
  * @param mimeType - Tipe MIME
@@ -111,7 +278,7 @@ export async function uploadFileToDrive(
 }
 
 /**
- * Hapus file dari Google Drive
+ * Hapus file dari Google Drive (menggunakan Service Account)
  * @param fileId - ID file
  */
 export async function deleteFileFromDrive(fileId: string) {
@@ -122,7 +289,7 @@ export async function deleteFileFromDrive(fileId: string) {
 }
 
 /**
- * Dapatkan URL file (webViewLink) yang bisa diakses publik.
+ * Dapatkan URL file (webViewLink) yang bisa diakses publik (menggunakan Service Account)
  * @param fileId - ID file
  * @returns Promise<string> - URL yang bisa diakses publik
  */
@@ -150,7 +317,7 @@ export async function getFileUrl(fileId: string): Promise<string> {
 }
 
 /**
- * Membuat folder di Google Drive
+ * Membuat folder di Google Drive (menggunakan Service Account)
  * @param folderName - Nama folder
  * @param parentFolderId - ID folder induk (opsional)
  * @returns Promise<string> - ID folder yang dibuat
@@ -172,7 +339,7 @@ export async function createFolder(folderName: string, parentFolderId?: string):
 }
 
 /**
- * Mendapatkan ID folder, jika belum ada maka buat
+ * Mendapatkan ID folder, jika belum ada maka buat (menggunakan Service Account)
  * @param parentId - ID folder induk
  * @param folderName - Nama folder
  * @returns Promise<string> - ID folder
@@ -196,7 +363,7 @@ async function getOrCreateFolder(parentId: string | undefined, folderName: strin
 }
 
 /**
- * Membuat atau mendapatkan folder untuk menyimpan foto EMR
+ * Membuat atau mendapatkan folder untuk menyimpan foto EMR (menggunakan Service Account)
  * Struktur: SalsaDental/EMR/patient_{patientId}/visit_{visitId}
  * @param patientId - ID pasien
  * @param visitId - ID kunjungan

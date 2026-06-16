@@ -8,7 +8,12 @@ import { randomUUID } from 'crypto';
 import { addAuditLog } from '@/lib/services/audit.service'; 
 import sharp from 'sharp';
 import busboy from 'busboy';
-import { uploadFileToDrive, deleteFileFromDrive, getFileUrl, getOrCreateEmrFolder } from '@/lib/googleDrive';
+import {
+  uploadFileToDriveWithAdmin,
+  deleteFileFromDriveWithAdmin,
+  getFileUrlWithAdmin,
+  getOrCreateEmrFolderWithAdmin,
+} from '@/lib/googleDrive';
 
 const emrSchema = z.object({
   queueId: z.coerce.number().int().positive('queueId harus berupa angka'),
@@ -197,9 +202,17 @@ export async function POST(
       const fileExt = file.originalname.split('.').pop();
       const fileName = `${randomUUID()}.${fileExt}`;
       console.log(`[EMR Upload] Getting folder for patient ${patientId}, visit ${visit.id}`);
-      const folderId = await getOrCreateEmrFolder(patientId, visit.id);
+      // Fungsi OAuth2 admin untuk folder
+      const folderId = await getOrCreateEmrFolderWithAdmin(patientId, visit.id, adminUsername);
       console.log(`[EMR Upload] Folder ID: ${folderId}`);
-      const { fileId, webViewLink } = await uploadFileToDrive(compressedBuffer, fileName, file.mimetype, folderId);
+      // Fungsi OAuth2 admin untuk upload
+      const { fileId, webViewLink } = await uploadFileToDriveWithAdmin(
+        compressedBuffer,
+        fileName,
+        file.mimetype,
+        folderId,
+        adminUsername
+      );
       console.log(`[EMR Upload] Uploaded fileId: ${fileId}`);
       const photo = await prisma.medicalPhoto.create({
         data: {
@@ -236,6 +249,7 @@ export async function GET(
   if (!authResult.valid) {
     return NextResponse.json({ success: false, error: authResult.error }, { status: authResult.status || 401 });
   }
+  const adminUsername = authResult.username || 'unknown';
 
   const patientId = parseInt(params.id);
   if (isNaN(patientId)) {
@@ -262,7 +276,7 @@ export async function GET(
     updatedAt: visit.updatedAt,
     photos: await Promise.all(visit.photos.map(async (photo: any) => ({
       id: photo.id,
-      url: photo.fileId ? await getFileUrl(photo.fileId) : photo.fileUrl,
+      url: photo.fileId ? await getFileUrlWithAdmin(photo.fileId, adminUsername) : photo.fileUrl,
       fileName: photo.fileName,
       uploadedAt: photo.uploadedAt,
     }))),
@@ -283,10 +297,11 @@ const updateEmrSchema = z.object({
   deletePhotoIds: z.string().optional(),
 });
 
-async function deletePhotoFromDrive(fileId: string) {
+// Ubah fungsi deletePhotoFromDrive menggunakan deleteFileFromDriveWithAdmin
+async function deletePhotoFromDrive(fileId: string, adminUsername: string) {
   if (!fileId) return;
   try {
-    await deleteFileFromDrive(fileId);
+    await deleteFileFromDriveWithAdmin(fileId, adminUsername);
     console.log(`Deleted file from Drive: ${fileId}`);
   } catch (err) {
     console.error(`Failed to delete file from Drive: ${fileId}`, err);
@@ -376,7 +391,7 @@ export async function PUT(
     for (const id of idsToDelete) {
       const photo = existingVisit.photos.find((p: any) => p.id === id);
       if (photo && photo.fileId) {
-        await deletePhotoFromDrive(photo.fileId);
+        await deletePhotoFromDrive(photo.fileId, adminUsername);
         await prisma.medicalPhoto.delete({ where: { id: photo.id } });
       }
     }
@@ -392,8 +407,16 @@ export async function PUT(
       const compressedBuffer = await compressImage(file.buffer, file.mimetype);
       const fileExt = file.originalname.split('.').pop();
       const fileName = `${randomUUID()}.${fileExt}`;
-      const folderId = await getOrCreateEmrFolder(patientId, updatedVisit.id);
-      const { fileId, webViewLink } = await uploadFileToDrive(compressedBuffer, fileName, file.mimetype, folderId);
+      // Fungsi OAuth2 admin untuk folder
+      const folderId = await getOrCreateEmrFolderWithAdmin(patientId, updatedVisit.id, adminUsername);
+      // Fungsi OAuth2 admin untuk upload
+      const { fileId, webViewLink } = await uploadFileToDriveWithAdmin(
+        compressedBuffer,
+        fileName,
+        file.mimetype,
+        folderId,
+        adminUsername
+      );
       const photo = await prisma.medicalPhoto.create({
         data: {
           visitId: updatedVisit.id,
