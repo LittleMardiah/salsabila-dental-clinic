@@ -1,4 +1,3 @@
-// components/admin/EMRHistory.tsx
 'use client'
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import Lightbox from 'yet-another-react-lightbox'
 import 'yet-another-react-lightbox/styles.css'
 import { toast } from 'sonner'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 interface Visit {
   id: number
@@ -29,6 +28,7 @@ interface EMRHistoryProps {
 }
 
 export default function EMRHistory({ patientId }: EMRHistoryProps) {
+  const router = useRouter() // FIX: tambahkan router
   const [visits, setVisits] = useState<Visit[]>([])
   const [loading, setLoading] = useState(true)
   const [lightboxOpen, setLightboxOpen] = useState(false)
@@ -54,6 +54,11 @@ export default function EMRHistory({ patientId }: EMRHistoryProps) {
   const openLightbox = (photos: { url: string }[]) => {
     setLightboxImages(photos.map(p => p.url))
     setLightboxOpen(true)
+  }
+
+  // Fungsi untuk navigasi ke halaman edit
+  const handleEditClick = (visitId: number) => {
+    router.push(`/admin/emr/${patientId}/edit/${visitId}`)
   }
 
   return (
@@ -110,11 +115,13 @@ export default function EMRHistory({ patientId }: EMRHistoryProps) {
                 </div>
               )}
             </div>
-            <Link href={`/admin/emr/${patientId}/edit/${visit.id}`}>
-              <Button className="rounded-full border border-primary/40 text-primary bg-white/50 hover:bg-white/80 shadow-sm transition-all px-5 py-1.5 text-sm font-label font-bold">
-                Edit
-              </Button>
-            </Link>
+            <Button
+              type="button"
+              onClick={() => handleEditClick(visit.id)}
+              className="rounded-full border border-primary/40 text-primary bg-white/50 hover:bg-white/80 shadow-sm transition-all px-5 py-1.5 text-sm font-label font-bold"
+            >
+              Edit
+            </Button>
           </div>
         </div>
       ))}
