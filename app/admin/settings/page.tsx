@@ -29,8 +29,6 @@ export default function SettingsPage() {
   const [restoreFile, setRestoreFile] = useState<File | null>(null)
   const [isRestoring, setIsRestoring] = useState(false)
   const [driveStorage, setDriveStorage] = useState<{ used: number | null; limit: number | null }>({ used: null, limit: null })
-  // FIX: Tambahkan state untuk trigger backup foto
-  const [isTriggeringBackup, setIsTriggeringBackup] = useState(false)
 
   // FIX: Tambahkan state untuk ukuran bucket Supabase
   const [supabaseStorage, setSupabaseStorage] = useState<{ sizeMB: number | null; fileCount: number | null }>({ sizeMB: null, fileCount: null })
@@ -192,25 +190,7 @@ export default function SettingsPage() {
     }
   }
 
-  // FIX: Fungsi untuk memicu backup foto via GitHub Actions
-  const triggerBackup = async () => {
-    setIsTriggeringBackup(true)
-    try {
-      const res = await fetch('/api/backup/trigger', { method: 'POST' })
-      const data = await res.json()
-      if (res.ok) {
-        toast.success('Backup foto dimulai! Cek email untuk notifikasi.')
-        // FIX: Refresh ukuran bucket setelah backup (delay 10 detik)
-        setTimeout(fetchSupabaseStorageSize, 10000)
-      } else {
-        toast.error(data.error || 'Gagal memicu backup foto')
-      }
-    } catch (err) {
-      toast.error('Terjadi kesalahan jaringan')
-    } finally {
-      setIsTriggeringBackup(false)
-    }
-  }
+  // FIX: Hapus triggerBackup dan isTriggeringBackup karena tidak diperlukan lagi
 
   const handleRestore = async () => {
     if (!restoreFile) {
@@ -461,23 +441,19 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              {/* FIX: Ubah grid menjadi 3 kolom untuk tombol Backup Foto */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* FIX: Hapus tombol Backup Foto, ubah grid menjadi 2 kolom, ubah label Backup Database menjadi Backup */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {!isGoogleConnected ? (
-                  <button onClick={connectGoogleDrive} className="col-span-3 py-3 px-4 bg-white/60 hover:bg-white border border-outline-variant/20 rounded-xl font-headline font-bold text-on-surface-variant text-sm transition-all flex items-center justify-center gap-2">
+                  <button onClick={connectGoogleDrive} className="col-span-2 py-3 px-4 bg-white/60 hover:bg-white border border-outline-variant/20 rounded-xl font-headline font-bold text-on-surface-variant text-sm transition-all flex items-center justify-center gap-2">
                     <span className="material-symbols-outlined text-lg">cloud_queue</span>
                     Hubungkan Google Drive
                   </button>
                 ) : (
                   <>
+                    {/* FIX: Ubah label menjadi "Backup" dan tetap gunakan uploadToDrive */}
                     <button onClick={uploadToDrive} disabled={isUploading} className="py-3 px-4 bg-white/60 hover:bg-white border border-outline-variant/20 rounded-xl font-headline font-bold text-on-surface-variant text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50">
                       <span className="material-symbols-outlined text-lg">settings_backup_restore</span>
-                      {isUploading ? 'Mengupload...' : 'Backup Database'}
-                    </button>
-                    {/* FIX: Tombol Backup Foto */}
-                    <button onClick={triggerBackup} disabled={isTriggeringBackup} className="py-3 px-4 bg-white/60 hover:bg-white border border-outline-variant/20 rounded-xl font-headline font-bold text-on-surface-variant text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50">
-                      <span className="material-symbols-outlined text-lg">cloud_upload</span>
-                      {isTriggeringBackup ? 'Memproses...' : 'Backup Foto'}
+                      {isUploading ? 'Mengupload...' : 'Backup'}
                     </button>
                     <button onClick={disconnectGoogleDrive} className="py-3 px-4 bg-white/60 hover:bg-white border border-outline-variant/20 rounded-xl font-headline font-bold text-error/70 text-sm transition-all flex items-center justify-center gap-2">
                       <span className="material-symbols-outlined text-lg">link_off</span>
