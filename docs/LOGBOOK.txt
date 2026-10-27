@@ -1,0 +1,450 @@
+FASE 0
+0.1
+\a. Login GitHub > New Repo > Create
+\b. Run git clone ... > cd (nama folder)
+\c. Open Repo > Settings > Branches > Add rule > Create name: main > Checklilst 'Require a pull request before merging > Create
+\d. Buat file README.md (Isi bebas biar bisa commit) > git remote -v
+\e. git add . > git commit -m ".." > git branch -M main > git push -u origin main
+\f. git checkout -b develop > git push -u origin develop
+
+0.2
+\a. Install Next.js + TypeScript:
+- npx create-next-app@latest . --typescript --tailwind --app --eslint
+\b. Install shadcn/ui beserta komponen dasarnya:
+- npx shadcn-ui@latest init
+- npx shadcn-ui@latest add button card input form dialog table tabs toast checkbox
+\c. Install backedn & db dependencies:
+- npm install prisma @prisma/client @supabase/supabase-js bcrypt jsonwebtoken zod react-hook-form web-push resend
+- npm install -D @types/bcrypt @types/jsonwebtoken
+\d. Buat folder prisma:
+- npx prisma init
+
+0.3
+\a. Login Supabase > New Project > Open API Keys dan Simpan kunci 'anon public' dan 'servoce_role' ke .env.local
+\b. Isi .env mulai dari Supabase, JWT dari Supabase, Email dari Resend, Cron dari terminal openhash ssl, Admin 2 lapis dari manual dan Web Push VAPID (Fase 2)
+NB: WARNING
+- Pastikan menggunakan 'Session Pooler' untuk Connect, BUKAN yang lain. Alasannya karena konflik dengan IPv6 sehingga direkomendasikan menggunakan IPv4 Only (Session Pooler)
+\- Buat file .gitignore agar .env.local dll nya tidak ikut tercommit
+\c. Buat file baru .env.example di root untuk di push ke Git
+
+0.4
+\a. Update schema.prisma sesuai rencana
+\b. Buat file baru seed.ts di /prisma & update package.json untuk menambahkan konfigurasi prisma didalamnya dengan seed.ts
+\c. Run npx prisma migrate dev --name init > npx prisma db seed (untuk membuat seed)
+
+0.5
+\a Install dev dependencies:
+- npm install -D eslint prettier eslint-config-next @typescript-eslint/eslint-plugin
+\b. Buat file baru .eslintrc.json & .prettierrc di root sesuai arahan
+\c. Update package.json dan tambahkan  "format": "prettier --write .", di dalam 'scripts' dan Run npm run lint & npm run format
+
+0.6
+\a. Buat folder folder yang sudah ditentukan di Roadmap
+\b. Buat file baru dusty-tose-theme.css di /styles & file placeholder sw.js di /public
+
+0.7
+\a. Buat file baru test.yml di folder .github/workflows untuk GitHub Actions
+\b. git add . sampai push untuk mengaktifkan GitHub Actions
+\c. Install Vercel CLI & Login:
+- npm install -g vercel
+- vercel login
+
+
+FASE 1
+1.1
+\a. Update page.tsx di /app sebagai Landing Page / Halaman Utama untuk Login Admin (Hidden) dan Login Pasien (Antrian)
+\b. Buat file baru AdminLoginModal.tsx di /components untuk Halaman Login Admin dengan 2 Modal / Layer yang terpisah (Kode 8 Digit > Username & Pass)
+\- PENTING: 
+- Buat file baru globals.d.ts di /app agar layout.tsx / globals.css tidak error
+- Update .globals.css dan HAPUS @theme inline, @apply border-border & --font-geist-sans karena itu milik Tailwind V4 yang banyak problem, sedangkan kita pakai V3
+
+1.2
+\a. Catatan: Tidak ada kode. Hanya pengingat bahwa model 'AuditLog' akan ditambahkan ke schema.prisma di Fase 4
+
+1.3
+\a. Buat file baru auth.ts di /lib untuk fungsi hashing pass, verif dan JWT sign
+NB: Gunakan 'as any' untuk mengatasi konflik overload TypeScript
+
+1.4
+\a. Buat file baru route.ts di app/api/auth/admin untuk Admin Lapis 1 yang terintegrasi dengan .env
+\b. Buat file baru RateLimiter.ts di /lib untuk implementasi Rate Limiting (5 percobaan/15m/IP)
+NB: Hubungkan RateLimiter.ts ke route.ts dengan menambah rate limit di awal
+\c. Buat file baru admin-verify-code.test.ts di app/tests/api/auth untuk Test Endpoint
+Login Admin Layer 1
+NB:
+- Install Dependensi Testing: npm install --save-dev jest @types/jest @testing-library/react @testing-library/jest-dom node-mocks-http ts-jest
+- Buat file baru jest.config.js di root untuk konfigurasi Jest di Next.js
+- Update tsconfig.json untuk menambah "types": ["jest", "node"] di 'compilerOptions'
+UJI COBA:
+Bisa dilihat di UJI COBA.txt Poin 1.4 Rate Limiter
+
+1.5
+\a. Buat file baru route.ts di app/api/auth/admin/login sebagai endpoint login admin layer 2 setelah kode 8 digit berhasil diverif & cookie 'admin_code_verified' sudah diset
+\b. Catatan: Pastikan Rate Limit 5 attempt per 15 menit per IP sudah aktif
+\c. Buat file baru admin-login.test.ts di tests/api/auth untuk app/test/api/auth untuk Test Endpoint Login Admin Layer 2
+NB: WARNING
+- PASTIKAN menggunakan Base 64, maksudnya kode bcrypt yang didapat dikonversi menjadi Base 64 agar dapat dibaca sistem sehingga .env nya berisi: ADMIN_PASSWORD_HASH_BASE64
+UJI COBA: Bisa dilihat di UJI COBA.txt Poin 1.5 Rate Limiter
+
+1.6
+\a. Buat file baru route.ts di app/api/auth/admin/logout untuk menghapus cookie token (logout admin)
+UJI COBA: Bisa dilihat di UJI COBA.txt Poin 1.6 Logout Admin
+
+1.7
+\a. Buat file baru auth.ts di lib/middleware dengan fyungsi 'verifyAdminToken' untuk melindungi rute admin (halaman dan API) agar hanya bisa diakses jika pengguna memiliki token JWT yang valid
+\b. Buat file baru middleware.ts di root untuk menyediakan daftar route yang dilindungi
+
+1.8
+\a. Buat file baru Layout.tsx di app/admin untuk membuat layout admin dengan sidebar, header & dashboard home
+\b. Buat file baru page.tsx di app/admin/dashboard untuk membuat dashboard home
+
+1.9
+\a. Buat file baru page.tsx di app/patient/login untuk membuat halaman login pasien dengan kode 6 digit, endpoint autentikasi & proteksi halaman
+\b. Buat file baru route.ts di app/api/auth/patient untuk login pasien
+NB:
+- Buat file baru prisma.ts di /lib agar route.ts dapat terhubung
+\c. Update middleware.ts di root untuk menambahkan matcher & cek token pasien dengan proteksi /patient/queue via middleware
+UJI COBA: Bisa dilihat di UJI COBA.txt Poin 1.9 Login Pasien
+
+
+FASE 2
+2.1
+\a. Update schema.prisma untuk menambahkan 'WebPushSubscription' dan Enum 'QueueStatus' 
+\b. Run npx prisma migrate dev --name queue_models
+\c. Update prisma/seed.ts untuk testing antrian dengan status waiting, called & completed)
+
+2.2
+\a. Buat file baru route.ts di app/api/queue agar Admin dapat menambahkan pasien ke antrian (Online / Manual) menggunakan 'verifyAdminToken'
+\- Update auth.ts di /lib untuk menambahkan fungsi 'verifyAdminToken' agar terproteksi dengan middleware
+\- Update auth.ts di lib/middleware untuk menambahkan fungsi 'verifyAdminRequest' yang sudah ada agar verifikasi dari Request Object dan mengubah fungsi 'verifyAdminToken' untuk menerima Request dan bukan String lagi
+\- Update middleware.ts untuk mengubah fungsi 'verifyAdminToken' agar menerima Request juga, BUKAN string lagi
+\b. Buat file baru QueueUtils.ts di lib/utils untuk menghasilkan nomor antrian per hari ini
+\c. Buat file baru QueueService.ts di lib/services untuk hitung posisi antrian agar pasien bisa lihat dengan fungsi 'getQueuePosition'
+UJI COBA: Bisa dilihat di UJI COBA.txt Poin 2.2 Buat Nomor Antrian
+
+2.3
+\a. Update route.ts di app/api/queue untuk mengurutkan daftar antrian hari ini dengan method GET
+UJI COBA: Bisa dilihat di UJI COBA.txt Poin 2.3 Cek Nomor Antrian
+
+2.4
+\a. Buat file baru route.ts di app/api/queue/call agar dapat memanggil pasien berikutnya dalam antrian (WAITING teratas)
+UJI COBA: Bisa dilihat di UJI COBA.txt Poin 2.4 Panggil Nomor Antrian
+
+2.5
+\a. Buat file baru route.ts di app/api/queue/[id]/complete untuk menandai pasien yang sudah selesai dilayani menjadi COMPLETED & secara otomatis dibuatkan EMR nya dengan status PENDING
+\- Update schema.prisma untuk menambah model 'Transactions' dan buat field relasi balik (2 arah) juga di model 'Queue' & 'Patient' ke model 'Transactions'. Lalu Run npx prisma migrate dev --name add_transactions_model & npx prisma generate
+UJI COBA: Bisa dilihat di UJI COBA.txt Poin 2.5 Selesaikan Nomor Antrian
+
+2.6
+\a. Buat file baru page.tsx di app/admin/queue untuk menampilkan halaman daftar antrian + tambah pasien
+NB: Install dependencies: npm install @tanstack/react-query date-fns lucide-react sonner
+\- Buat file baru providers.tsx di /app untuk Setup React Query Provider
+
+2.7
+\a. Buat file baru page.tsx di app/patient/queue untuk Halaman Pasien yang sudah memasukkan kode 6 digit dari admin agar dapat melihat posisi antrian & bisa mengaktifkan notifikasi.
+NB: Pastikan sudah ambil 'queueId' dari response, BUKAN 'myQueue.id'
+\- Buat file baru NotificationHelpModal di /components untuk Bantuan jika Izin Notifikasi Ditolak 
+\b. Buat file baru route.ts di app/api/auth/patient/login untuk route pasien agar bisa melihat status mereka adalah WAITING atau sudah CALLED
+\c. Buat file baru route.ts di app/api/queue/position untuk melihat posisi antrian mereka dari sisi pasien
+\d. Buat file baru route.ts di app/api/webpush/subscribe untuk mengaktifkan notifikasi jika pasien ingin
+\e. Update auth.ts di lib/middleware untuk menambah fungsi 'verifyPatientToken'
+UJI COBA: Bisa dilihat di UJI COBA.txt Poin 2.7 Notifikasi Admin ke Pasien
+
+2.8
+\a. Generate VAPID keys:
+- npx web-push generate-vapid-keys
+Hasilnya pindahkan ke .env bagian VAPID Public Key dan Private Key
+\b. Update sw.js di /public untuk menambah fungsi Klik Notifikasi jika pasien ingin 'Aktifkan Notifikasi' agar browser memberi izin
+\c. Buat file baru WebpushService.ts di lib/services agar sistem dapat mengirim notifikasi
+\d. Update route.ts di app/api/queue/call agar Admin dapat mengirim notifikasi dengan 'sendNotification'
+\- Buat file baru route.ts app/api/queue/board untuk menampilkan:
+- Antrian yang sedang dipanggil (CALLED)
+- Daftar antrian berikutnya (WAITING) setelah antrian pasien tersebut
+- Total antrian hari ini
+- Data pasien yang login (nomor antrian, posisi, estimasi waktu)
+NB: Pastikan menambahkan 'queueId' di response agar Pasien bisa mengaktifkan Notifikasi
+\- Update page.tsx di app/patient/queue untuk registrasi service worker dan menampilkan yang seperti di app/api/queue/board/route.ts
+
+Tambahan:
+\- Buat file baru page.tsx di app/admin/login untuk membuat Halaman Login Admin dengan Verifikasi Kode 8 Digit 
+\- Buat file baru page.tsx di app/admin/login/credentials untuk membuat Halaman Login Admin dengan Username & Password
+\- Update page.tsx di /app untuk mempercantik Landing Page sekalian menyamarkan Hidden Trigger Login Admin
+\- Update file page.tsx di app/admin/queue agar sesuai tampilan UI sementara
+\- Buat file baru QueryProvider.tsx di components/providers dengan membuat Query Provider untuk app/layout.tsx agar useQuery bisa berfungsi
+\- Update route.ts di app/api/webpush/subscribe menggunakan upsert untuk menghindari error unique constraint agar Notifikasi tidak error
+
+WARNING:
+[Middleware] Token invalid: Error: The edge runtime does not support Node.js 'crypto' module.
+Masalah ini bersifat Opsional karena kita menjalankannya di Edge, tapi solusinya adalah memecah lib/auth.ts menjadi lib/ServerAuth.ts untuk Node.js API Route. 
+\- Buat file baru ServerAuth.ts di /lib yang berisi semua fungsi yang menggunakan bcrypt & jsonwebtoken (hanya untuk server, tidak untuk middleware)
+\- Update auth.ts di /lib hanya untuk Middleware yaitu Edge Runtime menggunakan fungsi 'verifyTokenEdge' dengan jose sebagai pengganti bcrypt / jwt (namun mereka berdua tetap dipakai)
+
+
+FASE 3
+3.1
+\a.b. Update schema.prisma untuk menambah model EMR yaitu 'MedicalVisit' & 'MedicalPhoto'. Run npx prisma migrate dev --name add_medical_visit_relation & npx prisma generate
+NB: WARNING
+- Tambahkan 'directUrl' ke prisma didalam 'datasource db..'
+- Tambahkan DIRECT_URL yang isinya sama persis dengan DATABASE_URL di .env untuk menghindari error 'Can't reach database server at..'
+\c. Login Supabase > Pilih Storage > New Bucket (emr-photos) > JANGAN centang apapun > Create > 
+\-  Open SQL Editor:
+DROP POLICY IF EXISTS "Allow all for emr-photos bucket" ON storage.objects;
+
+CREATE POLICY "Allow all for emr-photos bucket" ON storage.objects
+  FOR ALL
+  USING (bucket_id = 'emr-photos')
+  WITH CHECK (bucket_id = 'emr-photos');
+Hasil: Tindakan seperti SELECT, INSERT, UPDATE, DELETE hanya bisa dilakukan di emr_photos saja. Di tempat lain belum tentu / tidak bisa semudahnya diubah"
+
+3.2
+\a. Buat file route.ts di app/api/patient/[id]/emr untuk menambahkan EMR bagi pasien yang sudah selesai / COMPLETED status antriannya dalam bentuk form data karena ada file foto
+NB: 
+- Kita simpan Foto nya di Lokal, BUKAN ke Supabase. Nanti kita backup ke GDrive next nya
+- Update .gitignore untuk menambah public/uploads agar tidak terdeploy
+Pastikan sudah install library yaitu:
+- npm install busboy & npm install --save-dev @types/busboy untuk form data
+- npm install sharp & npm install --save-dev @types/sharp untuk kompres size foto
+UJI COBA: Bisa dilihat di UJI COBA.txt Poin 3.2 Isi EMR + Foto
+
+3.3
+\a. Update file route.ts di app/api/patient/[id]/emr agar Admin bisa melihat Histori EMR yang sudah dibuat sebelumnya
+UJI COBA: Bisa dilihat di UJI COBA.txt Poin 3.3 Histori EMR
+
+3.4
+\a. Update file route.ts di app/api/patient/[id]/emr agar Admin bisa mengupdate isi EMR yang sudah pernah dibuat termasuk DELETE
+UJI COBA: Bisa dilihat di UJI COBA.txt Poin 3.4 Update EMR + Foto
+
+3.5
+\a. Buat file baru page.tsx di app/admin/emr untuk membuat Halaman EMR & Histori Pasien
+\b. Buat file baru page.tsx di app/admin/emr/[patientId] sebagai Halaman Detail EMR per pasien 
+\c. Buat file baru EMRForm.tsx di components/admin untuk mengisi / mengedit isi EMR pasien + upload foto
+\d. Buat file baru EMRHistory.tsx di components/admin untuk melihat daftar riwayat kunjungan / detail isi EMR yang bisa diedit kembali untuk diupdate progresnya
+NB:
+Install dependensi: npm install yet-another-react-lightbox @hookform/resolvers zod react-hook-form
+
+Tambahan:
+\- Buat file baru AdminSidebar.tsx di components/admin untuk membuat menu Antrian, EMR, dll
+\- Update layout.tsx di app/admin untuk membungkus semua halaman admin dengan sidebar & header
+\- Update page.tsx di app/admin/queue untuk menghapus sidebar & main wrapper
+\- Buat file baru route.ts di app/api/patients untuk Endpoint Halaman EMR
+NB: Ingat, Folder PATIENTS (Buat baru), bukan folder PATIENT yang sudah ada
+\- Buat file baru route.ts di app/api/auth/admin/check untuk mengecek Pasien yang sudah terdaftar EMR
+\- Buat file baru route.ts di app/api/patient/[id] untuk mengambil data pasien berdasarkan ID dengan endpoint GET /api/patient/[id] 
+\- Saran: Install npx shadcn@latest add input textarea --overwrite agar komponen shadcn ada di dalam 'EMRForm' sehingga tidak warning 'Function components cannot be given refs'
+\- Buat file baru route.ts di app/api/patient/[id]/completed-queues sebagai endpoint untuk mengambil daftar antrian pasien yang sudah selesai. Fungsinya agar dapat mempermudah Admin mengisi EMR sesuai id antrian nya masing"
+\- Buat file baru page.tsx di app/admin/emr/[patientId]/edit/[visitId] untuk Halaman Edit EMR Pasien jika Admin ada salah input sebelumnya. Ibaratnya EMRForm mode Edit
+
+
+FASE 4
+4.1
+\a. Update schema.prisma untuk menambahkan model Transactions, Daily Reconciliation, Audit Log dan Enums untuk Finance
+NB:
+Saran lebih baik Update schema.prisma dari Supabase langsung saja, lalu lakukan db pull dan prisma generate. Lebih simple dan menghindari ketidaksinkron antara db dengan data migrasi
+\b. Update seed.ts saya lewatkan saja. Saya lebih suka buat di Postman langsung data dummy nya
+
+4.2
+\a. Buat file baru route.ts di app/api/finance/transactions/[id]/confirm untuk endpoint POST /api/finance/transactions/:id/confirm sebagai konfirmasi pembayaran pasien setelah transaksi dibuat / saat status antrian menjadi COMPLETED
+\b. Buat file baru route.ts di app/api/finance/transactions untuk menampilkan daftar transaksi dengan filter tanggal dan status
+\c. Buat file baru route.ts di app/api/finance/reconcile untuk merekonsiliasi total pemasukan harian dengan endpoint POST /api/finance/reconcile
+UJI COBA: Bisa dilihat di UJI COBA.txt Poin 4.2 Pembayaran Tunai / Transfer + Foto
+
+4.3
+\a. Buat file baru page.tsx di app/admin/finance untuk menampilkan Halaman Keuangan baik dari status PENDING maupun CONFIRMED 
+\b. Update route.ts di app/api/queue/[id]/complete untuk menambahkan pembuatan transaction
+
+4.4
+\a. Buat file baru AuditService.ts di lib/services untuk mencatat setiap aktivitas admin ke tabel AuditLog
+\b. Buat file baru route.ts di app/api/audit-log untuk endpoint GET /api/audit-log
+\c. Buat file baru page.tsx di app/admin/audit-log dengan 2 tab yaitu Admin-Mode & Developer-Mode
+\d. Integrasi Audit Log di Endpoint Lain misalnya di app/api/auth/admin/login/route.ts dan lain sebagainya. Pastikan semua endpoint yang bisa merubah data memakai Audit Log
+NB: WARNING
+- SARAN. Jika ada error ketika memasukkan 'await addAuditLog..' di masing" file tertentu, dianjurkan membuat fallback misal dengan 'unknown'. Contohnya untuk 'adminUsername' yang dianggap undefined saat ini
+\e. Pastikan Audit Log Immutable / hanya bisa INSERT & tidak bisa trigger UPDATE/DELETE
+UJI COBA: Bisa dilihat di UJI COBA.txt Poin 4.4 Audit Log 2 Mode & Filter Tanggal
+
+Tambahan:
+\- Buat file baru page.tsx di app/admin/finance/reconcile untuk Halaman Rekonsiliasi yang ada di dalam Halaman Finance
+
+
+FASE 5
+5.1
+\a. Buat file baru route.ts di app/api/backup/local untuk mengambil semua data dari berbagai Model / Tabel ke & menggabungkannya ke dalam 1 objek JSON dengan Endpoint GET /api/backup/local
+\b. Buat file baru route.ts di app/api/backup/google-auth untuk membackup seluruh data yang ada langsung ke GDrive melalui oAuth project kita yaitu 'Aulia' di email biasa yaitu:
+Open Google Cloud Console > Cari Google Drive API & Enabled > Kembali ke menu sebelumnya dan pilih OAuth consent screen di sebelah kiri > Get Started > Isi App Information > Pilih External > Save > Pilih Create OAuth Client > Pilih Web Application > Isi Add. URI nya yaitu: http://localhost:8080/oauth/callback (WAJIB DOWNLOAD .json nya > Save > Update .env backend & sesuaikan dengan kode di .json nya yaitu GDRIVE_CLIENT_ID, GDRIVE_CLIENT_SECRET & GDRIVE_REDIRECT_URL > Back to OAuth consent screen > Pilih Audience > Pilih Test Users > Tambahkan email yang diizinkan membackup GDrive > Save
+\c. Karena kita sudah pernah membuat sebelumnya di GCS, intinya simpan & buat di .env yaitu:
+GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=xxx
+NB: Kode secret bisa di cek di Projek Salsa Dental Clinic 1.0
+\d. Buat file baru route.ts di app/api/backup/google-callback untuk 
+\e. Buat fle baru route.ts di app/api/backup/cloud dengan menggunakan token yang tersimpan untuk mengupload file backup JSON ke GDrive
+\f. Buat file baru page.tsx di app/admin/backup untuk Halaman Backup
+\- Backup Otomatis dengan CronJob (Belum dibuat, nanti saja jika sudah butuh)
+
+UJI COBA: Bisa dilihat di UJI COBA.txt Poin 5.1 Backup Local & Cloud
+
+Tambahan:
+\- SEGERA: Buat file baru route.ts di app/api/preference untuk Pengaturan dengan endpoint /api/preferences agar fungsi Backup Cloud berjalan baik
+
+5.2
+\a. Update schema.prisma dan tambahkan Model adminPreferences
+NB: Sepertinya sudah dibuat di fase sebelumnya
+\b. Buat file baru route.ts di app/api/preferences untuk mengambil preferensi admin yang sedang login dengan endpoint GET /api/preferences
+\c. Buat file baru route.ts di app/api/preference untuk Pengaturan
+NB: Sudah dibuat di Fase 5.1 agar Backup Cloud bisa berjalan segera
+\d. Buat file baru page.tsx di app/admin/preferences untuk Halaman Pengaturan
+UJI COBA: Bisa dilihat di UJI COBA.txt Poin 5.2 Preferences Admin
+
+Tambahan:
+\- Buat file baru page.tsx di app/admin//settings yang merupakan gabungan Halaman Backup dengan Halaman Preferences
+
+5.3
+\a. Buat file baru route.ts di app/api/dashboard untuk menghitung jumlah pasien, total revenue dan jumlah antrian hari ini
+\b. Buat file baru page.tsx di app/admin/dashboard untuk menampilkan jumlah pasien, total revenue dan jumlah antrian hari ini
+UJI COBA: Bisa dilihat di UJI COBA.txt Poin 5.3 Tampilan Dashboard
+
+FASE 6
+6.1
+\a. Buat file baru route.ts di app/api/cron/followup untuk mengatur pengiriman email terjadwal H-1 sebelum Waktu Follow Up Pasien yang memiliki 'followUpDate' = besok.
+UJI COBA: Bisa dilihat di UJI COBA.txt Poin 6.1 Follow Up Otomatis ke Email H-1
+
+
+FASE 7
+Untuk seluruh Poin di Fase 7, sebenarnya sudah dilakukan testing sedari awal sampai saat ini dan bisa dilihat di UJICOBA.txt. Namun pelajaran ke depannya adalah biasakan SEKECIL apapun bug atau error nya, catat ke GitHub Issues sebagai Dokumentasi juga
+
+
+FASE 5 TAMBAHAN PERBAIKAN (Fitur Restore Backup, GDrive sebagai Primary Storage, Endpoint Disconnect Backup Cloud, Fitur Upload Foto yang diperbaiki)
+\a. Buat file baru route.ts di app/api/backup/restore untuk restore backup yang sudah diunduh
+\b. Update page.tsx di app/admin/settings untuk menambahkan modal & fungsi restore
+\c. Update file route.ts di app/api/patient/[id]/emr untuk ganti logika upload foto dari lokal ke GDrive
+\d. Update schema.prisma untuk menambahkan kolom 'fileId' String? di tabel 'MedicalPhoto' dan generate atau bisa mengedit di SQL Editor Supabase
+\e. Open GCS > Search Service Accounts > Create > Skip Permissions / Role > Done > Klik Email yang sudah ada > Choose Keys > Create new Key > JSON > Save
+\f. Update .env bagian GOOGLE_SERVICE_ACCOUNT_EMAIL sesuai isi 'client_email' dan bagian GOOGLE_PRIVATE_KEY sesuai isi 'private_key'
+\g. Pastikan dua bagian tadi yaitu GOOGLE_SERVICE_ACCOUNT_EMAIL & GOOGLE_PRIVATE_KEY sudah masuk ke env milik Vercel
+\h. Buat file baru route.ts di app/api/backup/disconnect untuk endpoint disconnect backup cloud
+\i. Buat file baru route.ts di app/api/drive/storage untuk Endpoint API Primary Storage Foto EMR & bukti TF di GDrive
+
+FASE 5 TAMBAHAN PERBAIKAN - Berdasarkan Roadmap Infinite Loop Storage.txt
+(Skrip Otomatis penghapus Storage Supabase setiap Backup Cloud berhasil untuk mencegah Limit Supabase. Ini adalah rencana cadangan karena GDrive tidak bisa digunakan sebagai Primary Storage karena berbayar / Google Workspace)
+
+5.1.1
+\a. Buat folder baru di GDrive > Share ke Email Service Account kita (service-account.json) > Status 'Editor' > Share
+\b. Open GCS > Search Service Accounts > Create > Skip Permissions / Role > Done > Klik Email yang sudah ada > Choose Keys > Create new Key > JSON > Create
+
+5.1.2
+\a. Open PowerShell > Encode file JSON ke Base64:
+([Convert]::ToBase64String([IO.File]::ReadAllBytes("service-account.json")) | Out-File -FilePath encoded.txt -NoNewline
+\b. Open encoded.txt  > Copy dan paste ke .env dengan nama GOOGLE_CREDENTIALS_BASE64
+
+5.1.3
+\a. Open Storage > Copy S3 Endpoint ke .env & Create Access Keys > Copy Access Keys ID & Secret Access Key ke .env
+\b. Open GCS > API & Service > Create Credentials > OAuth Client > Application Type = Desktop > Save .json > Copas CLIENT_ID & CLIENT_SECRET khusus rclone ke .env
+
+5.1.4
+\a. Buat folder baru rclone di C:Users/{User}/.config
+\b. Buat file baru rclone.conf di C:Users/{User}/.config dengan isi sesuai .env yang dibutuhkan
+\c. Run rclone lsd supabase: untuk list bucket di Supabase:
+Hasil:
+PS D:\AI Engineer\Salsa Dental Clinic> rclone lsd supabase:
+          -1 2026-05-14 01:28:13        -1 emr-photos
+\d. Run rclone lsd gdrive: untuk list folder di GDrive:
+PS D:\AI Engineer\Salsa Dental Clinic> rclone lsd gdrive:
+           0 2026-06-14 02:09:29        -1 SalsaDental
+\e. Run rclone config > Create remote > Choose drive > Input CLIENT_ID & CLIENT_SECRET > scope (Skip) > Edit advanced config (No) > Use web browser to automatically authenticate rclone with remote? (Yes) dan Login Email yang sudah dapat akses > Configure this as a Shared Drive (Team Drive)? (No) > Configuration Complete (type, client_id, client_secret, token) > Keep this '...' remote? (Yes)
+\f. Run rclone lsd gdrive-oauth:
+Hasil:
+PS D:\AI Engineer\Salsa Dental Clinic> rclone lsd gdrive-oauth:
+           0 2020-03-24 10:28:58        -1 BTS
+           0 2026-06-15 21:21:40        -1 Backup Salsa Dental
+           0 2026-01-11 13:47:44        -1 Colab Notebooks
+           0 2026-01-11 13:59:49        -1 DentalAI_Project
+           0 2025-01-27 19:49:43        -1 Keterlambatan verifikasi 2 langkah yang belum diaktifkan
+           0 2024-05-09 20:36:24        -1 Notulensi
+\g. Run rclone sync supabase:emr-photos "gdrive-oauth:Backup Salsa Dental/test/" --checksum --progress :
+Transferred:      215.825 KiB / 215.825 KiB, 100%, 17.985 KiB/s, ETA 0s
+Checks:                 0 / 0, -, Listed 7
+Transferred:            5 / 5, 100%
+Elapsed time:        12.3s
+
+5.2.1
+\a. Catatan. Sudah dilakukan di 5.1.4 Poin b. Namun tambahkan 'token' yang sudah didapatkan saat di bagian Configuration Complete di 5.1.4 Poin e
+
+5.2.2
+\a. Open GitHub > Settings > Secret & Variables > Actions > New repository secret > Add RCLONE_CONF, SUPABASE_BUCKET_NAME, RESEND_API_KEY dan ADMIN_EMAIL 
+
+5.2.3
+\a. Buat file baru backup-supabase.yml di .GitHub/workflows dengan fungsi:
+- Checkout > Mengambil kode repositori untuk akses file / log
+- Install rclone
+- Create rclone config dari secret RCLONE_CONF
+- Sync dari Supabase ke GDrive
+- Delete all files dari Supabase Bucket jika Verifikasi Berhasil
+- Kirim email notifikasi via Resend (Opsional)
+
+5.2.4
+\a. Open GitHub Actions > Choose 'Backup from Supabase to GDrive > Run Worfklow > Success 
+\b. Pastikan Storage di Supabase menjadi Kosong 
+\c. Pastikan folder Backup Salsa Dental menjadi bertambah isinya sesuai isi bucket emr-photos seperti sebelumnya
+
+5.3.1
+\a. Buat file baru route.ts di app/api/backup/trigger untuk API backup Supabase
+
+5.3.2
+\a. Buat BACKUP_TRIGGER_TOKEN sebagai token untuk memvalidasi request dari frontend dengan cara Run:
+$bytes = New-Object byte[] 32; [System.Security.Cryptography.RNGCryptoServiceProvider]::Create().GetBytes($bytes); [Convert]::ToBase64String($bytes)
+Hasil: Copas hasil nya ke BACKUP_TRIGGER_TOKEN di .env
+\b. Buat GH_PAT sebagai token akses untuk memicu workflow dengan cara:
+Open GitHub Settings > Developer Settings > Personal Access Tokens > Tokens (classic) > Centang 'Repo' & 'Workflow' > Create & Copas Token GH_PAT di .env
+\c. Buat GITHUB_REPOSITORY dengan username/repo 
+\d. Update .env untuk menambahkan:
+- BACKUP_TRIGGER_TOKEN, GH_PAT dan GITHUB_REPOSITORY. Lalu upload 3 poin di .env barusan ke Vercel
+
+5.3.3
+\a. Buat file baru BackupButton.tsx di components/admin untuk tombol backup admin
+
+5.4.1
+\a. Buat file baru check-supabase-usage.yml di .gitHub/workflows untuk mengecek ukuran bucket setiap 6 jam
+
+5.4.2
+\a. Buat file baru restore-supabase.yml di .GitHub/workflows untuk restore
+\b. Buat file baru route.ts di app/api/storage/size sebagai API untuk mendapatkan ukuran bucket
+\c. Update page.tsx di app/admin/settings untuk menampilkan Penyimpanan Supabase di Halaman Pengaturan
+\d. Update route.ts di app/api/patient/[id]/emr untuk mengubah upload file langsung menggunakan drive client dari admin
+\e. Update googleDrive.ts di /lib untuk menambahkan fungsi agar mendapatkan drive client dari OAuth2 Admin
+\f. Buat file baru route.ts di api/drive/image/[fileId] agar mengembalikan file sebagai image yang dapat dibaca Admin dengan Proxy Image API
+
+Tambahan: Membuat file untuk reset data
+\- Buat file baru clear-data.ts di /prisma lalu tambahkan "scripts" nya ke dalam package.json
+\- Run npx tsx prisma/clear-data.ts
+
+Tambahan: Menambah Endpoint GET Detail Transaksi + Halaman Transaksi
+\- Buat file baru route.ts di app/api/finance/transactions/[id]
+\- Buat file baru page.tsx di app/admin/finance/confirm/[id]
+
+Tambahan: Membuat API Documentation
+\- Buat file baru swagger.ts di /lib untuk konfigurasi Swagger & install Dependensi Swagger 
+\- Buat file baru route.ts di app/api/docs untuk Endpoint Server Swagger
+\- Buat file baru page.tsx di app/docs untuk Halaman Dokumentasi
+\- Edit seluruh file yang ada di dalam folder api untuk disisipkan Swagger
+\- Run npm run dev dengan membuka localhost:3000/docs
+
+Deploy:
+- Opsional. Buat file baru fix-api-dynamic.js di /scripts agar memberi tahu Next.js bahwa semua API route harus bersifat dinamis (tidak di-prerender)
+- Buat file baru vercel.json di root
+- Run vercel login > vercel --prod
+
+
+SELESAI DAN TERIMA KASIH
+BACA PANDUAN.txt untuk melihat Alur Logika dan Penggunaannya
+
+
+
+
+
+
+
+
+
+
+
+
+
