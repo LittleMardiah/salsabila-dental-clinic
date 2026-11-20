@@ -25,6 +25,13 @@ function matchesAdminRoute(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
+  if (
+    pathname === '/api/backup/google-auth' ||
+    pathname === '/api/backup/google-callback'
+  ) {
+    return NextResponse.next()
+  }
+
   // Hanya proses untuk rute admin yang perlu dilindungi
   if (!matchesAdminRoute(pathname)) {
     return NextResponse.next()

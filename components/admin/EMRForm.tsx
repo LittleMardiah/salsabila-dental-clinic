@@ -8,9 +8,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-// FIX: Import Lightbox untuk full size preview
-import Lightbox from 'yet-another-react-lightbox'
-import 'yet-another-react-lightbox/styles.css'
+import PhotoLightbox, { type LightboxPhoto } from '@/components/admin/PhotoLightbox'
 
 const emrSchema = z.object({
   queueId: z.number().min(1, 'Antrian harus dipilih'),
@@ -54,9 +52,7 @@ export default function EMRForm({
   const [completedQueues, setCompletedQueues] = useState<{ id: number; label: string }[]>([])
   const [fetchingQueues, setFetchingQueues] = useState(true)
 
-  // FIX: State untuk lightbox
-  const [lightboxOpen, setLightboxOpen] = useState(false)
-  const [lightboxImages, setLightboxImages] = useState<string[]>([])
+  const [viewer, setViewer] = useState<{ photos: LightboxPhoto[]; index: number } | null>(null)
 
   // FIX: Inisialisasi dengan proxy URL
   const [existingPhotoList, setExistingPhotoList] = useState<any[]>(
@@ -132,26 +128,24 @@ export default function EMRForm({
     return () => { isMounted = false }
   }, [patientId, setValue, initialData?.queueId])
 
-  // FIX: Fungsi untuk membuka lightbox dengan semua foto yang ada
-  const openLightbox = (photoList: any[]) => {
-    console.log('[Lightbox] Photo list:', photoList) // FIX: debug
-    // FIX: Kumpulkan URL dari semua foto, prioritaskan proxy URL, fallback ke fileUrl
-    const urls = photoList
-      .map(p => {
-        // FIX: Jika ada fileId, buat proxy URL, jika tidak gunakan url atau fileUrl
-        if (p.fileId) return getProxyUrl(p.fileId)
-        return p.url || p.fileUrl || ''
-      })
-      .filter(url => url !== '') // FIX: filter URL kosong
-    
-    console.log('[Lightbox] URLs:', urls) // FIX: debug
-    
-    if (urls.length === 0) {
+  const openLightbox = (photoList: any[], index: number) => {
+    const all = photoList.map((photo, idx) => ({
+      src: photo.fileId
+        ? getProxyUrl(photo.fileId)
+        : photo.url || photo.fileUrl || '',
+      name: photo.fileName || `Foto ${idx + 1}`,
+    }))
+    const photos = all.filter((photo) => photo.src !== '')
+    if (photos.length === 0) {
       toast.warning('Tidak ada foto yang bisa ditampilkan')
       return
     }
-    setLightboxImages(urls)
-    setLightboxOpen(true)
+    const selectedSrc = all[index]?.src || ''
+    const selectedIndex = Math.max(
+      0,
+      photos.findIndex((photo) => photo.src === selectedSrc)
+    )
+    setViewer({ photos, index: selectedIndex })
   }
 
   const handleCalendarClick = () => {
@@ -399,12 +393,12 @@ export default function EMRForm({
                 <h3 className="text-lg font-headline font-bold text-primary">Dokumentasi Foto</h3>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
-                {existingPhotoList.map((photo) => {
+                {existingPhotoList.map((photo, idx) => {
                   const imageUrl = photo.fileId ? getProxyUrl(photo.fileId) : (photo.url || photo.fileUrl || '')
                   return (
                     <div
                       key={photo.id}
-                      onClick={() => openLightbox(existingPhotoList)}
+                      onClick={() => openLightbox(existingPhotoList, idx)}
                       className="relative aspect-square rounded-2xl overflow-hidden group shadow-md ring-2 ring-white/50 transition-all hover:scale-105 cursor-pointer"
                     >
                       {imageUrl ? (
@@ -459,13 +453,22 @@ export default function EMRForm({
                 {previews.map((src, idx) => (
                   <div
                     key={`preview-${idx}`}
-                    className="relative aspect-square rounded-2xl overflow-hidden group shadow-md ring-2 ring-white/50 transition-all hover:scale-105"
+                    onClick={() =>
+                      setViewer({
+                        photos: [{ src, name: `Foto baru ${idx + 1}` }],
+                        index: 0,
+                      })
+                    }
+                    className="relative aspect-square rounded-2xl overflow-hidden group shadow-md ring-2 ring-white/50 transition-all hover:scale-105 cursor-zoom-in"
                   >
                     <img src={src} alt="preview" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <button
                         type="button"
-                        onClick={() => removeFile(idx)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          removeFile(idx)
+                        }}
                         className="bg-white rounded-full p-2 text-error hover:scale-110 transition"
                       >
                         <span className="material-symbols-outlined text-sm">delete</span>
@@ -515,11 +518,12 @@ export default function EMRForm({
         </div>
       </form>
 
-      {/* FIX: Lightbox untuk full size preview */}
-      <Lightbox
-        open={lightboxOpen}
-        close={() => setLightboxOpen(false)}
-        slides={lightboxImages.map(src => ({ src }))}
+      <PhotoLightbox
+        open={!!viewer}
+        photos={viewer?.photos || []}
+        index={viewer?.index || 0}
+        onIndexChange={(index) => setViewer((prev) => (prev ? { ...prev, index } : prev))}
+        onClose={() => setViewer(null)}
       />
     </>
   )

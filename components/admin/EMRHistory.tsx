@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
-import Lightbox from 'yet-another-react-lightbox'
-import 'yet-another-react-lightbox/styles.css'
+import { ZoomIn } from 'lucide-react'
+import PhotoLightbox, { type LightboxPhoto } from '@/components/admin/PhotoLightbox'
 import { toast } from 'sonner'
 
 interface Visit {
@@ -30,8 +30,7 @@ interface EMRHistoryProps {
 export default function EMRHistory({ patientId }: EMRHistoryProps) {
   const [visits, setVisits] = useState<Visit[]>([])
   const [loading, setLoading] = useState(true)
-  const [lightboxOpen, setLightboxOpen] = useState(false)
-  const [lightboxImages, setLightboxImages] = useState<string[]>([])
+  const [viewer, setViewer] = useState<{ photos: LightboxPhoto[]; index: number } | null>(null)
 
   useEffect(() => {
     fetchHistory()
@@ -50,15 +49,26 @@ export default function EMRHistory({ patientId }: EMRHistoryProps) {
     }
   }
 
-  const openLightbox = (photos: { url: string }[]) => {
-    setLightboxImages(photos.map(p => p.url))
-    setLightboxOpen(true)
+  const openLightbox = (photos: { url: string; fileName?: string }[], index: number) => {
+    const all = photos.map((photo, idx) => ({
+      src: photo.url,
+      name: photo.fileName || `Foto ${idx + 1}`,
+    }))
+    const list = all.filter((photo) => photo.src !== '')
+    if (list.length === 0) {
+      toast.warning('Tidak ada foto yang bisa ditampilkan')
+      return
+    }
+    const selectedIndex = Math.max(
+      0,
+      list.findIndex((photo) => photo.src === all[index]?.src)
+    )
+    setViewer({ photos: list, index: selectedIndex })
   }
 
   // FIX: Navigasi langsung menggunakan window.location.href untuk memastikan berhasil di dalam modal
   const handleEditClick = (visitId: number) => {
     const targetUrl = `/admin/emr/${patientId}/edit/${visitId}`
-    console.log('[EMRHistory] Navigasi ke:', targetUrl)
     // Gunakan window.location.href agar navigasi pasti terjadi, menghindari masalah modal/konteks
     window.location.href = targetUrl
   }
@@ -101,18 +111,32 @@ export default function EMRHistory({ patientId }: EMRHistoryProps) {
               {visit.photos.length > 0 && (
                 <div className="flex gap-2 mt-3">
                   {visit.photos.slice(0, 4).map((photo, idx) => (
-                    <img
+                    <button
                       key={photo.id}
-                      src={photo.url}
-                      alt={photo.fileName}
-                      className="w-12 h-12 object-cover rounded-xl cursor-pointer border border-white/50 shadow-sm hover:scale-105 transition"
-                      onClick={() => openLightbox(visit.photos)}
-                    />
+                      type="button"
+                      onClick={() => openLightbox(visit.photos, idx)}
+                      aria-label={`Perbesar ${photo.fileName || `Foto ${idx + 1}`}`}
+                      className="group relative h-16 w-16 overflow-hidden rounded-xl border border-white/50 shadow-sm transition hover:scale-105 cursor-zoom-in"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={photo.url}
+                        alt={photo.fileName}
+                        className="h-full w-full object-cover"
+                      />
+                      <span className="absolute inset-0 flex items-center justify-center bg-black/35 text-white opacity-0 transition group-hover:opacity-100">
+                        <ZoomIn className="h-4 w-4" />
+                      </span>
+                    </button>
                   ))}
                   {visit.photos.length > 4 && (
-                    <div className="w-12 h-12 bg-white/40 rounded-xl flex items-center justify-center text-xs font-bold text-on-surface-variant">
+                    <button
+                      type="button"
+                      onClick={() => openLightbox(visit.photos, 4)}
+                      className="h-16 w-16 rounded-xl bg-white/40 flex items-center justify-center text-xs font-bold text-on-surface-variant cursor-zoom-in"
+                    >
                       +{visit.photos.length - 4}
-                    </div>
+                    </button>
                   )}
                 </div>
               )}
@@ -128,10 +152,12 @@ export default function EMRHistory({ patientId }: EMRHistoryProps) {
         </div>
       ))}
 
-      <Lightbox
-        open={lightboxOpen}
-        close={() => setLightboxOpen(false)}
-        slides={lightboxImages.map(src => ({ src }))}
+      <PhotoLightbox
+        open={!!viewer}
+        photos={viewer?.photos || []}
+        index={viewer?.index || 0}
+        onIndexChange={(index) => setViewer((prev) => (prev ? { ...prev, index } : prev))}
+        onClose={() => setViewer(null)}
       />
     </div>
   )

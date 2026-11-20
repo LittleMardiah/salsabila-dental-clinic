@@ -1,15 +1,22 @@
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/middleware/auth'
+import {
+  buildGoogleSettingsUrl,
+  getAdminSessionIdFromRequest,
+  verifyOAuthState,
+  type OAuthStateReason,
+} from '@/lib/oauth-state'
 
 /**
  * @openapi
  * /api/backup/google-callback:
  *   get:
  *     summary: Callback OAuth Google Drive
- *     description: Menerima kode otorisasi dari Google, menukarnya dengan access token, dan menyimpan token ke database pengguna.
+ *     description: Memvalidasi state terenkripsi + PKCE, menukar kode otorisasi, lalu menyimpan token untuk admin yang sah.
  *     tags: [Backup]
  *     parameters:
  *       - in: query
@@ -17,6 +24,11 @@ import { verifyAdminToken } from '@/lib/middleware/auth'
  *         schema:
  *           type: string
  *         description: Kode otorisasi dari Google
+ *       - in: query
+ *         name: state
+ *         schema:
+ *           type: string
+ *         description: State terenkripsi dari endpoint google-auth
  *       - in: query
  *         name: error
  *         schema:
@@ -28,71 +40,111 @@ import { verifyAdminToken } from '@/lib/middleware/auth'
  */
 export async function GET(request: Request) {
   const url = new URL(request.url)
-  const code = url.searchParams.get('code')
-  const error = url.searchParams.get('error')
-  
   const baseUrl =
     process.env.NEXTAUTH_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
     url.origin
-  const baseRedirect = `${baseUrl}/admin/dashboard?tab=pengaturan`
+  const done = (reason?: OAuthStateReason) =>
+    NextResponse.redirect(
+      buildGoogleSettingsUrl(baseUrl, reason ? { reason } : { connected: true }),
+      { status: 302 }
+    )
 
-  const auth = await verifyAdminToken(request)
-  if (!auth.valid) {
-    console.error('[OAuth Callback] Admin tidak terautentikasi')
-    return NextResponse.redirect(`${baseRedirect}&error=unauthorized`)
+  const stateResult = verifyOAuthState(url.searchParams.get('state'))
+  if (!stateResult.valid) return done(stateResult.reason)
+  const state = stateResult.state
+
+  const oauthError = url.searchParams.get('error')
+  if (oauthError) {
+    const allowed: OAuthStateReason[] = [
+      'access_denied',
+      'oauth_failed',
+      'server_error',
+      'temporarily_unavailable',
+    ]
+    return done(
+      allowed.includes(oauthError as OAuthStateReason)
+        ? (oauthError as OAuthStateReason)
+        : 'oauth_failed'
+    )
   }
 
-  if (error) {
-    console.error('[OAuth Callback] Error dari Google:', error)
-    return NextResponse.redirect(`${baseRedirect}&error=oauth_failed`)
-  }
-  if (!code) {
-    console.error('[OAuth Callback] Tidak ada kode otorisasi')
-    return NextResponse.redirect(`${baseRedirect}&error=missing_code`)
-  }
+  const code = url.searchParams.get('code')
+  if (!code) return done('missing_code')
 
-  console.log('[OAuth Callback] Admin', auth.username, 'memulai pertukaran token')
-
-  // Tukar code dengan access token dan refresh token
-  const redirectUri = `${baseUrl}/api/backup/google-callback`
-  const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      code,
-      client_id: process.env.GOOGLE_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-      redirect_uri: redirectUri,
-      grant_type: 'authorization_code',
-    }),
-  })
-  const tokens = await tokenResponse.json()
-  
-  if (tokens.error) {
-    console.error('[OAuth Callback] Gagal tukar token:', tokens.error)
-    return NextResponse.redirect(`${baseRedirect}&error=token_exchange_failed`)
+  const cookieSession = getAdminSessionIdFromRequest(request)
+  if (cookieSession) {
+    try {
+      const auth = await verifyAdminToken(request)
+      if (!auth.valid || auth.username !== state.admin || cookieSession !== state.session) {
+        return done('state_mismatch')
+      }
+    } catch {
+      return done('server_error')
+    }
   }
 
-  console.log('[OAuth Callback] Token berhasil diperoleh, menyimpan ke database')
+  const redirectUri =
+    process.env.GOOGLE_REDIRECT_URI || `${baseUrl.replace(/\/$/, '')}/api/backup/google-callback`
 
-  // Simpan token ke database (AdminPreference)
-  await prisma.adminPreference.upsert({
-    where: { adminId: auth.username! },
-    update: {
-      googleAccessToken: tokens.access_token,
-      googleRefreshToken: tokens.refresh_token,
-      googleTokenExpiry: new Date(Date.now() + tokens.expires_in * 1000),
-    },
-    create: {
-      adminId: auth.username!,
-      googleAccessToken: tokens.access_token,
-      googleRefreshToken: tokens.refresh_token,
-      googleTokenExpiry: new Date(Date.now() + tokens.expires_in * 1000),
-      hiddenMenus: [],
-    },
-  })
+  let tokens: {
+    access_token?: string
+    refresh_token?: string
+    expires_in?: number
+    error?: string
+  }
+  try {
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: process.env.GOOGLE_CLIENT_ID || '',
+        client_secret: process.env.GOOGLE_CLIENT_SECRET || '',
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code',
+        code_verifier: state.verifier,
+      }),
+    })
+    if (!tokenResponse.ok) return done('token_exchange_failed')
+    tokens = await tokenResponse.json()
+  } catch {
+    return done('token_exchange_failed')
+  }
 
-  console.log('[OAuth Callback] Token tersimpan, redirect ke', baseRedirect)
-  return NextResponse.redirect(`${baseRedirect}&connected=true`)
+  if (!tokens || tokens.error || typeof tokens.access_token !== 'string') {
+    return done('token_exchange_failed')
+  }
+
+  try {
+    const existing = await prisma.adminPreference.findUnique({
+      where: { adminId: state.admin },
+      select: { googleRefreshToken: true },
+    })
+    const refreshToken = tokens.refresh_token || existing?.googleRefreshToken || null
+    const expiryMs =
+      typeof tokens.expires_in === 'number' && Number.isFinite(tokens.expires_in)
+        ? tokens.expires_in * 1000
+        : 3600 * 1000
+
+    await prisma.adminPreference.upsert({
+      where: { adminId: state.admin },
+      update: {
+        googleAccessToken: tokens.access_token,
+        ...(refreshToken ? { googleRefreshToken: refreshToken } : {}),
+        googleTokenExpiry: new Date(Date.now() + expiryMs),
+      },
+      create: {
+        adminId: state.admin,
+        googleAccessToken: tokens.access_token,
+        googleRefreshToken: refreshToken,
+        googleTokenExpiry: new Date(Date.now() + expiryMs),
+        hiddenMenus: [],
+      },
+    })
+  } catch {
+    return done('server_error')
+  }
+
+  return done()
 }

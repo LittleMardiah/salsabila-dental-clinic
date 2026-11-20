@@ -14,8 +14,10 @@ import {
   Trash2,
   Upload,
   X,
+  ZoomIn,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import PhotoLightbox, { type LightboxPhoto } from '@/components/admin/PhotoLightbox'
 import {
   DangerConfirmModal,
   SolidModal,
@@ -117,6 +119,7 @@ export default function EmrWorkspace({
   const [jawScanFile, setJawScanFile] = useState<File | null>(null)
   const [jawScanPreview, setJawScanPreview] = useState<string | null>(null)
   const [dangerConfirm, setDangerConfirm] = useState<DangerConfirmState>(null)
+  const [photoViewer, setPhotoViewer] = useState<{ photos: LightboxPhoto[]; index: number } | null>(null)
 
   const topRef = useRef<HTMLDivElement | null>(null)
   const initialApplied = useRef(false)
@@ -211,6 +214,34 @@ export default function EmrWorkspace({
     setJawScanPreview(null)
   }
 
+  const toLightboxPhotos = (photos: VisitItem['photos']): LightboxPhoto[] =>
+    photos
+      .map((photo, idx) => ({
+        src: photo.url || (photo.fileId ? `/api/drive/image/${photo.fileId}` : ''),
+        name: photo.fileName || `Foto ${idx + 1}`,
+      }))
+      .filter((photo) => photo.src.length > 0)
+
+  const openPhotoViewer = (photos: VisitItem['photos'], index: number) => {
+    const selected = photos[index]
+    const selectedSrc = selected?.url || (selected?.fileId ? `/api/drive/image/${selected.fileId}` : '')
+    const list = toLightboxPhotos(photos)
+    if (list.length === 0) {
+      toast.warning('Tidak ada foto yang bisa ditampilkan')
+      return
+    }
+    const selectedIndex = Math.max(
+      0,
+      list.findIndex((photo) => photo.src === selectedSrc)
+    )
+    setPhotoViewer({ photos: list, index: selectedIndex })
+  }
+
+  const openSinglePhotoViewer = (src: string, name: string) => {
+    if (!src) return
+    setPhotoViewer({ photos: [{ src, name }], index: 0 })
+  }
+
   const openPatient = useCallback(
     async (patient: PatientItem, queueId?: number | null, editVisit?: VisitItem) => {
       setSelectedPatient(patient)
@@ -221,6 +252,7 @@ export default function EmrWorkspace({
       setDeletedPhotoIds([])
       setNewPhotoFiles([])
       setNewPhotoPreviews([])
+      setPhotoViewer(null)
       setSavedToast('')
       resetOdontogram()
 
@@ -744,12 +776,23 @@ export default function EmrWorkspace({
               </label>
               {jawScanPreview && (
                 <div className="relative inline-block">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={jawScanPreview}
-                    alt="Scan Rahang"
-                    className="max-h-56 rounded-2xl border border-[#D08080]/40"
-                  />
+                  <button
+                    type="button"
+                    onClick={() => openSinglePhotoViewer(jawScanPreview, 'Scan Rahang')}
+                    aria-label="Perbesar scan rahang"
+                    className="group relative block cursor-zoom-in"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={jawScanPreview}
+                      alt="Scan Rahang"
+                      className="max-h-56 rounded-2xl border border-[#D08080]/40 transition group-hover:border-[#D08080]"
+                    />
+                    <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] text-white opacity-0 transition group-hover:opacity-100">
+                      <ZoomIn className="h-3 w-3" />
+                      Perbesar
+                    </span>
+                  </button>
                   <button
                     type="button"
                     onClick={() =>
@@ -1089,13 +1132,23 @@ export default function EmrWorkspace({
             {(existingPhotos.length > 0 || newPhotoPreviews.length > 0) && (
               <div className="flex flex-wrap gap-2">
                 {existingPhotos.map((photo, idx) => (
-                  <div key={`existing-${photo.id}`} className="relative">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={photo.url}
-                      alt={photo.fileName || `Foto ${idx + 1}`}
-                      className="w-12 h-12 object-cover rounded-xl border border-[#D08080]/40"
-                    />
+                  <div key={`existing-${photo.id}`} className="relative group">
+                    <button
+                      type="button"
+                      onClick={() => openPhotoViewer(existingPhotos, idx)}
+                      aria-label={`Perbesar ${photo.fileName || `Foto ${idx + 1}`}`}
+                      className="block h-20 w-20 overflow-hidden rounded-xl border border-[#D08080]/40 cursor-zoom-in transition hover:border-[#D08080] hover:shadow-md"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={photo.url}
+                        alt={photo.fileName || `Foto ${idx + 1}`}
+                        className="h-full w-full object-cover"
+                      />
+                      <span className="absolute inset-0 flex items-center justify-center bg-black/35 text-white opacity-0 transition group-hover:opacity-100">
+                        <ZoomIn className="h-4 w-4" />
+                      </span>
+                    </button>
                     <button
                       type="button"
                       onClick={() =>
@@ -1119,13 +1172,23 @@ export default function EmrWorkspace({
                   </div>
                 ))}
                 {newPhotoPreviews.map((src, idx) => (
-                  <div key={`new-${src}`} className="relative">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={src}
-                      alt={`Foto baru ${idx + 1}`}
-                      className="w-12 h-12 object-cover rounded-xl border border-[#D08080]/40"
-                    />
+                  <div key={`new-${src}`} className="relative group">
+                    <button
+                      type="button"
+                      onClick={() => openSinglePhotoViewer(src, `Foto baru ${idx + 1}`)}
+                      aria-label={`Perbesar foto baru ${idx + 1}`}
+                      className="block h-20 w-20 overflow-hidden rounded-xl border border-[#D08080]/40 cursor-zoom-in transition hover:border-[#D08080] hover:shadow-md"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={src}
+                        alt={`Foto baru ${idx + 1}`}
+                        className="h-full w-full object-cover"
+                      />
+                      <span className="absolute inset-0 flex items-center justify-center bg-black/35 text-white opacity-0 transition group-hover:opacity-100">
+                        <ZoomIn className="h-4 w-4" />
+                      </span>
+                    </button>
                     <button
                       type="button"
                       onClick={() =>
@@ -1278,6 +1341,30 @@ export default function EmrWorkspace({
                     <span className="truncate max-w-xs">Resep: {visit.resepObat}</span>
                   )}
                 </div>
+
+                {visit.photos.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {visit.photos.map((photo, photoIdx) => (
+                      <button
+                        key={`history-${photo.id}`}
+                        type="button"
+                        onClick={() => openPhotoViewer(visit.photos, photoIdx)}
+                        aria-label={`Perbesar foto ${photo.fileName || photoIdx + 1}`}
+                        className="group relative h-16 w-16 overflow-hidden rounded-xl border border-[#D08080]/40 cursor-zoom-in transition hover:border-[#D08080] hover:shadow-md"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={photo.url}
+                          alt={photo.fileName || `Foto ${photoIdx + 1}`}
+                          className="h-full w-full object-cover"
+                        />
+                        <span className="absolute inset-0 flex items-center justify-center bg-black/35 text-white opacity-0 transition group-hover:opacity-100">
+                          <ZoomIn className="h-4 w-4" />
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             ))
           )}
@@ -1287,6 +1374,17 @@ export default function EmrWorkspace({
       <DangerConfirmModal
         state={dangerConfirm}
         onClose={() => setDangerConfirm(null)}
+        theme={theme}
+      />
+
+      <PhotoLightbox
+        open={!!photoViewer}
+        photos={photoViewer?.photos || []}
+        index={photoViewer?.index || 0}
+        onIndexChange={(index) =>
+          setPhotoViewer((prev) => (prev ? { ...prev, index } : prev))
+        }
+        onClose={() => setPhotoViewer(null)}
         theme={theme}
       />
     </div>
