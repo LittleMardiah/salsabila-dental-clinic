@@ -133,10 +133,10 @@ export async function POST(
   }
 
   const queue = await prisma.queue.findFirst({
-    where: { id: validated.queueId, patientId, status: 'COMPLETED' },
+    where: { id: validated.queueId, patientId },
   });
   if (!queue) {
-    return NextResponse.json({ success: false, error: 'Queue not found or not completed' }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Queue not found for this patient' }, { status: 400 });
   }
 
   const maxFileSize = 50 * 1024 * 1024;
@@ -149,6 +149,7 @@ export async function POST(
   let visit = await prisma.medicalVisit.findUnique({
     where: { queueId: validated.queueId },
   });
+  const isUpdate = Boolean(visit);
 
   if (visit) {
     visit = await prisma.medicalVisit.update({
@@ -181,7 +182,7 @@ export async function POST(
 
   await addAuditLog(
     adminUsername,
-    'CREATE_EMR',
+    isUpdate ? 'UPDATE_EMR' : 'CREATE_EMR',
     'medical_visit',
     visit.id.toString(),
     { patientId, queueId: validated.queueId, diagnosa: validated.diagnosa, tindakan: validated.tindakan },
@@ -266,12 +267,18 @@ export async function GET(
     }
     visits = await prisma.medicalVisit.findMany({
       where: { id: visitId, patientId },
-      include: { photos: { orderBy: { uploadedAt: 'asc' } } },
+      include: {
+        photos: { orderBy: { uploadedAt: 'asc' } },
+        queue: { select: { queueNumber: true, date: true } },
+      },
     });
   } else {
     visits = await prisma.medicalVisit.findMany({
       where: { patientId },
-      include: { photos: { orderBy: { uploadedAt: 'asc' } } },
+      include: {
+        photos: { orderBy: { uploadedAt: 'asc' } },
+        queue: { select: { queueNumber: true, date: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -279,6 +286,8 @@ export async function GET(
   const formattedVisits = await Promise.all(visits.map(async (visit: any) => ({
     id: visit.id,
     queueId: visit.queueId,
+    queueNumber: visit.queue?.queueNumber ?? null,
+    queueDate: visit.queue?.date ?? null,
     keluhanUtama: visit.keluhanUtama,
     diagnosa: visit.diagnosa,
     tindakan: visit.tindakan,
@@ -374,10 +383,22 @@ export async function PUT(
   }
 
   const queue = await prisma.queue.findFirst({
-    where: { id: validated.queueId, patientId, status: 'COMPLETED' },
+    where: { id: validated.queueId, patientId },
   });
   if (!queue) {
-    return NextResponse.json({ success: false, error: 'Queue not found or not completed' }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Queue not found for this patient' }, { status: 400 });
+  }
+
+  if (validated.queueId !== existingVisit.queueId) {
+    const queueAlreadyUsed = await prisma.medicalVisit.findUnique({
+      where: { queueId: validated.queueId },
+    });
+    if (queueAlreadyUsed) {
+      return NextResponse.json(
+        { success: false, error: 'Referensi antrean sudah dipakai oleh rekam medis lain' },
+        { status: 409 }
+      );
+    }
   }
 
   const updatedVisit = await prisma.medicalVisit.update({

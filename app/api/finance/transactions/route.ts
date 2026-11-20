@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/middleware/auth'
+import { clinicDayRangeFromInput } from '@/lib/clinic-date'
 
 /**
  * @openapi
@@ -63,11 +64,11 @@ export async function GET(request: Request) {
 
   const where: any = {}
   if (date) {
-    const start = new Date(date)
-    start.setHours(0, 0, 0, 0)
-    const end = new Date(date)
-    end.setHours(23, 59, 59, 999)
-    where.createdAt = { gte: start, lte: end }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return NextResponse.json({ error: 'Format tanggal harus YYYY-MM-DD' }, { status: 400 })
+    }
+    const { start, end } = clinicDayRangeFromInput(date)
+    where.createdAt = { gte: start, lt: end }
   }
   if (status && ['PENDING', 'CONFIRMED'].includes(status)) {
     where.status = status

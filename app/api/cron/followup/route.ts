@@ -4,7 +4,8 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Resend } from 'resend'
-import { addAuditLog } from '@/lib/services/audit.service' 
+import { addAuditLog } from '@/lib/services/audit.service'
+import { clinicDayRange } from '@/lib/clinic-date'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -55,16 +56,15 @@ export async function GET(request: Request) {
     )
   }
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const tomorrow = new Date(today)
-  tomorrow.setDate(tomorrow.getDate() + 1)
+  const todayRange = clinicDayRange()
+  const tomorrowStart = new Date(todayRange.end.getTime())
+  const tomorrowEnd = new Date(tomorrowStart.getTime() + 24 * 60 * 60 * 1000)
 
   const visits = await prisma.medicalVisit.findMany({
     where: {
       followUpDate: {
-        gte: tomorrow,
-        lt: new Date(tomorrow.getTime() + 24 * 60 * 60 * 1000),
+        gte: tomorrowStart,
+        lt: tomorrowEnd,
       },
     },
     include: {

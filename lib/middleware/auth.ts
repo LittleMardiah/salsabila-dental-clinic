@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken'
 import { NextRequest } from 'next/server'
+import { isAdminTokenPayload } from '@/lib/admin-auth'
 
 export type AdminPayload = {
   username: string
@@ -31,18 +32,16 @@ export async function verifyAdminToken(request: Request): Promise<{ valid: boole
 
   // Ambil cookie dari header request
   const cookieHeader = request.headers.get('cookie') || ''
-  console.log('[verifyAdminToken] Raw cookie header:', cookieHeader) // ✅ Debug
   const cookies = parseCookies(cookieHeader)
   const token = cookies.token
 
   if (!token) {
-    console.log('[verifyAdminToken] Token not found in cookies')
     return { valid: false, error: 'Unauthorized: No token provided', status: 401 }
   }
 
   try {
-    const decoded = jwt.verify(token, jwtSecret) as AdminPayload
-    if (decoded.role !== 'admin') {
+    const decoded = jwt.verify(token, jwtSecret, { algorithms: ['HS256'] })
+    if (!isAdminTokenPayload(decoded)) {
       return { valid: false, error: 'Forbidden', status: 403 }
     }
     return { valid: true, username: decoded.username }

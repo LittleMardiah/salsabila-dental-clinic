@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/middleware/auth'
+import { DEFAULT_ADMIN_ACCESS_CODE } from '@/lib/admin-auth'
 import fs from 'fs'
 import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
@@ -82,15 +83,13 @@ export async function POST(request: Request) {
     }
 
     // Validasi kode 8 digit (bandingkan dengan ADMIN_ACCESS_CODE)
-    const adminAccessCode = process.env.ADMIN_ACCESS_CODE
+    const adminAccessCode = process.env.ADMIN_ACCESS_CODE?.trim() || DEFAULT_ADMIN_ACCESS_CODE
     let isValidCode = false
-    if (adminAccessCode) {
-      if (adminAccessCode.startsWith('$2b$')) {
-        const bcrypt = await import('bcrypt')
-        isValidCode = await bcrypt.compare(code, adminAccessCode)
-      } else {
-        isValidCode = code === adminAccessCode
-      }
+    if (adminAccessCode.startsWith('$2')) {
+      const bcrypt = await import('bcrypt')
+      isValidCode = await bcrypt.compare(code, adminAccessCode)
+    } else {
+      isValidCode = code === adminAccessCode
     }
     if (!isValidCode) {
       return NextResponse.json({ success: false, error: 'Kode restore tidak valid' }, { status: 401 })

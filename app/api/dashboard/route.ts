@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/middleware/auth'
+import { clinicDateOnly, clinicDayRange } from '@/lib/clinic-date'
 
 /**
  * @openapi
@@ -41,26 +42,19 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: auth.error }, { status: auth.status })
   }
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const tomorrow = new Date(today)
-  tomorrow.setDate(tomorrow.getDate() + 1)
+  const today = clinicDateOnly()
+  const { start: dayStart, end: dayEnd } = clinicDayRange()
 
   const todayPatients = await prisma.queue.count({
-    where: {
-      date: {
-        gte: today,
-        lt: tomorrow,
-      },
-    },
+    where: { date: today },
   })
 
   const revenueResult = await prisma.transaction.aggregate({
     where: {
       status: 'CONFIRMED',
       confirmedAt: {
-        gte: today,
-        lt: tomorrow,
+        gte: dayStart,
+        lt: dayEnd,
       },
     },
     _sum: {

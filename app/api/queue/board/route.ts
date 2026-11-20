@@ -36,12 +36,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, error: 'Queue not found' }, { status: 404 })
   }
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  // Follow the patient's own queue date so a token that spans midnight keeps
+  // showing the correct board instead of an empty "today".
+  const boardDate = myQueue.date
 
   const currentCalled = await prisma.queue.findFirst({
     where: {
-      date: today,
+      date: boardDate,
       status: 'CALLED',
       calledAt: { not: null }
     },
@@ -51,7 +52,7 @@ export async function GET(request: Request) {
 
   const nextQueues = await prisma.queue.findMany({
     where: {
-      date: today,
+      date: boardDate,
       status: 'WAITING',
       queueNumber: { gt: myQueue.queueNumber }
     },
@@ -61,22 +62,38 @@ export async function GET(request: Request) {
   })
 
   const totalToday = await prisma.queue.count({
-    where: { date: today }
+    where: { date: boardDate }
   })
 
   const position = await prisma.queue.count({
     where: {
-      date: today,
+      date: boardDate,
       status: 'WAITING',
       queueNumber: { lt: myQueue.queueNumber }
     }
   }) + 1
+
+  // Exactly one neighbour before and after the patient (no wait-time estimate).
+  const [prevQueue, nextQueue] = await Promise.all([
+    prisma.queue.findFirst({
+      where: { date: boardDate, queueNumber: { lt: myQueue.queueNumber } },
+      orderBy: { queueNumber: 'desc' },
+      include: { patient: true },
+    }),
+    prisma.queue.findFirst({
+      where: { date: boardDate, queueNumber: { gt: myQueue.queueNumber } },
+      orderBy: { queueNumber: 'asc' },
+      include: { patient: true },
+    }),
+  ])
 
   const formatQueueNumber = (num: number) => `A-${num.toString().padStart(2, '0')}`
   const maskName = (name: string) => {
     if (name.length <= 3) return name[0] + '***'
     return name.slice(0, 3) + '***'
   }
+  const statusLabel = (status: string) =>
+    status === 'CALLED' ? 'SEDANG DILAYANI' : status === 'COMPLETED' ? 'SELESAI' : 'MENUNGGU'
 
   return NextResponse.json({
     success: true,
@@ -84,8 +101,24 @@ export async function GET(request: Request) {
     myQueue: {
       number: formatQueueNumber(myQueue.queueNumber),
       position,
-      status: myQueue.status,
+      status: statusLabel(myQueue.status),
+      patientName: myQueue.patient.name,
+      code: myQueue.patientCode,
     },
+    prevQueue: prevQueue
+      ? {
+          number: formatQueueNumber(prevQueue.queueNumber),
+          patientNameMasked: maskName(prevQueue.patient.name),
+          status: statusLabel(prevQueue.status),
+        }
+      : null,
+    nextQueue: nextQueue
+      ? {
+          number: formatQueueNumber(nextQueue.queueNumber),
+          patientNameMasked: maskName(nextQueue.patient.name),
+          status: statusLabel(nextQueue.status),
+        }
+      : null,
     currentCalled: currentCalled ? {
       number: formatQueueNumber(currentCalled.queueNumber),
       patientNameMasked: maskName(currentCalled.patient.name),

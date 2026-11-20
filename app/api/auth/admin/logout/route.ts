@@ -22,8 +22,10 @@ export async function POST(request: Request) {
   const tokenMatch = cookieHeader.match(/token=([^;]+)/)
   if (tokenMatch) {
     try {
-      const decoded = jwt.verify(tokenMatch[1], process.env.JWT_SECRET!) as any
-      username = decoded.username
+      const decoded = jwt.verify(tokenMatch[1], process.env.JWT_SECRET!, {
+        algorithms: ['HS256'],
+      }) as { username?: string }
+      username = decoded.username || 'unknown'
     } catch (e) {}
   }
 

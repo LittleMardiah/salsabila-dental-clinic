@@ -1,259 +1,337 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Bell, Volume2, MessageCircle, X, Clock, Users, Tv, ArrowRight } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowLeft, Loader2, Volume2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { NotificationHelpModal } from '@/components/NotificationHelpModal'
+import {
+  useDarkMode,
+  SanctuaryBrand,
+  ThemeToggle,
+} from '@/components/ui/sanctuary'
+
+type Neighbour = {
+  number: string
+  patientNameMasked: string
+  status: string
+}
+
+type BoardData = {
+  queueId: number
+  myQueue: {
+    number: string
+    position: number
+    status: string
+    patientName: string
+    code?: string | null
+  }
+  prevQueue: Neighbour | null
+  nextQueue: Neighbour | null
+  currentCalled: {
+    number: string
+    patientNameMasked: string
+    calledAt: string | null
+  } | null
+  totalToday: number
+}
 
 export default function PatientQueuePage() {
-  const [loading, setLoading] = useState(true)
-  const [boardData, setBoardData] = useState<any>(null)
-  const [isSubscribed, setIsSubscribed] = useState(false)
-  const [queueId, setQueueId] = useState<number | null>(null)
   const router = useRouter()
+  const { theme } = useDarkMode()
+  const [loading, setLoading] = useState(true)
+  const [boardData, setBoardData] = useState<BoardData | null>(null)
+  const [voiceActive, setVoiceActive] = useState(false)
+  const [error, setError] = useState('')
 
-  useEffect(() => {
-    const checkExistingSubscription = async () => {
-      if ('serviceWorker' in navigator && queueId) {
-        const registration = await navigator.serviceWorker.ready
-        const subscription = await registration.pushManager.getSubscription()
-        if (subscription) {
-          setIsSubscribed(true)
-        }
-      }
-    }
-    checkExistingSubscription()
-  }, [queueId])
-
-  const fetchBoard = async () => {
+  const fetchBoard = useCallback(async () => {
     try {
-      const res = await fetch('/api/queue/board')
-      if (res.ok) {
-        const data = await res.json()
-        setBoardData(data)
-        if (data.queueId) setQueueId(data.queueId)
+      const res = await fetch('/api/queue/board', { cache: 'no-store' })
+      if (res.status === 401) {
+        router.replace('/patient/login')
         return
       }
-      if (res.status === 401) router.push('/patient/login')
-    } catch (err) {
-      console.error(err)
+      if (!res.ok) throw new Error('Gagal memuat papan antrean')
+      const data = await res.json()
+      if (data.success) {
+        setBoardData(data)
+        setError('')
+      }
+    } catch {
+      setError('Koneksi ke papan antrean terputus. Mencoba lagi...')
     } finally {
       setLoading(false)
     }
-  }
+  }, [router])
 
   useEffect(() => {
-    let interval: NodeJS.Timeout
-    const init = async () => {
-      await fetchBoard()
-      interval = setInterval(fetchBoard, 5000)
+    let active = true
+    const run = async () => {
+      if (active) await fetchBoard()
     }
-    init()
-    return () => clearInterval(interval)
-  }, [])
+    run()
+    const interval = setInterval(run, 5000)
+    return () => {
+      active = false
+      clearInterval(interval)
+    }
+  }, [fetchBoard])
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(reg => console.log('SW registered', reg))
-        .catch(err => console.error('SW registration failed:', err))
+      navigator.serviceWorker.register('/sw.js').catch(() => {
+        // Push notifications are optional; audio calling still works.
+      })
     }
   }, [])
 
-  const enableNotifications = async () => {
-    console.log('enableNotifications called, queueId:', queueId)
-    if (!queueId) {
-      toast.error('Error', { description: 'Data antrian tidak ditemukan. Silakan refresh halaman.' })
-      return
-    }
-    if (!('Notification' in window)) {
-      toast.error('Notifikasi tidak didukung', { description: 'Browser Anda tidak mendukung notifikasi' })
-      return
-    }
-    const permission = await Notification.requestPermission()
-    if (permission !== 'granted') {
-      toast.error('Izin ditolak', { description: 'Klik tombol bantuan untuk panduan' })
-      return
-    }
-    const registration = await navigator.serviceWorker.ready
-    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-    if (!vapidPublicKey) {
-      toast.error('Konfigurasi error', { description: 'VAPID key tidak ditemukan' })
-      return
-    }
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: vapidPublicKey,
-    })
-    const res = await fetch('/api/webpush/subscribe', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subscription, queueId }),
-    })
-    if (res.ok) {
-      setIsSubscribed(true)
-      toast.success('Notifikasi aktif')
-    } else {
-      const errData = await res.json()
-      toast.error(errData.error || 'Gagal mengaktifkan notifikasi')
-    }
-  }
+  const playChimeAndVoice = (patient: BoardData['myQueue']) => {
+    setVoiceActive(true)
+    setTimeout(() => setVoiceActive(false), 2400)
 
-  const cancelQueue = async () => {
-    if (!queueId) return
-    if (confirm('Apakah Anda yakin ingin membatalkan antrian? Tindakan ini tidak dapat dibatalkan.')) {
-      toast.info('Fitur pembatalan antrian sedang dalam pengembangan')
+    try {
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+      if (AudioCtx) {
+        const ctx = new AudioCtx()
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.type = 'sine'
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime)
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.16)
+        gain.gain.setValueAtTime(0.1, ctx.currentTime)
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.55)
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.start()
+        osc.stop(ctx.currentTime + 0.55)
+      }
+    } catch {
+      // Audio is best-effort; never block the queue board.
+    }
+
+    try {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel()
+        const utter = new SpeechSynthesisUtterance(
+          `Nomor antrian ${patient.number}, atas nama ${patient.patientName}, silakan menuju ruang pemeriksaan.`
+        )
+        utter.lang = 'id-ID'
+        utter.rate = 0.94
+        window.speechSynthesis.speak(utter)
+      }
+    } catch {
+      toast.info('Suara panggilan tidak didukung di perangkat ini.')
     }
   }
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-[#fff8f7]">Memuat...</div>
+    return (
+      <div className={`min-h-screen ${theme.bg} ${theme.text} flex items-center justify-center`}>
+        <Loader2 className="w-6 h-6 animate-spin text-[#D08080]" />
+      </div>
+    )
   }
 
-  if (!boardData) return null
+  if (!boardData) {
+    return (
+      <div className={`min-h-screen ${theme.bg} ${theme.text} font-sans-clean flex flex-col`}>
+        <header className="w-full shrink-0">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-3">
+            <SanctuaryBrand href="/" />
+            <ThemeToggle theme={theme} />
+          </div>
+        </header>
+        <main className="flex-1 flex items-center justify-center px-4 text-center">
+          <div className={`max-w-md w-full rounded-3xl border p-8 ${theme.elevatedCard}`}>
+            <h1 className="text-xl font-semibold">Sesi antrean tidak ditemukan</h1>
+            <p className={`mt-2 text-sm ${theme.textMuted}`}>
+              {error || 'Silakan masuk kembali menggunakan kode token Anda.'}
+            </p>
+            <Link
+              href="/patient/login"
+              className="mt-6 inline-flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-to-r from-[#D08080] to-[#8B4F4F] text-white text-xs font-medium"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Masuk dengan Kode Token
+            </Link>
+          </div>
+        </main>
+      </div>
+    )
+  }
 
-  const { myQueue, currentCalled, nextQueues, totalToday } = boardData
-
-  const myNumber = myQueue.number
-  const position = myQueue.position
-  const currentNumber = currentCalled?.number || null
-  const currentPatient = currentCalled?.patientNameMasked || ''
-  const total = totalToday
+  const { myQueue, prevQueue, nextQueue, currentCalled, totalToday } = boardData
+  const isServing = myQueue.status === 'SEDANG DILAYANI'
+  const isDone = myQueue.status === 'SELESAI'
 
   return (
-    <div className="min-h-screen bg-[#fff8f7]">
-      <nav className="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-md shadow-sm h-20">
-        <div className="flex justify-between items-center w-full px-8 h-full max-w-7xl mx-auto">
-          <div className="flex items-center gap-6">
-            <span className="text-2xl font-bold tracking-tight text-[#815152] transition-all duration-300">
-              Salsa Dental
-            </span>
+    <div
+      className={`min-h-screen w-full max-w-full ${theme.bg} ${theme.text} font-sans-clean relative overflow-x-hidden transition-colors duration-700 flex flex-col`}
+    >
+      <header className="relative z-30 w-full shrink-0">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-2 sm:gap-4 min-w-0">
+          <SanctuaryBrand href="/" />
+          <div className="flex items-center gap-2 shrink-0">
+            <ThemeToggle theme={theme} />
+            <Link
+              href="/patient/login"
+              className={`inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border text-[11px] sm:text-xs font-normal transition-all hover:border-[#D08080] ${theme.pillSurface}`}
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-[#D08080]" />
+              <span>Ganti Kode</span>
+            </Link>
           </div>
         </div>
-      </nav>
+      </header>
 
-      <main className="flex-grow pt-32 pb-24 px-6 max-w-7xl mx-auto w-full">
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          {/* Left Column */}
-          <div className="lg:col-span-7 space-y-8">
-            <div className="bg-white p-12 rounded-[3rem] shadow-ambient text-center lg:text-left border border-[#e8e1e1]/30">
-              <span className="inline-flex items-center px-6 py-2 rounded-full bg-[#eee6e6] text-[#514443] font-bold text-sm tracking-widest mb-8">
-                ⏳ MENUNGGU
-              </span>
-              <h1 className="text-[#514443] text-xl font-medium mb-4">Nomor Antrian Anda</h1>
-              <div className="text-[7rem] md:text-[9rem] font-bold text-[#dca1a1] leading-none tracking-tighter mb-10">
-                {myNumber}
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-[#e8e1e1]/50 pt-10">
-                <div className="flex items-center gap-5 p-6 rounded-3xl bg-[#f9f2f2] border border-[#e8e1e1]/20">
-                  <div className="bg-white p-3 rounded-2xl">
-                    <Users className="text-[#815152] w-6 h-6" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm text-[#514443] mb-1">Posisi Anda</p>
-                    <p className="text-xl font-bold text-[#1e1b1b]">Ke-{position} dalam antrian</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+      <main className="relative z-10 flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-view-enter">
+        <div
+          aria-hidden="true"
+          style={{
+            animation: 'silkAuroraBreath 16s ease-in-out infinite',
+            background:
+              'radial-gradient(ellipse 60% 45% at 25% 35%, rgba(208,128,128,0.16), transparent 70%)',
+          }}
+          className="pointer-events-none absolute inset-0 blur-2xl"
+        />
 
-            <div className="flex flex-wrap gap-4">
-              <button
-                onClick={enableNotifications}
-                disabled={isSubscribed}
-                className="flex-1 flex items-center justify-center gap-3 px-8 py-5 rounded-full bg-gradient-to-r from-[#dca1a1] to-[#663a3b] text-white font-bold transition-all duration-300 hover:scale-[1.02] active:scale-95 shadow-xl shadow-[#815152]/20 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Volume2 className="w-6 h-6" />
-                <span className="text-base">{isSubscribed ? 'Notifikasi Aktif' : 'Aktifkan Suara Panggilan'}</span>
-              </button>
-              <a
-                href="https://wa.me/6281234567890"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 flex items-center justify-center gap-3 px-8 py-5 rounded-full bg-[#006d2f] text-white font-bold transition-all duration-300 hover:bg-[#007232] hover:scale-[1.02] active:scale-95 shadow-xl shadow-[#006d2f]/20"
-              >
-                <MessageCircle className="w-6 h-6" />
-                <span className="text-base">WhatsApp Clinic</span>
-              </a>
-            </div>
+        <div className={`relative z-10 flex flex-wrap items-center justify-between gap-3 pb-5 border-b ${theme.hairline}`}>
+          <span className={`text-xs font-medium ${theme.textSubtle}`}>
+            Papan antrean klinik diperbarui otomatis setiap 5 detik
+          </span>
+          <span className={`px-3.5 py-1 rounded-full border text-xs font-medium ${theme.pillSurface}`}>
+            Token Aktif:{' '}
+            <strong className="text-[#D08080] tracking-[0.12em]">
+              {myQueue.code || 'TERVERIFIKASI'}
+            </strong>
+          </span>
+        </div>
 
-            <button
-              onClick={cancelQueue}
-              className="w-full py-5 text-[#ba1a1a] font-bold text-base hover:bg-[#ffdad6]/20 rounded-full transition-colors border border-[#ba1a1a]/20"
-            >
-              ❌ Batalkan Antrian
-            </button>
-          </div>
-
-          {/* Right Column */}
-          <div className="lg:col-span-5">
-            <div className="bg-[#f4ecec] p-10 rounded-[3rem] h-full border border-[#e8e1e1]/30">
-              <div className="flex items-center justify-between mb-10">
-                <h2 className="text-2xl font-bold text-[#815152]">Papan Antrian Klinis</h2>
-                <Tv className="text-[#dca1a1] w-8 h-8" />
-              </div>
-
-              <div className="bg-white rounded-3xl p-8 shadow-md mb-8 border-l-[6px] border-[#006d2f]">
-                <p className="text-xs uppercase tracking-widest text-[#006d2f] font-bold mb-4">Sedang Dilayani</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-4xl font-bold text-[#1e1b1b]">{currentNumber || '—'}</span>
-                  <span className="text-[#514443] text-lg font-medium">{currentPatient || 'Belum ada'}</span>
-                </div>
-              </div>
-
-              <div className="space-y-5">
-                <p className="text-sm font-bold text-[#514443]/70 uppercase tracking-widest pl-2">Antri berikutnya</p>
-                {nextQueues && nextQueues.length > 0 ? (
-                  nextQueues.map((q: any, idx: number) => (
-                    <div
-                      key={idx}
-                      className={`flex items-center justify-between p-6 rounded-[2rem] border ${
-                        q.isMe
-                          ? 'bg-[#ffdad9] border-[#815152]/20 shadow-sm'
-                          : 'bg-white/50 border-white/60'
-                      }`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div
-                          className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
-                            q.isMe
-                              ? 'bg-[#815152] text-white'
-                              : 'bg-[#eee6e6] text-[#1e1b1b]'
-                          }`}
-                        >
-                          {q.number.split('-')[1]}
-                        </div>
-                        <div>
-                          <p className="text-lg font-medium text-[#1e1b1b]">{q.patientNameMasked}</p>
-                          {q.isMe && (
-                            <p className="text-xs text-[#815152] font-medium">Pasien Selanjutnya</p>
-                          )}
-                        </div>
-                      </div>
-                      {q.isMe && <ArrowRight className="text-[#815152] w-6 h-6" />}
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-[#514443] text-center py-4">Tidak ada antrian berikutnya</p>
-                )}
-
-                <div className="p-6 border-t border-[#e8e1e1]/40 mt-8">
-                  <div className="flex justify-between text-sm text-[#514443] font-semibold">
-                    <span>Total Antrian Hari Ini</span>
-                    <span>{total} Pasien</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {!isSubscribed && (
-          <div className="max-w-md mx-auto mt-8">
-            <NotificationHelpModal />
-          </div>
+        {error && (
+          <p className="mt-3 text-xs text-[#D08080] font-medium" role="status">
+            {error}
+          </p>
         )}
+
+        <div className="relative z-10 mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-stretch">
+          {/* MY TICKET */}
+          <div className={`lg:col-span-6 rounded-3xl border p-6 sm:p-10 flex flex-col justify-between transition-all duration-300 hover:-translate-y-0.5 ${theme.elevatedCard}`}>
+            <div>
+              <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#D08080]/15 text-[#D08080] text-xs font-medium">
+                <span className={`w-2 h-2 rounded-full ${isServing ? 'bg-emerald-500 animate-pulse' : 'bg-[#D08080] animate-pulse'}`} />
+                <span>{myQueue.status}</span>
+              </span>
+
+              <div className={`mt-6 text-sm ${theme.textMuted}`}>
+                Nomor Antrian Anda •{' '}
+                <span className={`font-semibold ${theme.text}`}>{myQueue.patientName}</span>
+              </div>
+
+              <div className={`mt-2 text-6xl sm:text-8xl font-semibold tracking-tight tabular-nums ${theme.roseAccent}`}>
+                {myQueue.number}
+              </div>
+
+              <p className={`mt-4 text-xs sm:text-sm leading-relaxed ${theme.textMuted}`}>
+                {isServing
+                  ? 'Giliran Anda saat ini. Silakan menuju ruang pemeriksaan.'
+                  : isDone
+                  ? 'Kunjungan Anda telah selesai. Terima kasih telah mempercayakan perawatan Anda kepada Salsabila Dental Clinic.'
+                  : prevQueue
+                  ? `Posisi ke-${myQueue.position} dalam antrean (${prevQueue.number} diproses sebelum Anda).`
+                  : 'Anda berada di urutan terdepan dalam antrean.'}
+              </p>
+            </div>
+
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => playChimeAndVoice(myQueue)}
+                className={`inline-flex items-center gap-2 px-4 sm:px-5 py-3 rounded-full border text-xs font-medium transition-all cursor-pointer ${
+                  voiceActive
+                    ? 'bg-[#D08080] border-[#D08080] text-white'
+                    : `${theme.pillSurface} hover:border-[#D08080]`
+                }`}
+              >
+                <Volume2 className="w-4 h-4" />
+                <span>{voiceActive ? 'Suara Panggilan Aktif' : 'Aktifkan Suara Panggilan'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* BOARD */}
+          <div className={`lg:col-span-6 rounded-3xl border p-6 sm:p-10 space-y-6 transition-all duration-300 hover:-translate-y-0.5 ${theme.elevatedCard}`}>
+            <div>
+              <span className={`text-xs font-medium ${theme.roseLabel}`}>Pemantauan Langsung</span>
+              <h2 className="mt-1 text-xl sm:text-2xl font-semibold tracking-tight">
+                Papan Antrian Klinis
+              </h2>
+            </div>
+
+            <div className={`border-y ${theme.hairline} divide-y ${theme.divideHairline}`}>
+              <div className="py-4 flex items-center justify-between gap-4 rounded-xl px-2">
+                <div className="min-w-0">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-500">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Sedang Dilayani Saat Ini</span>
+                  </span>
+                  <span className="mt-1 block text-sm sm:text-base font-semibold truncate">
+                    {currentCalled
+                      ? `${currentCalled.number} — ${currentCalled.patientNameMasked}`
+                      : 'Belum ada'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="py-4 flex items-center justify-between gap-4 rounded-xl px-2">
+                <div className="min-w-0">
+                  <span className={`block text-xs ${theme.textSubtle}`}>1 Antrean Sebelum Anda</span>
+                  <span className="mt-1 block text-sm sm:text-base font-medium truncate">
+                    {prevQueue
+                      ? `${prevQueue.number} — ${prevQueue.patientNameMasked}`
+                      : 'Tidak ada (Anda urutan pertama)'}
+                  </span>
+                </div>
+                {prevQueue && (
+                  <span className="text-[10px] font-medium text-emerald-500 shrink-0">
+                    {prevQueue.status}
+                  </span>
+                )}
+              </div>
+
+              <div className="py-4 flex items-center justify-between gap-4 rounded-xl px-2 bg-[#D08080]/[0.06]">
+                <div className="min-w-0">
+                  <span className="block text-xs font-medium text-[#D08080]">Posisi Anda</span>
+                  <span className={`mt-1 block text-base sm:text-lg font-semibold truncate ${theme.roseAccent}`}>
+                    {myQueue.number} — {myQueue.patientName}
+                  </span>
+                </div>
+                <span className="px-3 py-1 rounded-full bg-[#D08080]/20 text-[#D08080] text-xs font-medium shrink-0">
+                  Anda
+                </span>
+              </div>
+
+              <div className="py-4 flex items-center justify-between gap-4 rounded-xl px-2">
+                <div className="min-w-0">
+                  <span className={`block text-xs ${theme.textSubtle}`}>1 Antrean Setelah Anda</span>
+                  <span className="mt-1 block text-sm sm:text-base font-medium truncate">
+                    {nextQueue
+                      ? `${nextQueue.number} — ${nextQueue.patientNameMasked}`
+                      : 'Belum ada antrean berikutnya'}
+                  </span>
+                </div>
+                {nextQueue && (
+                  <span className={`text-[10px] shrink-0 ${theme.textSubtle}`}>{nextQueue.status}</span>
+                )}
+              </div>
+            </div>
+
+            <p className={`text-[11px] font-mono-tech uppercase tracking-[0.14em] ${theme.textSubtle}`}>
+              Total antrean hari ini: {String(totalToday).padStart(2, '0')}
+            </p>
+          </div>
+        </div>
       </main>
     </div>
   )

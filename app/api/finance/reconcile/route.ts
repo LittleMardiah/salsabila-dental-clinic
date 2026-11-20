@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/middleware/auth'
 import { addAuditLog } from '@/lib/services/audit.service'
+import { dateOnlyFromInput } from '@/lib/clinic-date'
 
 const reconcileSchema = z.object({
   date: z.string().date(),
@@ -134,7 +135,7 @@ export async function POST(request: Request) {
     }
 
     const { date, totalRecorded, notes } = parsed.data
-    const reconcileDate = new Date(date)
+    const reconcileDate = dateOnlyFromInput(date)
 
     // Cek duplikasi
     const existing = await prisma.dailyReconciliation.findUnique({

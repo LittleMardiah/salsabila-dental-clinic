@@ -67,3 +67,5 @@ public/uploads/
 /docs
 .vercel
 rclone.conf
+
+.vercel

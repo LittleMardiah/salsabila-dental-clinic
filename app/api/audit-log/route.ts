@@ -3,6 +3,8 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server' 
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/middleware/auth'
+import { addAuditLog } from '@/lib/services/audit.service'
+import { clinicDayRangeFromInput } from '@/lib/clinic-date'
 
 const actionTranslations: Record<string, string> = {
   LOGIN: 'Login',
@@ -15,6 +17,7 @@ const actionTranslations: Record<string, string> = {
   DELETE_EMR: 'Menghapus Rekam Medis',
   CONFIRM_TRANSACTION: 'Konfirmasi Pembayaran',
   RECONCILE: 'Rekonsiliasi Harian',
+  SWITCH_OPERATOR: 'Ganti Operator',
 }
 
 /**
@@ -102,14 +105,10 @@ export async function GET(request: Request) {
 
   const where: any = {}
   if (from) {
-    const fromDate = new Date(from)
-    fromDate.setHours(0, 0, 0, 0)
-    where.createdAt = { gte: fromDate }
+    where.createdAt = { gte: clinicDayRangeFromInput(from).start }
   }
   if (to) {
-    const toDate = new Date(to)
-    toDate.setHours(23, 59, 59, 999)
-    where.createdAt = { ...where.createdAt, lte: toDate }
+    where.createdAt = { ...where.createdAt, lt: clinicDayRangeFromInput(to).end }
   }
   if (action) where.actionType = action
   if (adminId) where.adminId = adminId
@@ -125,13 +124,39 @@ export async function GET(request: Request) {
   ])
 
   if (mode === 'admin') {
-    // ✅ PERBAIKAN: gunakan any untuk tipe log (karena tipe dari Prisma tidak langsung diekspor sebagai type)
+    const describe = (log: any) => {
+      const d = (log.technicalDetails || {}) as Record<string, any>
+      switch (log.actionType) {
+        case 'CREATE_QUEUE':
+          return `Menerbitkan ${d.queueNumber ? `A-${String(d.queueNumber).padStart(2, '0')}` : 'antrean'} (${d.patientName || '-'}) • ${d.mode || 'MANUAL'}${d.patientCode ? ` • Token ${d.patientCode}` : ''}`
+        case 'CALL_QUEUE':
+          return `Memanggil ${d.queueNumber ? `A-${String(d.queueNumber).padStart(2, '0')}` : 'antrean'} (${d.patientName || '-'})`
+        case 'COMPLETE_QUEUE':
+          return `Menyelesaikan antrean ${log.recordId}`
+        case 'CREATE_EMR':
+        case 'UPDATE_EMR':
+          return `${log.actionType === 'CREATE_EMR' ? 'Menyimpan' : 'Memperbarui'} rekam medis ${log.recordType} #${log.recordId}`
+        case 'CONFIRM_TRANSACTION':
+          return `Mengonfirmasi pembayaran ${d.amount ? `Rp ${Number(d.amount).toLocaleString('id-ID')}` : ''} (${d.paymentMethod || '-'})`
+        case 'RECONCILE':
+          return `Rekonsiliasi kas ${d.date || ''} • Rp ${Number(d.totalRecorded || 0).toLocaleString('id-ID')}`
+        case 'SWITCH_OPERATOR':
+          return `Operator aktif diganti ke ${d.operator || '-'}`
+        case 'LOGIN':
+        case 'LOGOUT':
+          return `${log.actionType === 'LOGIN' ? 'Masuk' : 'Keluar'} dari dashboard klinik`
+        default:
+          return `${log.recordType} ID ${log.recordId}`
+      }
+    }
+
     const transformed = logs.map((log: any) => ({
       id: log.id,
       timestamp: log.createdAt,
       admin: log.adminId,
       action: actionTranslations[log.actionType] || log.actionType,
-      detail: `${log.recordType} ID ${log.recordId}`,
+      actionType: log.actionType,
+      detail: describe(log),
       status: 'Sukses',
     }))
     return NextResponse.json({
@@ -148,4 +173,37 @@ export async function GET(request: Request) {
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     })
   }
+}
+/**
+ * Records an operator switch in the real audit trail.
+ * Body: { operator: 'Drg. Salsabila' | 'Admin Resepsionis' }
+ */
+export async function POST(request: Request) {
+  const auth = await verifyAdminToken(request)
+  if (!auth.valid) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status || 401 })
+  }
+
+  let body: { operator?: string } = {}
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
+
+  const operator = (body.operator || '').trim()
+  if (!operator) {
+    return NextResponse.json({ error: 'Operator wajib diisi' }, { status: 400 })
+  }
+
+  await addAuditLog(
+    auth.username || 'unknown',
+    'SWITCH_OPERATOR',
+    'admin',
+    auth.username || 'unknown',
+    { operator },
+    request.headers.get('x-forwarded-for') || 'unknown'
+  )
+
+  return NextResponse.json({ success: true })
 }

@@ -1,93 +1,279 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { ArrowLeft, Loader2, Lock, UserCheck } from 'lucide-react'
 import { toast } from 'sonner'
+import {
+  useDarkMode,
+  SanctuaryBrand,
+  ThemeToggle,
+} from '@/components/ui/sanctuary'
 
-export default function AdminCodePage() {
+const OPERATORS = ['Drg. Salsabila', 'Admin Resepsionis'] as const
+
+export default function AdminLoginPage() {
   const router = useRouter()
-  const [code, setCode] = useState('')
+  const { theme } = useDarkMode()
+  const [step, setStep] = useState<1 | 2>(1)
+  const [vaultCode, setVaultCode] = useState('')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [operator, setOperator] = useState<(typeof OPERATORS)[number]>('Drg. Salsabila')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const res = await fetch('/api/auth/admin/check', { cache: 'no-store' })
+        if (res.ok) router.replace('/admin/dashboard')
+      } catch {
+        // Not logged in.
+      }
+    }
+    check()
+  }, [router])
+
+  const handleVaultSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (code.length !== 8) {
-      toast.error('Kode harus 8 digit')
+    if (vaultCode.length !== 8) {
+      setError('Masukkan kode vault 8 digit.')
       return
     }
     setLoading(true)
+    setError('')
+
     try {
       const res = await fetch('/api/auth/admin/verify-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code: vaultCode }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        toast.error(data.error || 'Kode salah')
+        setError(data.error || 'Kode vault tidak valid.')
+        toast.error(data.error || 'Kode vault tidak valid')
         return
       }
-      toast.success('Kode valid')
-      router.push('/admin/login/credentials')
+      toast.success('Gerbang vault terbuka')
+      setStep(2)
     } catch {
-      toast.error('Terjadi kesalahan')
+      setError('Terjadi kesalahan jaringan. Silakan coba lagi.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCredentialSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+
+    try {
+      const res = await fetch('/api/auth/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username.trim(), password }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        const message =
+          data.error === 'Verification code required. Please go back and enter the 8-digit code first.'
+            ? 'Sesi vault telah kedaluwarsa. Ulangi Tahap 1.'
+            : data.error || 'Username atau password salah.'
+        setError(message)
+        toast.error(message)
+        if (!res.ok && res.status === 403) setStep(1)
+        return
+      }
+
+      localStorage.setItem('salsa_operator', operator)
+      toast.success(`Masuk sebagai ${operator}`)
+      router.replace('/admin/dashboard')
+    } catch {
+      setError('Terjadi kesalahan jaringan. Silakan coba lagi.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-background font-body text-on-background overflow-hidden flex flex-col vault-backdrop">
-      <div className="fixed top-8 left-8 z-[70]">
-        <div className="text-2xl font-bold tracking-tight text-primary">Salsa Dental</div>
-      </div>
-
-      <main className="flex-grow flex items-center justify-center relative min-h-screen">
-        {/* Background image */}
-        <div className="absolute inset-0 z-0">
-          <img
-            className="w-full h-full object-cover grayscale opacity-5"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBQIhXlRc3xv1oS1e8lXkCLoR3ALi6wTPKEpTZWcD9nAfmkDwbW7jdosPAXCwT0OHu89wrE8sFvoOa75WEqqgomrR9jzZ7S-o36eeOf50-T5moStp_sP3nnObydVL4glubmlauHOV40NtckVEjRWRvwFtoKLM-X6uh0cLk1iXU_Mpiv6j7Lhq2wXptPKDtYNJ2RTDlXtuTz9AR9VFDD3sZO9K3pfsHQV3_NMt97FFzaL5mz8lYp7AVLknFanjHc-x8ptbSQkHBm7sY"
-            alt="background"
-          />
+    <div
+      className={`min-h-screen w-full max-w-full ${theme.bg} ${theme.text} font-sans-clean relative overflow-x-hidden transition-colors duration-700 flex flex-col`}
+    >
+      <header className="relative z-30 w-full shrink-0">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-2 sm:gap-4 min-w-0">
+          <SanctuaryBrand href="/" />
+          <ThemeToggle theme={theme} />
         </div>
+      </header>
 
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
-          <div className="w-full max-w-xl glass-card rounded-[3.5rem] p-12 md:p-16 shadow-premium relative overflow-hidden inner-glow">
-            <div className="absolute top-0 right-0 p-12 opacity-[0.04] pointer-events-none translate-x-12 -translate-y-12">
-              <span className="material-symbols-outlined text-[200px] text-primary">lock</span>
-            </div>
-            <div className="relative z-10 flex flex-col items-center text-center">
-              <div className="w-24 h-24 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full flex items-center justify-center mb-10 border border-white/50 shadow-lg">
-                <span className="material-symbols-outlined text-primary text-5xl" style={{ fontVariationSettings: "'FILL' 1" }}>security</span>
-              </div>
-              <h1 className="font-headline text-3xl md:text-4xl font-bold text-on-surface mb-3 tracking-tight">Akses Admin Terbatas</h1>
-              <p className="text-on-surface-variant font-medium mb-12 tracking-[0.2em] text-xs md:text-sm uppercase opacity-80">Masukkan Kode Vault</p>
-              <form onSubmit={handleSubmit} className="w-full space-y-10">
-                <div className="relative group">
-                  <div className="absolute -inset-1 bg-gradient-to-r from-primary/10 to-primary/30 rounded-[2.5rem] blur opacity-25 group-focus-within:opacity-50 transition duration-1000 group-focus-within:duration-200"></div>
-                  <input
-                    type="password"
-                    maxLength={8}
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                    className="relative w-full bg-white/60 backdrop-blur-md border-2 border-primary/10 rounded-[2rem] py-8 px-4 text-center text-3xl md:text-4xl tracking-[0.6em] md:tracking-[0.8em] font-mono text-primary placeholder:text-primary/10 focus:ring-4 focus:ring-primary/10 focus:border-primary/40 transition-all duration-300 outline-none shadow-inner"
-                    placeholder="••••••••"
-                    autoFocus
-                  />
+      <main className="relative z-10 flex-1 flex flex-col justify-center max-w-md w-full mx-auto px-4 sm:px-6 py-10 sm:py-16 text-center animate-view-enter">
+        <div
+          aria-hidden="true"
+          style={{
+            animation: 'silkAuroraBreath 14s ease-in-out infinite',
+            background:
+              'radial-gradient(circle at 50% 50%, rgba(208,128,128,0.22), transparent 68%)',
+          }}
+          className="pointer-events-none absolute inset-0 blur-2xl"
+        />
+
+        <div
+          key={`vault-step-${step}`}
+          className={`relative z-10 rounded-3xl border p-6 sm:p-10 animate-view-enter ${theme.elevatedCard}`}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              if (step === 2) {
+                setStep(1)
+                setError('')
+              } else {
+                router.push('/')
+              }
+            }}
+            className={`inline-flex items-center justify-center gap-2 text-xs font-medium ${theme.textSubtle} hover:text-[#D08080] mb-6 cursor-pointer`}
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>{step === 2 ? 'Kembali ke Tahap 1' : 'Kembali ke Beranda'}</span>
+          </button>
+
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-[#D08080]/15 border border-[#D08080]/30 flex items-center justify-center text-[#D08080] shadow-[0_8px_20px_-6px_rgba(208,128,128,0.35)]">
+            <Lock className="w-5 h-5" />
+          </div>
+
+          <span className={`mt-5 inline-block px-3 py-1 rounded-full bg-[#D08080]/12 text-xs font-medium ${theme.roseLabel}`}>
+            {step === 1 ? 'Tahap 1 • Kode Keamanan Vault' : 'Tahap 2 • Kredensial Dokter & Staf'}
+          </span>
+
+          <h1 className="mt-3 text-2xl sm:text-3xl font-semibold tracking-tight">
+            {step === 1 ? 'Akses Admin Terbatas' : 'Selamat Datang'}
+          </h1>
+
+          <p className={`mt-2 text-xs sm:text-sm leading-relaxed ${theme.textMuted}`}>
+            {step === 1
+              ? 'Masukkan 8 digit kode vault untuk membuka gerbang klinis.'
+              : 'Silakan masuk menggunakan akun staf klinik dan pilih operator aktif.'}
+          </p>
+
+          {step === 1 ? (
+            <form onSubmit={handleVaultSubmit} className="mt-7 space-y-4">
+              <input
+                type="password"
+                inputMode="numeric"
+                maxLength={8}
+                value={vaultCode}
+                onChange={(e) => {
+                  setVaultCode(e.target.value.replace(/\D/g, ''))
+                  setError('')
+                }}
+                placeholder="• • • • • • • •"
+                aria-label="Kode vault"
+                className={`w-full px-5 py-4 rounded-2xl border text-center text-xl font-semibold tracking-[0.35em] shadow-[inset_0_2px_6px_rgba(139,79,79,0.08)] focus:outline-none focus:border-[#D08080] ${theme.inputBg}`}
+              />
+              {error && (
+                <p role="alert" className="text-xs text-[#D08080] font-medium">
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading || vaultCode.length !== 8}
+                style={{
+                  background:
+                    'linear-gradient(135deg, #DC9696 0%, #D08080 55%, #8B4F4F 100%)',
+                }}
+                className="w-full py-4 rounded-full text-white text-sm font-medium shadow-[0_14px_34px_-10px_rgba(139,79,79,0.45)] hover:-translate-y-0.5 hover:opacity-95 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 inline-flex items-center justify-center gap-2"
+              >
+                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                <span>Buka Gerbang Vault</span>
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleCredentialSubmit} className="mt-7 space-y-4 text-left">
+              <div>
+                <span className="block text-xs font-medium mb-2">Operator Aktif</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {OPERATORS.map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => setOperator(item)}
+                      className={`inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-2xl border text-xs font-medium transition-all cursor-pointer ${
+                        operator === item
+                          ? 'bg-[#D08080]/15 border-[#D08080] text-[#D08080]'
+                          : theme.pillSurface
+                      }`}
+                    >
+                      <UserCheck className="w-3.5 h-3.5" />
+                      <span className="truncate">{item}</span>
+                    </button>
+                  ))}
                 </div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="group relative w-full overflow-hidden rounded-[2rem] py-7 font-headline font-bold transition-all duration-500 active:scale-[0.98] shadow-lg shadow-primary/20 disabled:opacity-70"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#DCA1A1] via-[#E8BDBD] to-[#DCA1A1] bg-[length:200%_100%] animate-[gradient_3s_linear_infinite] group-hover:bg-right transition-all duration-500"></div>
-                  <span className="relative text-white tracking-widest text-xl uppercase">
-                    {loading ? 'Memproses...' : 'BUKA'}
-                  </span>
-                </button>
-              </form>
-            </div>
+              </div>
+
+              <div>
+                <label htmlFor="admin-username" className="block text-xs font-medium mb-1">
+                  Username Akun
+                </label>
+                <input
+                  id="admin-username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="admin"
+                  autoComplete="username"
+                  className={`w-full px-4 py-3.5 rounded-2xl border text-sm focus:outline-none focus:border-[#D08080] ${theme.inputBg}`}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="admin-password" className="block text-xs font-medium mb-1">
+                  Password
+                </label>
+                <input
+                  id="admin-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••"
+                  autoComplete="current-password"
+                  className={`w-full px-4 py-3.5 rounded-2xl border text-sm focus:outline-none focus:border-[#D08080] ${theme.inputBg}`}
+                />
+              </div>
+
+              {error && (
+                <p role="alert" className="text-xs text-[#D08080] font-medium">
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading || !username.trim() || password.length < 6}
+                style={{
+                  background:
+                    'linear-gradient(135deg, #DC9696 0%, #D08080 55%, #8B4F4F 100%)',
+                }}
+                className="w-full py-4 rounded-full text-white text-sm font-medium shadow-[0_14px_34px_-10px_rgba(139,79,79,0.45)] hover:-translate-y-0.5 hover:opacity-95 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 inline-flex items-center justify-center gap-2"
+              >
+                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                <span>Masuk Dashboard</span>
+              </button>
+            </form>
+          )}
+
+          <div className={`mt-6 pt-5 border-t ${theme.hairline}`}>
+            <Link
+              href="/patient/login"
+              className={`text-[11px] font-medium ${theme.textSubtle} hover:text-[#D08080]`}
+            >
+              Saya pasien — masuk dengan kode antrean
+            </Link>
           </div>
         </div>
       </main>

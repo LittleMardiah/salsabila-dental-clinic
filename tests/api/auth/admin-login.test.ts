@@ -31,7 +31,7 @@ describe('Admin Login Lapis 2 (TC-03, TC-04, TC-05)', () => {
     const res = await request(baseUrl)
       .post('/api/auth/admin/login')
       .set('Cookie', verifiedCookie)
-      .send({ username: 'admin', password: 'Salsa_1234' })
+      .send({ username: 'admin', password: 'Meiharti_2490' })
     
     expect(res.status).toBe(200)
     expect(res.body.success).toBe(true)
@@ -54,7 +54,7 @@ describe('Admin Login Lapis 2 (TC-03, TC-04, TC-05)', () => {
   test('TC-04: Login tanpa cookie admin_code_verified', async () => {
     const res = await request(baseUrl)
       .post('/api/auth/admin/login')
-      .send({ username: 'admin', password: 'Salsa_1234' })
+      .send({ username: 'admin', password: 'Meiharti_2490' })
     
     expect(res.status).toBe(403)
     expect(res.body.error).toMatch(/verification code required/i)
@@ -74,7 +74,7 @@ describe('Admin Login Lapis 2 (TC-03, TC-04, TC-05)', () => {
     const res = await request(baseUrl)
       .post('/api/auth/admin/login')
       .set('Cookie', verifiedCookie)
-      .send({ username: 'wronguser', password: 'Salsa_1234' })
+      .send({ username: 'wronguser', password: 'Meiharti_2490' })
     
     expect(res.status).toBe(401)
     expect(res.body.error).toMatch(/invalid username or password/i)

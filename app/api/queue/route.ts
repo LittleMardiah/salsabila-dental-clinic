@@ -5,7 +5,8 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/ServerAuth'
 import { addAuditLog } from '@/lib/services/audit.service'
-import { generateQueueNumber, generatePatientCode } from '@/lib/utils/QueueUtils' 
+import { generateQueueNumber, generatePatientCode } from '@/lib/utils/QueueUtils'
+import { addDays, clinicDateOnly, dateOnlyFromInput } from '@/lib/clinic-date'
 
 // Schema validasi untuk request body POST
 const addPatientSchema = z.object({
@@ -128,9 +129,8 @@ export async function POST(request: Request) {
 
   const { name, phone, email, keluhan, mode } = parsed.data
 
-  // Tentukan tanggal hari ini (tanpa jam)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  // Tanggal klinik (Asia/Jakarta), disimpan sebagai UTC midnight untuk kolom DATE.
+  const today = clinicDateOnly()
 
   // Hitung nomor antrian terbaru untuk hari ini
   const queueNumber = await generateQueueNumber(today)
@@ -250,17 +250,15 @@ export async function GET(request: NextRequest) {
   // Tentukan tanggal filter (default hari ini)
   let filterDate: Date
   if (date) {
-    filterDate = new Date(date)
+    filterDate = dateOnlyFromInput(date)
     if (isNaN(filterDate.getTime())) {
       return NextResponse.json(
         { success: false, error: 'Tanggal tidak valid' },
         { status: 400 }
       )
     }
-    filterDate.setHours(0, 0, 0, 0)
   } else {
-    filterDate = new Date()
-    filterDate.setHours(0, 0, 0, 0)
+    filterDate = clinicDateOnly()
   }
 
   // Bangun where clause
@@ -275,7 +273,7 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         patient: {
-          select: { name: true, phone: true, email: true },
+          select: { id: true, name: true, phone: true, email: true, keluhan: true },
         },
       },
       orderBy: { queueNumber: 'asc' },
@@ -286,8 +284,11 @@ export async function GET(request: NextRequest) {
     const formattedQueues = queues.map((q:any) => ({
       id: q.id,
       queueNumber: q.queueNumber,
+      patientId: q.patientId,
       patientName: q.patient.name,
       phone: q.patient.phone,
+      email: q.patient.email,
+      keluhan: q.patient.keluhan,
       status: q.status,
       patientCode: q.patientCode,
       createdAt: q.createdAt,

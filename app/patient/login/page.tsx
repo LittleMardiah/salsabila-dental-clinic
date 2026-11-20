@@ -1,16 +1,32 @@
 'use client'
 
 import { useState } from 'react'
-import { Loader2, Lock, Shield } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import {
+  useDarkMode,
+  SanctuaryBrand,
+  ThemeToggle,
+} from '@/components/ui/sanctuary'
 
 export default function PatientLogin() {
+  const router = useRouter()
+  const { theme } = useDarkMode()
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const cleaned = code.trim().toUpperCase().replace(/\s+/g, '')
+
+    if (cleaned.length !== 6) {
+      setError('Masukkan 6 karakter kode token dari klinik.')
+      return
+    }
+
     setLoading(true)
     setError('')
 
@@ -18,93 +34,129 @@ export default function PatientLogin() {
       const res = await fetch('/api/auth/patient/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code })
+        body: JSON.stringify({ code: cleaned }),
       })
+      const data = await res.json().catch(() => ({}))
 
-      const data = await res.json()
       if (!res.ok) {
-        setError(data.error || 'Login gagal')
-        toast.error(data.error || 'Login gagal')
+        const message =
+          data.error === 'Invalid or expired code'
+            ? 'Kode tidak ditemukan atau sudah kedaluwarsa. Hubungi resepsionis klinik.'
+            : data.error || 'Kode antrean tidak valid.'
+        setError(message)
+        toast.error(message)
         return
       }
 
-      toast.success('Login berhasil, mengarahkan...')
-      window.location.href = '/patient/queue'
-    } catch (err) {
-      setError('Terjadi kesalahan, coba lagi')
-      toast.error('Terjadi kesalahan')
+      toast.success('Kode terverifikasi. Membuka papan antrean...')
+      router.push('/patient/queue')
+    } catch {
+      setError('Terjadi kesalahan jaringan. Silakan coba lagi.')
+      toast.error('Terjadi kesalahan jaringan')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-[#fff8f7] flex flex-col items-center">
-      {/* TopNavBar */}
-      <nav className="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-md shadow-sm h-20">
-        <div className="flex justify-between items-center w-full px-8 h-full max-w-7xl mx-auto">
-          <div className="text-2xl font-bold tracking-tight text-[#dca1a1] font-['Poppins',sans-serif]">
-            Salsa Dental
-          </div>
+    <div
+      className={`min-h-screen w-full max-w-full ${theme.bg} ${theme.text} font-sans-clean relative overflow-x-hidden transition-colors duration-700 flex flex-col`}
+    >
+      <header className="relative z-30 w-full shrink-0">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-2 sm:gap-4 min-w-0">
+          <SanctuaryBrand href="/" />
+          <ThemeToggle theme={theme} />
         </div>
-      </nav>
+      </header>
 
-      <main className="flex-grow flex items-center justify-center w-full px-6 pt-24 pb-24">
-        <div className="w-full max-w-lg text-center space-y-12">
-          {/* Lock Icon */}
-          <div className="relative inline-block">
-            <div className="w-36 h-36 bg-[#FEECEC] rounded-full flex items-center justify-center mx-auto mb-4">
-              <Lock className="w-12 h-12 text-[#815152]" strokeWidth={1.5} />
+      <main className="relative z-10 flex-1 flex flex-col justify-center max-w-xl w-full mx-auto px-4 sm:px-6 py-10 sm:py-16 text-center animate-view-enter">
+        <div
+          aria-hidden="true"
+          style={{
+            animation: 'silkAuroraBreath 14s ease-in-out infinite',
+            background:
+              'radial-gradient(circle at 50% 50%, rgba(208,128,128,0.24), transparent 68%)',
+          }}
+          className="pointer-events-none absolute inset-0 blur-2xl"
+        />
+
+        <div
+          className={`relative z-10 rounded-3xl border p-6 sm:p-10 md:p-12 transition-all duration-300 hover:-translate-y-0.5 ${theme.elevatedCard}`}
+        >
+          <Link
+            href="/"
+            className={`inline-flex items-center justify-center gap-2 text-xs font-medium ${theme.textSubtle} hover:text-[#D08080] mb-6 sm:mb-7 cursor-pointer`}
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Kembali ke Beranda</span>
+          </Link>
+
+          <span
+            className={`inline-block px-3.5 py-1 rounded-full bg-[#D08080]/15 text-xs font-medium ${theme.roseLabel}`}
+          >
+            Portal Antrian Pasien
+          </span>
+
+          <h1 className="mt-4 text-2xl sm:text-4xl font-semibold tracking-tight">
+            Masukkan <span className={theme.roseAccent}>Kode Antrian</span>
+          </h1>
+
+          <p className={`mt-2.5 text-xs sm:text-sm font-normal leading-relaxed ${theme.textMuted}`}>
+            Gunakan 6 karakter token yang Anda terima dari staf klinik saat pendaftaran.
+          </p>
+
+          <form onSubmit={handleSubmit} className="mt-7 sm:mt-8 space-y-6">
+            <input
+              type="text"
+              inputMode="text"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={code}
+              onChange={(e) => {
+                setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))
+                setError('')
+              }}
+              placeholder="E4ZEQW"
+              aria-label="Kode antrean 6 karakter"
+              className={`w-full px-4 sm:px-6 py-4 rounded-2xl border text-center text-2xl sm:text-3xl font-semibold tracking-[0.3em] uppercase shadow-[inset_0_2px_6px_rgba(139,79,79,0.08)] focus:outline-none focus:border-[#D08080] transition-all ${theme.inputBg}`}
+            />
+
+            {error && (
+              <p role="alert" className="text-xs text-[#D08080] font-medium">
+                {error}
+              </p>
+            )}
+
+            <div className={`text-xs leading-relaxed ${theme.textSubtle}`}>
+              Belum menerima kode? Hubungi resepsionis klinik.
             </div>
-          </div>
 
-          {/* Typography Header */}
-          <div className="space-y-4">
-            <h1 className="font-['Poppins',sans-serif] text-4xl md:text-5xl font-bold text-[#1e1b1b] tracking-tight">
-              Masukkan Kode Antrian
-            </h1>
-            <p className="text-[#514443] font-medium text-lg max-w-sm mx-auto leading-relaxed">
-              Gunakan 6 digit yang Anda terima dari klinik saat melakukan pendaftaran
-            </p>
-          </div>
-
-          {/* Input Section */}
-          <form onSubmit={handleSubmit} className="space-y-8">
-            <div className="relative group">
-              <input
-                type="text"
-                maxLength={6}
-                value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
-                placeholder="A1B2C3"
-                className="w-full px-8 py-8 rounded-3xl bg-[#f9f2f2] border-none text-center text-3xl font-bold text-[#815152] placeholder:text-[#d5c2c1]/40 focus:ring-2 focus:ring-[#dca1a1] focus:bg-white transition-all duration-300 shadow-sm outline-none tracking-[8px]"
-                required
-              />
-            </div>
-            {error && <p className="text-sm text-red-500 text-center">{error}</p>}
             <button
               type="submit"
-              disabled={loading}
-              className="w-full py-7 rounded-full bg-gradient-to-r from-[#dca1a1] to-[#815152] text-white font-['Poppins',sans-serif] font-bold text-xl tracking-widest hover:brightness-105 active:scale-95 transition-all duration-300 shadow-[0_8px_24px_-4px_rgba(129,81,82,0.2)] disabled:opacity-70 disabled:cursor-not-allowed"
+              disabled={loading || code.length !== 6}
+              style={{
+                background:
+                  'linear-gradient(135deg, #DC9696 0%, #D08080 55%, #8B4F4F 100%)',
+              }}
+              className="w-full py-4 rounded-full text-white text-sm font-medium inline-flex items-center justify-center gap-2.5 shadow-[0_14px_34px_-10px_rgba(139,79,79,0.45)] hover:-translate-y-0.5 hover:opacity-95 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
             >
               {loading ? (
-                <Loader2 className="inline mr-2 h-5 w-5 animate-spin" />
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Memverifikasi...</span>
+                </>
               ) : (
-                'MASUK SEKARANG'
+                <>
+                  <span>Masuk Sekarang</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
               )}
             </button>
           </form>
 
-          {/* Security Notice */}
-          <div className="flex items-center justify-center gap-4 pt-12">
-            <div className="h-[1px] w-12 bg-[#d5c2c1]/30"></div>
-            <div className="flex items-center gap-2 px-8 py-3 bg-[#e8e1e1]/30 rounded-full border border-[#d5c2c1]/10">
-              <Shield className="w-4 h-4 text-[#815152]" />
-              <span className="text-xs font-bold text-[#514443] uppercase tracking-[0.15em]">
-                Akses Terenkripsi & Dicatat
-              </span>
-            </div>
-            <div className="h-[1px] w-12 bg-[#d5c2c1]/30"></div>
+          <div className={`mt-7 pt-5 border-t ${theme.hairline} flex items-center justify-center gap-2 text-[10px] font-mono-tech uppercase tracking-[0.16em] ${theme.textSubtle}`}>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            Akses terenkripsi &amp; dicatat
           </div>
         </div>
       </main>

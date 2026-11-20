@@ -1,151 +1,312 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { toast } from 'sonner'
+import { Lock, Plus } from 'lucide-react'
+import {
+  FAQ_ITEMS,
+} from '@/lib/ui-theme'
+import {
+  useDarkMode,
+  SanctuaryBrand,
+  SanctuaryShimmerSpan,
+  SmoothFaqBody,
+  MagneticSanctuaryButton,
+  ThemeToggle,
+  WhatsAppHelpFab,
+} from '@/components/ui/sanctuary'
+
+type PublicStatus = {
+  servingNumber: string | null
+  waitingCount: number
+  totalToday: number
+}
 
 export default function Home() {
-  // Hidden trigger untuk admin (klik FAQ 5x dalam 3 detik) -> redirect ke /admin/login
-  const clickCountRef = useRef(0)
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-
-  const handleFaqClick = () => {
-    clickCountRef.current += 1
-
-    if (timeoutRef.current) clearTimeout(timeoutRef.current)
-    timeoutRef.current = setTimeout(() => {
-      clickCountRef.current = 0
-    }, 3000)
-
-    if (clickCountRef.current === 5) {
-      clickCountRef.current = 0
-      toast.success('Akses admin dibuka')
-      window.location.href = '/admin/login'
-    }
-  }
+  const router = useRouter()
+  const { darkMode, theme } = useDarkMode()
+  const [clinicOpen, setClinicOpen] = useState(true)
+  const [openFaqNum, setOpenFaqNum] = useState<string | null>('01')
+  const [silkOffset, setSilkOffset] = useState({ x: 0, y: 0 })
+  const [waOpen, setWaOpen] = useState(false)
+  const [status, setStatus] = useState<PublicStatus>({
+    servingNumber: null,
+    waitingCount: 0,
+    totalToday: 0,
+  })
+  const [statusLoaded, setStatusLoaded] = useState(false)
 
   useEffect(() => {
-    const element = document.getElementById('faq-trigger')
-    if (element) {
-      element.addEventListener('click', handleFaqClick)
-      return () => element.removeEventListener('click', handleFaqClick)
+    let active = true
+
+    const loadStatus = async () => {
+      try {
+        const res = await fetch('/api/queue/public', { cache: 'no-store' })
+        if (!res.ok) return
+        const data = await res.json()
+        if (active && data.success) {
+          setStatus({
+            servingNumber: data.servingNumber,
+            waitingCount: data.waitingCount || 0,
+            totalToday: data.totalToday || 0,
+          })
+        }
+      } catch {
+        // Keep the last known status; the landing page stays usable offline.
+      } finally {
+        if (active) setStatusLoaded(true)
+      }
+    }
+
+    loadStatus()
+    const interval = setInterval(loadStatus, 15000)
+    return () => {
+      active = false
+      clearInterval(interval)
     }
   }, [])
 
   return (
-    <div className="bg-background text-on-background selection:bg-primary-container selection:text-on-primary-container relative flex flex-col min-h-screen overflow-x-hidden">
-      {/* Ambient Background Glows */}
-      <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-primary/15 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-[-20%] left-[-10%] w-[800px] h-[800px] bg-tertiary/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-      </div>
+    <div
+      className={`min-h-screen w-full max-w-full ${theme.bg} ${theme.text} font-sans-clean relative overflow-x-hidden transition-colors duration-700 selection:bg-[#D08080]/25 flex flex-col`}
+    >
+      {/* Subtle tactile paper grain */}
+      <div
+        aria-hidden="true"
+        style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.032'/%3E%3C/svg%3E\")",
+        }}
+        className="pointer-events-none fixed inset-0 z-0"
+      />
 
-      {/* TopNavBar */}
-      <nav className="fixed top-0 w-full z-50 glass-card border-b-0">
-        <div className="flex justify-between items-center w-full px-8 h-24 max-w-7xl mx-auto">
-          <div className="text-2xl font-extrabold tracking-tight text-primary">Salsa Dental</div>
-        </div>
-      </nav>
+      <header className="relative z-30 w-full shrink-0">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-2 sm:gap-4 min-w-0">
+          <SanctuaryBrand href="/" />
 
-      <main className="pt-24 flex-grow flex items-center justify-center">
-        <div className="perspective-container p-8 w-full max-w-2xl flex flex-col items-center justify-center text-center">
-          <Link href="/patient/login" className="block w-full max-w-lg">
-            <button className="bg-gradient-to-r from-[#dca1a1] to-[#815152] text-white px-16 py-8 rounded-full font-extrabold text-3xl shadow-3d-floating transition-all hover:-translate-y-2 hover:scale-105 active:translate-y-0 relative overflow-hidden group w-full">
-              <span className="relative z-10">Ambil Antrian Sekarang</span>
-              <span className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-[-20deg]"></span>
-            </button>
-          </Link>
+          <div className="flex items-center justify-end gap-1.5 sm:gap-2.5 shrink-0">
+            <ThemeToggle theme={theme} />
+            <Link
+              href="/admin/login"
+              className={`inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border text-[11px] sm:text-xs font-normal tracking-[0.02em] transition-all duration-300 hover:border-[#D08080] cursor-pointer shrink-0 whitespace-nowrap ${theme.pillSurface}`}
+            >
+              <Lock className="w-3.5 h-3.5 text-[#D08080] shrink-0" />
+              <span>Admin</span>
+            </Link>
+          </div>
         </div>
+      </header>
+
+      <main className="relative z-10 flex-1 flex flex-col">
+        {/* HERO */}
+        <section
+          onMouseMove={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect()
+            const nx = (e.clientX - rect.left) / rect.width - 0.5
+            const ny = (e.clientY - rect.top) / rect.height - 0.5
+            setSilkOffset({ x: nx * 24, y: ny * 18 })
+          }}
+          className="relative pt-10 sm:pt-16 lg:pt-20 pb-16 sm:pb-24 lg:pb-28 text-center"
+        >
+          <div
+            aria-hidden="true"
+            style={{ transform: `translate3d(${silkOffset.x}px, ${silkOffset.y}px, 0)` }}
+            className="pointer-events-none absolute inset-0 overflow-hidden transition-transform duration-700 ease-out"
+          >
+            <div
+              style={{
+                animation: 'silkAuroraBreath 16s ease-in-out infinite',
+                background: darkMode
+                  ? 'radial-gradient(ellipse 52% 46% at 50% 45%, rgba(208,128,128,0.25), rgba(139,79,79,0.08) 56%, transparent 78%)'
+                  : 'radial-gradient(ellipse 52% 46% at 50% 45%, rgba(243,222,222,0.95), rgba(208,128,128,0.22) 54%, transparent 78%)',
+              }}
+              className="absolute -inset-16 blur-2xl"
+            />
+          </div>
+
+          <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="inline-flex items-center gap-2.5 sm:gap-3">
+              <span className="w-5 sm:w-6 h-[1px] bg-[#D08080]/70" />
+              <span className={`font-mono-tech text-[10px] sm:text-[11px] uppercase tracking-[0.22em] ${theme.roseLabel}`}>
+                01 / SALSABILA DENTAL CLINIC
+              </span>
+              <span className="w-5 sm:w-6 h-[1px] bg-[#D08080]/70" />
+            </div>
+
+            <h1 className="mt-6 sm:mt-7 font-editorial text-4xl sm:text-6xl md:text-7xl lg:text-[82px] font-normal leading-[1.05] tracking-[-0.02em]">
+              The <SanctuaryShimmerSpan darkMode={darkMode}>Clinical Sanctuary</SanctuaryShimmerSpan>{' '}
+              Experience.
+            </h1>
+
+            <p className={`mt-5 sm:mt-7 max-w-xl mx-auto text-xs sm:text-sm md:text-base font-light leading-[1.85] ${theme.textMuted}`}>
+              Standar baru perawatan gigi profesional dalam ketenangan ruang galeri—memadukan
+              presisi klinis drg. Salsabila dengan suasana lembut bernuansa Dusty Rose.
+            </p>
+
+            <div className="mt-9 sm:mt-11 flex justify-center">
+              <MagneticSanctuaryButton
+                darkMode={darkMode}
+                onClick={() => router.push('/patient/login')}
+              >
+                Ambil Antrian Sekarang
+              </MagneticSanctuaryButton>
+            </div>
+          </div>
+        </section>
+
+        {/* LIVE CLINIC STATUS — hairline strip, NO wait-time estimate */}
+        <section className={`border-y ${theme.hairline}`}>
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-7 sm:py-10">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
+              <div className="lg:col-span-4 flex items-center justify-between lg:justify-start gap-4">
+                <div className="flex items-center gap-3.5">
+                  <span className="relative flex h-2.5 w-2.5 shrink-0">
+                    {clinicOpen && (
+                      <span
+                        style={{ animation: 'pulseBeaconRing 2.4s infinite' }}
+                        className="absolute inline-flex h-full w-full rounded-full bg-emerald-500"
+                      />
+                    )}
+                    <span
+                      className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
+                        clinicOpen ? 'bg-emerald-500' : 'bg-[#D08080]'
+                      }`}
+                    />
+                  </span>
+                  <div>
+                    <span className={`block font-mono-tech text-[10px] uppercase tracking-[0.2em] ${theme.textSubtle}`}>
+                      STATUS KLINIK HARI INI
+                    </span>
+                    <span className="mt-0.5 block text-sm sm:text-base font-medium transition-colors duration-300">
+                      {clinicOpen ? 'Klinik Buka' : 'Klinik Tutup'}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setClinicOpen((prev) => !prev)}
+                  className={`font-mono-tech text-[10px] uppercase tracking-[0.16em] ${theme.textSubtle} hover:text-[#D08080] underline decoration-[#D08080]/50 underline-offset-4 cursor-pointer shrink-0`}
+                >
+                  {clinicOpen ? 'Simulasi Tutup' : 'Simulasi Buka'}
+                </button>
+              </div>
+
+              <div
+                className={`lg:col-span-8 pt-6 lg:pt-0 border-t lg:border-t-0 lg:border-l ${theme.hairline} lg:pl-10 grid grid-cols-3 gap-3 sm:gap-8`}
+              >
+                <div className="group transition-transform duration-300 hover:-translate-y-0.5 min-w-0">
+                  <span className="inline-flex items-center gap-1.5 font-mono-tech text-[9px] sm:text-[10px] uppercase tracking-[0.16em] text-[#D08080]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#D08080] animate-pulse shrink-0" />
+                    <span>SEDANG DILAYANI</span>
+                  </span>
+                  <div className={`mt-1.5 font-editorial italic text-2xl sm:text-4xl lg:text-5xl leading-none tabular-nums transition-all duration-300 ${theme.roseAccent}`}>
+                    {clinicOpen && status.servingNumber ? status.servingNumber : '—'}
+                  </div>
+                </div>
+
+                <div className="group transition-transform duration-300 hover:-translate-y-0.5 min-w-0">
+                  <span className={`block font-mono-tech text-[9px] sm:text-[10px] uppercase tracking-[0.16em] ${theme.textSubtle}`}>
+                    ANTREAN MENUNGGU
+                  </span>
+                  <div className="mt-1.5 font-editorial italic text-2xl sm:text-4xl lg:text-5xl leading-none tabular-nums transition-all duration-300">
+                    {clinicOpen ? String(status.waitingCount).padStart(2, '0') : '00'}
+                  </div>
+                </div>
+
+                <div className="group transition-transform duration-300 hover:-translate-y-0.5 min-w-0">
+                  <span className={`block font-mono-tech text-[9px] sm:text-[10px] uppercase tracking-[0.16em] ${theme.textSubtle}`}>
+                    TOTAL HARI INI
+                  </span>
+                  <div className="mt-1.5 font-editorial italic text-2xl sm:text-4xl lg:text-5xl leading-none tabular-nums transition-all duration-300">
+                    {clinicOpen ? String(status.totalToday).padStart(2, '0') : '00'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {statusLoaded && (
+              <p className={`mt-5 lg:mt-4 text-[10px] font-mono-tech uppercase tracking-[0.14em] ${theme.textSubtle}`}>
+                Diperbarui otomatis dari papan antrean klinik
+              </p>
+            )}
+          </div>
+        </section>
+
+        {/* FAQ */}
+        <section className="max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 lg:py-28">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-start">
+            <div className="lg:col-span-4 lg:sticky lg:top-12 space-y-4">
+              <div className="inline-flex items-center gap-3">
+                <span className="w-6 h-[1px] bg-[#D08080]/70" />
+                <span className={`font-mono-tech text-[11px] uppercase tracking-[0.22em] ${theme.roseLabel}`}>
+                  02 / PERTANYAAN UMUM
+                </span>
+              </div>
+              <h2 className="font-editorial text-3xl sm:text-4xl font-normal leading-[1.15]">
+                Informasi <SanctuaryShimmerSpan darkMode={darkMode}>Kunjungan</SanctuaryShimmerSpan>{' '}
+                Pasien.
+              </h2>
+              <p className={`text-xs sm:text-sm font-light leading-[1.8] ${theme.textMuted}`}>
+                Semua yang perlu Anda ketahui mengenai alur kode antrean dan kenyamanan
+                perawatan di klinik.
+              </p>
+            </div>
+
+            <div className={`lg:col-span-8 border-t ${theme.hairline} divide-y ${theme.divideHairline}`}>
+              {FAQ_ITEMS.map((item) => {
+                const isOpen = openFaqNum === item.num
+                return (
+                  <div key={item.num} className="py-5 sm:py-7">
+                    <button
+                      type="button"
+                      onClick={() => setOpenFaqNum(isOpen ? null : item.num)}
+                      aria-expanded={isOpen}
+                      className="w-full flex items-start justify-between gap-4 sm:gap-6 text-left group cursor-pointer"
+                    >
+                      <div className="flex items-baseline gap-4 sm:gap-7 min-w-0">
+                        <span
+                          className={`font-mono-tech text-xs transition-colors duration-300 shrink-0 ${
+                            isOpen ? 'text-[#D08080]' : theme.roseLabel
+                          }`}
+                        >
+                          {item.num}
+                        </span>
+                        <span className="text-sm sm:text-base md:text-lg font-normal leading-snug group-hover:text-[#D08080] transition-colors duration-300">
+                          {item.question}
+                        </span>
+                      </div>
+                      <Plus
+                        className={`w-4 h-4 mt-1.5 shrink-0 text-[#D08080] transition-transform duration-300 ease-out ${
+                          isOpen ? 'rotate-45' : ''
+                        }`}
+                      />
+                    </button>
+
+                    <SmoothFaqBody isOpen={isOpen} textClass={theme.textMuted}>
+                      {item.answer}
+                    </SmoothFaqBody>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </section>
+
+        <footer className={`mt-auto border-t ${theme.hairline}`}>
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-7 sm:py-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-light">
+            <div className={theme.textSubtle}>
+              © 2026 Salsabila Dental Clinic. The Clinical Sanctuary Experience.
+            </div>
+            <div className={`font-mono-tech text-[10px] uppercase tracking-[0.2em] ${theme.textSubtle}`}>
+              ARCHITECTURAL HAIRLINE FOLIO
+            </div>
+          </div>
+        </footer>
       </main>
 
-      {/* Footer */}
-      <footer className="glass-card bg-surface/50 border-t border-white w-full py-20 px-8 mt-auto backdrop-blur-2xl">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-16 max-w-7xl mx-auto">
-          <div className="md:col-span-5 space-y-8">
-            <div className="text-3xl font-extrabold text-primary">Salsa Dental Clinic</div>
-            <p className="text-on-surface-variant text-lg font-medium leading-relaxed pr-8">
-              The Clinical Sanctuary Experience. Memberikan standar kenyamanan baru dalam perawatan gigi profesional.
-            </p>
-            <div className="flex gap-4">
-              <a href="#" className="w-12 h-12 rounded-full glass-card bg-surface flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors shadow-sm">
-                <span className="material-symbols-outlined text-xl">public</span>
-              </a>
-              <a href="#" className="w-12 h-12 rounded-full glass-card bg-surface flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors shadow-sm">
-                <span className="material-symbols-outlined text-xl">share</span>
-              </a>
-            </div>
-          </div>
-          <div className="md:col-span-3 space-y-8">
-            <h4 className="font-extrabold text-xl text-on-surface">Quick Links</h4>
-            <ul className="space-y-5">
-              <li>
-                {/* Hidden trigger: teks "FAQ" yang bisa diklik 5 kali */}
-                <button
-                  id="faq-trigger"
-                  className="text-on-surface-variant font-medium hover:text-primary transition-colors text-lg"
-                >
-                  FAQ
-                </button>
-              </li>
-              <li><a href="#" className="text-on-surface-variant font-medium hover:text-primary transition-colors text-lg">Our Services</a></li>
-              <li><a href="#" className="text-on-surface-variant font-medium hover:text-primary transition-colors text-lg">Privacy Policy</a></li>
-            </ul>
-          </div>
-          <div className="md:col-span-4 space-y-8">
-            <h4 className="font-extrabold text-xl text-on-surface">Newsletter</h4>
-            <p className="text-on-surface-variant font-medium text-lg">Dapatkan tips kesehatan gigi dan promo menarik setiap bulan.</p>
-            <div className="flex gap-3 glass-card p-2 rounded-full bg-surface border-white shadow-sm">
-              <input
-                className="bg-transparent border-none px-6 py-3 w-full focus:ring-0 text-on-surface font-medium placeholder-on-surface-variant/50"
-                placeholder="Email Anda"
-                type="email"
-              />
-              <button className="bg-primary text-white rounded-full px-8 py-3 font-bold hover:shadow-lg transition-shadow">
-                Kirim
-              </button>
-            </div>
-          </div>
-        </div>
-        <div className="max-w-7xl mx-auto mt-20 pt-8 border-t border-primary/10 flex flex-col md:flex-row justify-between items-center gap-6">
-          <p className="text-on-surface-variant font-medium text-base">© 2026 Salsa Dental Clinic. The Clinical Sanctuary Experience.</p>
-          <div className="flex gap-8 text-base font-medium text-on-surface-variant">
-            <a href="#" className="hover:text-primary transition-colors">Terms</a>
-            <a href="#" className="hover:text-primary transition-colors">Cookie Policy</a>
-          </div>
-        </div>
-      </footer>
-
-      {/* FAB WhatsApp */}
-      <a href="#" className="fixed bottom-8 right-8 z-[100] group perspective-container">
-        <div className="flex items-center gap-3 bg-primary text-white px-8 py-5 rounded-full shadow-float backdrop-blur-md bg-opacity-90 border border-white/20 transition-transform hover:scale-105">
-          <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>chat</span>
-          <span className="font-bold text-lg hidden md:inline">Butuh Bantuan?</span>
-        </div>
-      </a>
-
-      {/* Style tambahan untuk animasi dan efek (jika tidak ada di tailwind config) */}
-      <style jsx>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
-        }
-        .animate-float {
-          animation: float 6s ease-in-out infinite;
-        }
-        .shadow-3d-floating {
-          box-shadow: 0 20px 40px -10px rgba(129, 81, 82, 0.15), 0 10px 20px -5px rgba(129, 81, 82, 0.1), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.02);
-        }
-        .glass-card {
-          background: rgba(255, 255, 255, 0.8);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-          border: 1px solid rgba(255, 255, 255, 0.9);
-          box-shadow: 0 10px 35px -5px rgba(129, 81, 82, 0.06);
-        }
-        .perspective-container {
-          perspective: 1000px;
-        }
-      `}</style>
+      <WhatsAppHelpFab theme={theme} open={waOpen} setOpen={setWaOpen} />
     </div>
   )
 }

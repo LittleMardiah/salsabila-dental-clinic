@@ -1,30 +1,12 @@
 import type { Metadata } from 'next';
-import { Inter, Poppins } from 'next/font/google';
-import { Rethink_Sans } from 'next/font/google';
-import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from '@/components/ui/sonner';
 import Providers from './providers';
 import './globals.css';
 
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-});
-
-const poppins = Poppins({
-  weight: ['400', '500', '600', '700'],
-  subsets: ['latin'],
-  variable: '--font-poppins',
-});
-
-const rethink = Rethink_Sans({
-  weight: ['400', '500', '600'],
-  subsets: ['latin'],
-  variable: '--font-rethink',
-});
-
 export const metadata: Metadata = {
   title: 'Salsabila Dental Clinic',
-  description: 'Aplikasi Manajemen Klinik Gigi',
+  description:
+    'Salsabila Dental Clinic — The Clinical Sanctuary Experience. Antrean, rekam medis, dan administrasi klinik gigi dalam satu tempat.',
 };
 
 export default function RootLayout({
@@ -33,17 +15,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className={`${inter.variable} ${poppins.variable} ${rethink.variable} h-full antialiased`}>
+    <html lang="id" suppressHydrationWarning className="h-full antialiased">
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
         <link
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
           rel="stylesheet"
         />
       </head>
       <body className="min-h-full flex flex-col">
-        <Providers>
-          {children}
-        </Providers>
+        <Providers>{children}</Providers>
         <Toaster richColors position="top-center" />
       </body>
     </html>

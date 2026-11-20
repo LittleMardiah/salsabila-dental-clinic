@@ -4,7 +4,8 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/ServerAuth'
 import { sendNotification } from '@/lib/services/WebpushService'
-import { addAuditLog } from '@/lib/services/audit.service' 
+import { addAuditLog } from '@/lib/services/audit.service'
+import { clinicDateOnly } from '@/lib/clinic-date'
 
 /**
  * @openapi
@@ -26,9 +27,6 @@ import { addAuditLog } from '@/lib/services/audit.service'
  */
 
 export async function POST(request: Request) {
-  const cookieHeader = request.headers.get('cookie') || ''
-  console.log('[CALL] Cookie header received:', cookieHeader)
-
   const authResult = await verifyAdminToken(request)
   if (!authResult.valid) {
     console.error('[CALL] Admin token invalid:', authResult.error)
@@ -41,11 +39,22 @@ export async function POST(request: Request) {
 
   console.log(`[CALL] Admin ${adminUsername} calling next queue`)
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const today = clinicDateOnly()
+
+  let requestedQueueId: number | null = null
+  try {
+    const body = await request.json()
+    if (body && Number.isInteger(Number(body.queueId))) {
+      requestedQueueId = Number(body.queueId)
+    }
+  } catch {
+    // No body: call the next waiting queue (legacy behaviour).
+  }
 
   const nextQueue = await prisma.queue.findFirst({
-    where: { date: today, status: 'WAITING' },
+    where: requestedQueueId
+      ? { date: today, status: 'WAITING', id: requestedQueueId }
+      : { date: today, status: 'WAITING' },
     orderBy: { queueNumber: 'asc' },
     include: { patient: true, webPushSubscription: true },
   })

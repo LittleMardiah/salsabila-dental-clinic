@@ -31,23 +31,25 @@ export async function GET(request: Request) {
   const code = url.searchParams.get('code')
   const error = url.searchParams.get('error')
   
-  const baseUrl = 'https://salsabila-dental-clinic.vercel.app'
-  const baseRedirect = `${baseUrl}/admin/settings`
+  const baseUrl =
+    process.env.NEXTAUTH_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    url.origin
+  const baseRedirect = `${baseUrl}/admin/dashboard?tab=pengaturan`
 
-  if (error) {
-    console.error('[OAuth Callback] Error dari Google:', error)
-    return NextResponse.redirect(`${baseRedirect}?error=oauth_failed`)
-  }
-  if (!code) {
-    console.error('[OAuth Callback] Tidak ada kode otorisasi')
-    return NextResponse.redirect(`${baseRedirect}?error=missing_code`)
-  }
-
-  // Verifikasi admin (ambil dari cookie)
   const auth = await verifyAdminToken(request)
   if (!auth.valid) {
     console.error('[OAuth Callback] Admin tidak terautentikasi')
-    return NextResponse.redirect(`${baseRedirect}?error=unauthorized`)
+    return NextResponse.redirect(`${baseRedirect}&error=unauthorized`)
+  }
+
+  if (error) {
+    console.error('[OAuth Callback] Error dari Google:', error)
+    return NextResponse.redirect(`${baseRedirect}&error=oauth_failed`)
+  }
+  if (!code) {
+    console.error('[OAuth Callback] Tidak ada kode otorisasi')
+    return NextResponse.redirect(`${baseRedirect}&error=missing_code`)
   }
 
   console.log('[OAuth Callback] Admin', auth.username, 'memulai pertukaran token')
@@ -69,7 +71,7 @@ export async function GET(request: Request) {
   
   if (tokens.error) {
     console.error('[OAuth Callback] Gagal tukar token:', tokens.error)
-    return NextResponse.redirect(`${baseRedirect}?error=token_exchange_failed`)
+    return NextResponse.redirect(`${baseRedirect}&error=token_exchange_failed`)
   }
 
   console.log('[OAuth Callback] Token berhasil diperoleh, menyimpan ke database')
@@ -92,5 +94,5 @@ export async function GET(request: Request) {
   })
 
   console.log('[OAuth Callback] Token tersimpan, redirect ke', baseRedirect)
-  return NextResponse.redirect(`${baseRedirect}?connected=true`)
+  return NextResponse.redirect(`${baseRedirect}&connected=true`)
 }

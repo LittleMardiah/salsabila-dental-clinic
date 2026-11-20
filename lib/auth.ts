@@ -1,4 +1,5 @@
 import { jwtVerify } from 'jose';
+import { isAdminTokenPayload } from '@/lib/admin-auth';
 
 /**
  * Verifikasi JWT token untuk Edge Runtime (middleware)
@@ -11,8 +12,8 @@ export async function verifyTokenEdge(token: string): Promise<{ username: string
   }
   try {
     const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
-    if (payload.role !== 'admin') return null;
-    return { username: payload.username as string, role: payload.role as string };
+    if (!isAdminTokenPayload(payload)) return null;
+    return { username: payload.username, role: 'admin' };
   } catch (error) {
     console.error('Token verification failed (Edge):', error);
     return null;
