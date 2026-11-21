@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/sanctuary'
 
 type PublicStatus = {
+  isOpen: boolean
   servingNumber: string | null
   waitingCount: number
   totalToday: number
@@ -26,11 +27,11 @@ type PublicStatus = {
 export default function Home() {
   const router = useRouter()
   const { darkMode, theme } = useDarkMode()
-  const [clinicOpen, setClinicOpen] = useState(true)
   const [openFaqNum, setOpenFaqNum] = useState<string | null>('01')
   const [silkOffset, setSilkOffset] = useState({ x: 0, y: 0 })
   const [waOpen, setWaOpen] = useState(false)
   const [status, setStatus] = useState<PublicStatus>({
+    isOpen: true,
     servingNumber: null,
     waitingCount: 0,
     totalToday: 0,
@@ -47,6 +48,7 @@ export default function Home() {
         const data = await res.json()
         if (active && data.success) {
           setStatus({
+            isOpen: data.isOpen !== false,
             servingNumber: data.servingNumber,
             waitingCount: data.waitingCount || 0,
             totalToday: data.totalToday || 0,
@@ -162,7 +164,7 @@ export default function Home() {
               <div className="lg:col-span-4 flex items-center justify-between lg:justify-start gap-4">
                 <div className="flex items-center gap-3.5">
                   <span className="relative flex h-2.5 w-2.5 shrink-0">
-                    {clinicOpen && (
+                    {status.isOpen && (
                       <span
                         style={{ animation: 'pulseBeaconRing 2.4s infinite' }}
                         className="absolute inline-flex h-full w-full rounded-full bg-emerald-500"
@@ -170,7 +172,7 @@ export default function Home() {
                     )}
                     <span
                       className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                        clinicOpen ? 'bg-emerald-500' : 'bg-[#D08080]'
+                        status.isOpen ? 'bg-emerald-500' : 'bg-[#D08080]'
                       }`}
                     />
                   </span>
@@ -179,18 +181,10 @@ export default function Home() {
                       STATUS KLINIK HARI INI
                     </span>
                     <span className="mt-0.5 block text-sm sm:text-base font-medium transition-colors duration-300">
-                      {clinicOpen ? 'Klinik Buka' : 'Klinik Tutup'}
+                      {status.isOpen ? 'Klinik Buka' : 'Klinik Tutup'}
                     </span>
                   </div>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => setClinicOpen((prev) => !prev)}
-                  className={`font-mono-tech text-[10px] uppercase tracking-[0.16em] ${theme.textSubtle} hover:text-[#D08080] underline decoration-[#D08080]/50 underline-offset-4 cursor-pointer shrink-0`}
-                >
-                  {clinicOpen ? 'Simulasi Tutup' : 'Simulasi Buka'}
-                </button>
               </div>
 
               <div
@@ -202,7 +196,7 @@ export default function Home() {
                     <span>SEDANG DILAYANI</span>
                   </span>
                   <div className={`mt-1.5 font-editorial italic text-2xl sm:text-4xl lg:text-5xl leading-none tabular-nums transition-all duration-300 ${theme.roseAccent}`}>
-                    {clinicOpen && status.servingNumber ? status.servingNumber : '—'}
+                    {status.servingNumber || '—'}
                   </div>
                 </div>
 
@@ -211,7 +205,7 @@ export default function Home() {
                     ANTREAN MENUNGGU
                   </span>
                   <div className="mt-1.5 font-editorial italic text-2xl sm:text-4xl lg:text-5xl leading-none tabular-nums transition-all duration-300">
-                    {clinicOpen ? String(status.waitingCount).padStart(2, '0') : '00'}
+                    {String(status.waitingCount).padStart(2, '0')}
                   </div>
                 </div>
 
@@ -220,7 +214,7 @@ export default function Home() {
                     TOTAL HARI INI
                   </span>
                   <div className="mt-1.5 font-editorial italic text-2xl sm:text-4xl lg:text-5xl leading-none tabular-nums transition-all duration-300">
-                    {clinicOpen ? String(status.totalToday).padStart(2, '0') : '00'}
+                    {String(status.totalToday).padStart(2, '0')}
                   </div>
                 </div>
               </div>

@@ -151,12 +151,13 @@ export function parseOdontogram(notes: string | null | undefined): OdontogramPay
     const parsed = JSON.parse(notes.slice(index + ODONTO_MARKER.length))
     if (!parsed || typeof parsed !== 'object') return null
     return {
-      marks: parsed.marks || {},
-      quadrants: parsed.quadrants || DEFAULT_TEETH_QUADRANTS,
-      legend:
-        Array.isArray(parsed.legend) && parsed.legend.length > 0
-          ? parsed.legend
-          : DEFAULT_LEGEND,
+      marks: parsed.marks && typeof parsed.marks === 'object' ? parsed.marks : {},
+      quadrants:
+        parsed.quadrants && typeof parsed.quadrants === 'object'
+          ? parsed.quadrants
+          : DEFAULT_TEETH_QUADRANTS,
+      // An intentionally empty legend (all templates removed) must stay empty.
+      legend: Array.isArray(parsed.legend) ? parsed.legend : DEFAULT_LEGEND,
     }
   } catch {
     return null

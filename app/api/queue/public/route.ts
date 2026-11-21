@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { addDays, clinicDateOnly } from '@/lib/clinic-date'
+import { readClinicStatus } from '@/lib/clinic-status'
 
 /**
  * Public, non-identifying clinic status for the landing page.
@@ -13,7 +14,7 @@ export async function GET() {
     const today = clinicDateOnly()
     const tomorrow = addDays(today, 1)
 
-    const [serving, waitingCount, totalToday] = await Promise.all([
+    const [serving, waitingCount, totalToday, clinicStatus] = await Promise.all([
       prisma.queue.findFirst({
         where: { date: today, status: 'CALLED' },
         orderBy: { calledAt: 'desc' },
@@ -23,10 +24,13 @@ export async function GET() {
       prisma.queue.count({
         where: { date: { gte: today, lt: tomorrow } },
       }),
+      readClinicStatus(),
     ])
 
     return NextResponse.json({
       success: true,
+      isOpen: clinicStatus.isOpen,
+      statusUpdatedAt: clinicStatus.updatedAt,
       servingNumber: serving ? `A-${serving.queueNumber.toString().padStart(2, '0')}` : null,
       waitingCount,
       totalToday,

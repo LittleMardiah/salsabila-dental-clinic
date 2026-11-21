@@ -20,6 +20,7 @@ import {
   WA_LINK,
   type ThemeTokens,
 } from '@/lib/ui-theme'
+import { lockBodyScroll, unlockBodyScroll } from '@/lib/scroll-lock'
 
 export function useDarkMode() {
   const { resolvedTheme, setTheme } = useTheme()
@@ -225,26 +226,29 @@ export function SolidModal({
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key !== 'Escape') return
+      if (document.querySelector('[data-photo-lightbox="true"]')) return
+      onClose()
     }
     document.addEventListener('keydown', onKey)
-    document.body.style.overflow = 'hidden'
+    lockBodyScroll()
     return () => {
       document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = ''
+      unlockBodyScroll()
     }
   }, [open, onClose])
 
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-view-enter">
-      <div onClick={onClose} className="fixed inset-0 bg-black/65" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 animate-view-enter">
+      <div onClick={onClose} className="fixed inset-0 bg-black/60" aria-hidden="true" />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
-        className={`relative z-10 w-full max-h-[90vh] overflow-y-auto rounded-3xl border ${theme.solidPanel} ${className}`}
+        className={`relative z-10 w-full max-h-[min(90dvh,900px)] overflow-y-auto overscroll-contain rounded-3xl border ${theme.solidPanel} ${className}`}
+        style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
       >
         {children}
       </div>

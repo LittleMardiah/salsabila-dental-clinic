@@ -123,6 +123,14 @@ model AuditLog {
   createdAt        DateTime @default(now())
 }
 
+/// Singleton row (id = 1) holding the real operational status of the clinic.
+model ClinicStatus {
+  id        Int      @id @default(1)
+  isOpen    Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+}
+
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model AdminPreference {
   adminId            String    @id

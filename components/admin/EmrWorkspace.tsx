@@ -7,7 +7,6 @@ import {
   Calendar,
   CheckCircle2,
   Edit3,
-  History,
   Search,
   SlidersHorizontal,
   Sparkles,
@@ -105,7 +104,9 @@ export default function EmrWorkspace({
   const [teethQuadrants, setTeethQuadrants] = useState(DEFAULT_TEETH_QUADRANTS)
   const [toothMarks, setToothMarks] = useState<Record<string, ToothMark>>({})
   const [legendItems, setLegendItems] = useState<LegendItem[]>(DEFAULT_LEGEND)
-  const [activeBrush, setActiveBrush] = useState<LegendItem>(DEFAULT_LEGEND[0])
+  const [activeBrush, setActiveBrush] = useState<LegendItem | null>(DEFAULT_LEGEND[0])
+  const [editingLegend, setEditingLegend] = useState<LegendItem | null>(null)
+  const [legendDraft, setLegendDraft] = useState({ label: '', color: '#D08080' })
   const [newToothInput, setNewToothInput] = useState('')
   const [newToothQuadrant, setNewToothQuadrant] = useState<'ur' | 'ul' | 'lr' | 'll'>('ur')
   const [newTagLabel, setNewTagLabel] = useState('')
@@ -206,6 +207,7 @@ export default function EmrWorkspace({
     setToothMarks({})
     setLegendItems(DEFAULT_LEGEND)
     setActiveBrush(DEFAULT_LEGEND[0])
+    setEditingLegend(null)
     setNewToothInput('')
     setNewToothQuadrant('ur')
     setNewTagLabel('')
@@ -305,7 +307,7 @@ export default function EmrWorkspace({
             setToothMarks(parsed.marks)
             setTeethQuadrants(parsed.quadrants)
             setLegendItems(parsed.legend)
-            setActiveBrush(parsed.legend[0])
+            setActiveBrush(parsed.legend[0] || null)
           }
           setExistingPhotos(editVisit.photos || [])
         } else {
@@ -337,6 +339,10 @@ export default function EmrWorkspace({
   }, [initialPatient, initialQueueId, openPatient])
 
   const handleToothClick = (toothId: string) => {
+    if (!activeBrush) {
+      toast.info('Tambahkan template tanda terlebih dahulu sebelum memetakan gigi.')
+      return
+    }
     const existing = toothMarks[toothId]
     if (existing && existing.label === activeBrush.label && existing.color === activeBrush.color) {
       setDangerConfirm({
@@ -407,11 +413,82 @@ export default function EmrWorkspace({
   }
 
   const handleAddCustomLegend = () => {
-    if (!newTagLabel.trim()) return
+    if (!newTagLabel.trim()) {
+      toast.error('Nama template tanda wajib diisi.')
+      return
+    }
     const item = { id: `tag-${Date.now()}`, label: newTagLabel.trim(), color: newTagColor }
     setLegendItems((prev) => [...prev, item])
     setActiveBrush(item)
     setNewTagLabel('')
+  }
+
+  const openLegendEditor = (item: LegendItem) => {
+    setEditingLegend(item)
+    setLegendDraft({ label: item.label, color: item.color })
+  }
+
+  const saveLegendEdit = () => {
+    if (!editingLegend) return
+    const label = legendDraft.label.trim()
+    if (!label) {
+      toast.error('Nama template tanda wajib diisi.')
+      return
+    }
+    const updated: LegendItem = { ...editingLegend, label, color: legendDraft.color }
+    setLegendItems((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
+    setActiveBrush((prev) => (prev?.id === updated.id ? updated : prev))
+    setToothMarks((prev) => {
+      const next = { ...prev }
+      Object.entries(next).forEach(([tooth, mark]) => {
+        if (mark.label === editingLegend.label && mark.color === editingLegend.color) {
+          next[tooth] = { label: updated.label, color: updated.color }
+        }
+      })
+      return next
+    })
+    setEditingLegend(null)
+    toast.success('Template tanda diperbarui')
+  }
+
+  const requestRemoveLegend = (item: LegendItem) => {
+    setDangerConfirm({
+      title: `Hapus Template "${item.label}"?`,
+      message:
+        'Template ini akan dihapus dari daftar. Tanda gigi yang memakai template ini juga akan dibersihkan.',
+      confirmLabel: 'Hapus Template',
+      onConfirm: () => {
+        const remaining = legendItems.filter((legend) => legend.id !== item.id)
+        setLegendItems(remaining)
+        setToothMarks((prev) => {
+          const next = { ...prev }
+          Object.entries(next).forEach(([tooth, mark]) => {
+            if (mark.label === item.label && mark.color === item.color) delete next[tooth]
+          })
+          return next
+        })
+        setActiveBrush((prev) => (prev?.id === item.id ? remaining[0] || null : prev))
+        if (editingLegend?.id === item.id) setEditingLegend(null)
+        setDangerConfirm(null)
+      },
+    })
+  }
+
+  const requestClearLegends = () => {
+    setDangerConfirm({
+      title: 'Hapus Semua Template Tanda?',
+      message:
+        'Semua template odontogram akan dihapus dan peta gigi dikosongkan. Anda bisa menambahkan template baru sesuai kebutuhan dokter.',
+      confirmLabel: 'Hapus Semua',
+      onConfirm: () => {
+        setLegendItems([])
+        setToothMarks({})
+        setActiveBrush(null)
+        setEditingLegend(null)
+        setDangerConfirm(null)
+        toast.success('Semua template tanda dihapus')
+      },
+    })
   }
 
   const copyFindingsToDiagnosis = () => {
@@ -638,14 +715,6 @@ export default function EmrWorkspace({
                 Batal Edit
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => setHistoryOpen(true)}
-              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full border text-xs font-medium hover:border-[#D08080] transition-all cursor-pointer ${theme.pillSurface}`}
-            >
-              <History className="w-3.5 h-3.5 text-[#D08080]" />
-              <span>Riwayat Kunjungan ({visits.length})</span>
-            </button>
           </div>
         </div>
 
@@ -817,49 +886,105 @@ export default function EmrWorkspace({
             </div>
           )}
 
-          <div className="space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                {legendItems.map((leg) => (
-                  <button
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <span className={`text-xs font-medium ${theme.roseLabel}`}>
+                  Template Tanda Odontogram
+                </span>
+                <span className={`ml-2 text-[11px] ${theme.textSubtle}`}>
+                  {legendItems.length} template aktif
+                </span>
+              </div>
+              {legendItems.length > 0 && (
+                <button
+                  type="button"
+                  onClick={requestClearLegends}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-rose-500/40 text-[11px] font-medium text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>Hapus Semua Template</span>
+                </button>
+              )}
+            </div>
+
+            <div className="max-h-40 sm:max-h-44 overflow-y-auto overscroll-contain pr-1 space-y-2">
+              {legendItems.length === 0 ? (
+                <p className={`text-xs py-2 ${theme.textSubtle}`}>
+                  Belum ada template. Tambahkan tanda baru untuk mulai memetakan kondisi gigi.
+                </p>
+              ) : (
+                legendItems.map((leg) => (
+                  <div
                     key={leg.id}
-                    type="button"
-                    onClick={() => setActiveBrush(leg)}
-                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs transition-all cursor-pointer ${
-                      activeBrush.id === leg.id
-                        ? 'border-[#D08080] bg-[#D08080]/15 font-semibold'
+                    className={`flex items-center gap-2 rounded-2xl border px-3 py-2 transition-colors ${
+                      activeBrush?.id === leg.id
+                        ? 'border-[#D08080] bg-[#D08080]/10'
                         : theme.pillSurface
                     }`}
                   >
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: leg.color }} />
-                    <span>{leg.label}</span>
-                  </button>
-                ))}
-              </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveBrush(leg)}
+                      aria-pressed={activeBrush?.id === leg.id}
+                      className="flex-1 min-w-0 inline-flex items-center gap-2 text-left text-xs cursor-pointer"
+                    >
+                      <span
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: leg.color }}
+                      />
+                      <span className="truncate font-medium">{leg.label}</span>
+                      {activeBrush?.id === leg.id && (
+                        <span className="text-[10px] font-semibold text-[#D08080] shrink-0">
+                          AKTIF
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openLegendEditor(leg)}
+                      aria-label={`Edit template ${leg.label}`}
+                      title={`Edit nama/warna ${leg.label}`}
+                      className="p-1.5 rounded-full text-[#D08080] hover:bg-[#D08080]/15 transition-colors cursor-pointer"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => requestRemoveLegend(leg)}
+                      aria-label={`Hapus template ${leg.label}`}
+                      title={`Hapus ${leg.label}`}
+                      className="p-1.5 rounded-full text-rose-500 hover:bg-rose-500/15 transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <input
-                  type="color"
-                  value={newTagColor}
-                  onChange={(e) => setNewTagColor(e.target.value)}
-                  className="w-7 h-7 rounded-full border-0 bg-transparent cursor-pointer"
-                  aria-label="Warna tanda baru"
-                />
-                <input
-                  type="text"
-                  value={newTagLabel}
-                  onChange={(e) => setNewTagLabel(e.target.value)}
-                  placeholder="Label tanda baru..."
-                  className={`px-3 py-1.5 rounded-full border text-xs focus:outline-none focus:border-[#D08080] ${theme.inputBg}`}
-                />
-                <button
-                  type="button"
-                  onClick={handleAddCustomLegend}
-                  className="px-3.5 py-1.5 rounded-full bg-[#D08080] text-white text-xs font-medium cursor-pointer"
-                >
-                  + Tanda
-                </button>
-              </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="color"
+                value={newTagColor}
+                onChange={(e) => setNewTagColor(e.target.value)}
+                className="w-7 h-7 rounded-full border-0 bg-transparent cursor-pointer"
+                aria-label="Warna tanda baru"
+              />
+              <input
+                type="text"
+                value={newTagLabel}
+                onChange={(e) => setNewTagLabel(e.target.value)}
+                placeholder="Nama template tanda baru..."
+                className={`px-3 py-1.5 rounded-full border text-xs focus:outline-none focus:border-[#D08080] ${theme.inputBg}`}
+              />
+              <button
+                type="button"
+                onClick={handleAddCustomLegend}
+                className="px-3.5 py-1.5 rounded-full bg-[#D08080] text-white text-xs font-medium cursor-pointer"
+              >
+                + Tambah Tanda
+              </button>
             </div>
 
             <div className="space-y-4 overflow-x-auto pb-1">
@@ -1258,7 +1383,7 @@ export default function EmrWorkspace({
         theme={theme}
         className="max-w-xl p-6 sm:p-8 space-y-6"
       >
-        <div className="flex items-start justify-between gap-4 border-b border-[#D08080]/20 pb-4">
+        <div className="sticky top-0 z-20 -mx-6 -mt-6 flex items-start justify-between gap-4 border-b border-[#D08080]/20 bg-[#FFFDFC] px-6 pb-4 pt-6 dark:bg-[#1C1417] sm:-mx-8 sm:-mt-8 sm:px-8 sm:pt-8">
           <div>
             <span className="inline-block px-3 py-1 rounded-full bg-[#D08080]/15 text-xs font-medium text-[#D08080]">
               Arsip Rekam Medis Terpadu
@@ -1277,7 +1402,7 @@ export default function EmrWorkspace({
           </button>
         </div>
 
-        <div className="relative pl-6 space-y-5 max-h-96 overflow-y-auto pr-1">
+        <div className="relative pl-6 pr-1 pb-2 space-y-5">
           <div
             aria-hidden="true"
             className="absolute left-2 top-2 bottom-2 w-[2px] bg-gradient-to-b from-[#D08080] via-[#8B4F4F]/50 to-[#D08080]/20"
@@ -1368,6 +1493,72 @@ export default function EmrWorkspace({
               </div>
             ))
           )}
+        </div>
+      </SolidModal>
+
+      {/* LEGEND EDITOR */}
+      <SolidModal
+        open={!!editingLegend}
+        onClose={() => setEditingLegend(null)}
+        theme={theme}
+        className="max-w-sm p-6 sm:p-7 space-y-5"
+      >
+        <div>
+          <span className={`text-xs font-medium ${theme.roseLabel}`}>Edit Template Tanda</span>
+          <h3 className="mt-1 text-lg font-semibold">
+            {editingLegend?.label || 'Template'}
+          </h3>
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="legend-label" className={`block text-xs font-medium ${theme.textSubtle}`}>
+            Nama Template
+          </label>
+          <input
+            id="legend-label"
+            type="text"
+            value={legendDraft.label}
+            onChange={(e) => setLegendDraft((prev) => ({ ...prev, label: e.target.value }))}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') saveLegendEdit()
+            }}
+            className={`w-full px-4 py-2.5 rounded-2xl border text-sm focus:outline-none focus:border-[#D08080] ${theme.inputBg}`}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="legend-color" className={`block text-xs font-medium ${theme.textSubtle}`}>
+            Warna Tanda
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              id="legend-color"
+              type="color"
+              value={legendDraft.color}
+              onChange={(e) => setLegendDraft((prev) => ({ ...prev, color: e.target.value }))}
+              className="w-10 h-10 rounded-xl border-0 bg-transparent cursor-pointer"
+            />
+            <span className={`font-mono-tech text-xs ${theme.textMuted}`}>
+              {legendDraft.color.toUpperCase()}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5 pt-1">
+          <button
+            type="button"
+            onClick={() => setEditingLegend(null)}
+            className={`flex-1 py-2.5 rounded-full border text-xs font-medium cursor-pointer ${theme.pillSurface}`}
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            onClick={saveLegendEdit}
+            className="flex-1 py-2.5 rounded-full bg-[#D08080] text-white text-xs font-medium cursor-pointer"
+          >
+            Simpan Perubahan
+          </button>
         </div>
       </SolidModal>
 

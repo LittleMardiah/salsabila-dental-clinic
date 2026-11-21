@@ -66,6 +66,7 @@ const AUDIT_ACTIONS = [
   { value: 'CONFIRM_TRANSACTION', label: 'Konfirmasi Pembayaran' },
   { value: 'RECONCILE', label: 'Rekonsiliasi Harian' },
   { value: 'SWITCH_OPERATOR', label: 'Ganti Operator' },
+  { value: 'UPDATE_CLINIC_STATUS', label: 'Update Status Klinik' },
   { value: 'LOGIN', label: 'Login' },
   { value: 'LOGOUT', label: 'Logout' },
 ]
@@ -83,6 +84,12 @@ type StorageInfo = {
   sizeMB: number
   fileCount: number
 } | null
+
+type PublicQueueStats = {
+  servingNumber: string | null
+  waitingCount: number
+  totalToday: number
+}
 
 function todayInput() {
   return clinicDateString()
@@ -116,12 +123,19 @@ export default function AdminDashboardPage() {
   const { theme, darkMode } = useDarkMode()
 
   const [adminUsername, setAdminUsername] = useState('Admin')
+  const [clinicOpen, setClinicOpen] = useState(true)
+  const [savingClinicStatus, setSavingClinicStatus] = useState(false)
   const [activeOperator, setActiveOperator] = useState<Operator>('Drg. Salsabila')
   const [activeTab, setActiveTab] = useState<TabId>('antrian')
   const [hiddenMenus, setHiddenMenus] = useState<string[]>([])
 
   // Queues
   const [queues, setQueues] = useState<QueueItem[]>([])
+  const [publicStats, setPublicStats] = useState<PublicQueueStats>({
+    servingNumber: null,
+    waitingCount: 0,
+    totalToday: 0,
+  })
   const [loadingQueues, setLoadingQueues] = useState(true)
   const [queueError, setQueueError] = useState('')
 
@@ -217,9 +231,10 @@ export default function AdminDashboardPage() {
 
     const bootstrap = async () => {
       try {
-        const [adminRes, prefRes] = await Promise.all([
+        const [adminRes, prefRes, statusRes] = await Promise.all([
           fetch('/api/auth/admin/check', { cache: 'no-store' }),
           fetch('/api/preferences', { cache: 'no-store' }),
+          fetch('/api/clinic/status', { cache: 'no-store' }),
         ])
         if (adminRes.status === 401) {
           router.replace('/admin/login')
@@ -239,6 +254,10 @@ export default function AdminDashboardPage() {
             audit: !(data.hiddenMenus || []).includes('AuditLog'),
           })
           setGdriveConnected(!!data.googleConnected)
+        }
+        if (statusRes.ok) {
+          const data = await statusRes.json().catch(() => ({}))
+          setClinicOpen(data.isOpen !== false)
         }
       } catch {
         // Individual panels surface their own errors.
@@ -267,6 +286,22 @@ export default function AdminDashboardPage() {
         }
         setQueues(data.data || [])
         setQueueError('')
+        try {
+          const publicRes = await fetch('/api/queue/public', { cache: 'no-store' })
+          if (publicRes.ok) {
+            const publicData = await publicRes.json().catch(() => ({}))
+            if (publicData.success) {
+              setPublicStats({
+                servingNumber: publicData.servingNumber,
+                waitingCount: publicData.waitingCount || 0,
+                totalToday: publicData.totalToday || 0,
+              })
+              setClinicOpen(publicData.isOpen !== false)
+            }
+          }
+        } catch {
+          // The queue table above remains available when the aggregate call fails.
+        }
       } catch {
         setQueueError('Gagal memuat antrean. Periksa koneksi Anda.')
       } finally {
@@ -281,19 +316,6 @@ export default function AdminDashboardPage() {
     const interval = setInterval(() => fetchQueues(true), 6000)
     return () => clearInterval(interval)
   }, [fetchQueues])
-
-  const servingQueue = useMemo(
-    () =>
-      queues
-        .filter((q) => q.status === 'CALLED')
-        .sort((a, b) => {
-          const at = a.calledAt ? new Date(a.calledAt).getTime() : 0
-          const bt = b.calledAt ? new Date(b.calledAt).getTime() : 0
-          return bt - at
-        })[0] || null,
-    [queues]
-  )
-  const waitingCount = queues.filter((q) => q.status === 'WAITING').length
 
   const playChimeAndVoice = (queueNo: string, name: string) => {
     try {
@@ -426,6 +448,30 @@ export default function AdminDashboardPage() {
     })
     setActiveTab('emr')
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const updateClinicStatus = async (isOpen: boolean) => {
+    if (clinicOpen === isOpen || savingClinicStatus) return
+    setSavingClinicStatus(true)
+    try {
+      const res = await fetch('/api/clinic/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isOpen }),
+      })
+      if (res.status === 401) return handleUnauthorized()
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(data.error || 'Gagal memperbarui status klinik')
+        return
+      }
+      setClinicOpen(data.isOpen !== false)
+      toast.success(data.isOpen === false ? 'Klinik ditutup' : 'Klinik dibuka')
+    } catch {
+      toast.error('Gagal memperbarui status klinik')
+    } finally {
+      setSavingClinicStatus(false)
+    }
   }
 
   /* --------------------------------------------------------------- OPERATOR */
@@ -794,6 +840,44 @@ export default function AdminDashboardPage() {
     )
   }
 
+  const clinicStatusControl = (mobile: boolean) => (
+    <div
+      role="group"
+      aria-label="Status operasional klinik"
+      title={`Klinik sedang ${clinicOpen ? 'buka' : 'tutup'}`}
+      className={`inline-flex items-center gap-1 p-1 rounded-full border ${theme.pillSurface} ${mobile ? 'sm:hidden' : 'hidden sm:inline-flex'}`}
+    >
+      <button
+        type="button"
+        onClick={() => updateClinicStatus(true)}
+        disabled={savingClinicStatus}
+        aria-pressed={clinicOpen}
+        className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
+          clinicOpen
+            ? 'bg-emerald-700 text-white'
+            : 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10'
+        }`}
+      >
+        <Check className="w-3.5 h-3.5" />
+        <span>Buka</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => updateClinicStatus(false)}
+        disabled={savingClinicStatus}
+        aria-pressed={!clinicOpen}
+        className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
+          clinicOpen
+            ? 'text-rose-600 dark:text-rose-400 hover:bg-rose-500/10'
+            : 'bg-rose-700 text-white'
+        }`}
+      >
+        <X className="w-3.5 h-3.5" />
+        <span>Tutup</span>
+      </button>
+    </div>
+  )
+
   return (
     <div
       className={`min-h-screen w-full max-w-full ${theme.bg} ${theme.text} font-sans-clean relative overflow-x-hidden transition-colors duration-700 selection:bg-[#D08080]/25 flex flex-col`}
@@ -819,6 +903,8 @@ export default function AdminDashboardPage() {
           </nav>
 
           <div className="flex items-center justify-end gap-1.5 sm:gap-2.5 shrink-0">
+            {clinicStatusControl(false)}
+
             <button
               type="button"
               onClick={switchOperator}
@@ -844,6 +930,7 @@ export default function AdminDashboardPage() {
         </div>
 
         <div className="xl:hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-3">
+          <div className="sm:hidden mb-2 flex justify-end">{clinicStatusControl(true)}</div>
           <nav
             aria-label="Navigasi Modul Admin Responsif"
             className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-0.5"
@@ -871,7 +958,10 @@ export default function AdminDashboardPage() {
               <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div>
                   <span className={`text-xs font-medium ${theme.roseLabel}`}>
-                    Operasional Harian • {activeOperator}
+                    Operasional Harian • {activeOperator} •{' '}
+                    <span className={clinicOpen ? 'text-emerald-500' : 'text-rose-500'}>
+                      Klinik {clinicOpen ? 'Buka' : 'Tutup'}
+                    </span>
                   </span>
                   <h2 className="mt-1 text-2xl sm:text-3xl font-semibold tracking-tight">
                     Antrian Pasien Hari Ini
@@ -900,7 +990,7 @@ export default function AdminDashboardPage() {
                 <div className={`rounded-3xl border p-5 sm:p-6 transition-all duration-300 hover:-translate-y-0.5 ${theme.elevatedCard}`}>
                   <span className={`text-xs font-medium ${theme.textSubtle}`}>Total Antrian</span>
                   <div className={`mt-2 text-3xl sm:text-4xl font-semibold tabular-nums ${theme.roseAccent}`}>
-                    {String(queues.length).padStart(2, '0')}
+                    {String(publicStats.totalToday).padStart(2, '0')}
                   </div>
                 </div>
                 <div className={`rounded-3xl border p-5 sm:p-6 transition-all duration-300 hover:-translate-y-0.5 ${theme.elevatedCard}`}>
@@ -909,7 +999,7 @@ export default function AdminDashboardPage() {
                     <span>Menunggu</span>
                   </span>
                   <div className="mt-2 text-3xl sm:text-4xl font-semibold tabular-nums">
-                    {String(waitingCount).padStart(2, '0')}
+                    {String(publicStats.waitingCount).padStart(2, '0')}
                   </div>
                 </div>
                 <div className={`rounded-3xl border p-5 sm:p-6 transition-all duration-300 hover:-translate-y-0.5 ${theme.elevatedCard}`}>
@@ -918,7 +1008,7 @@ export default function AdminDashboardPage() {
                     <span>Sedang Dilayani</span>
                   </span>
                   <div className="mt-2 text-3xl sm:text-4xl font-semibold tabular-nums text-emerald-500">
-                    {servingQueue ? formatQueueNumber(servingQueue.queueNumber) : '—'}
+                    {publicStats.servingNumber || '—'}
                   </div>
                 </div>
               </div>

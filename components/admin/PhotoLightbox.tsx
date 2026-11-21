@@ -12,6 +12,7 @@ import {
   ZoomIn,
 } from 'lucide-react'
 import type { ThemeTokens } from '@/lib/ui-theme'
+import { lockBodyScroll, unlockBodyScroll } from '@/lib/scroll-lock'
 
 export type LightboxPhoto = { src: string; name: string }
 
@@ -81,10 +82,9 @@ export default function PhotoLightbox({
 
   useEffect(() => {
     if (!open) return
-    const previous = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    lockBodyScroll()
     return () => {
-      document.body.style.overflow = previous
+      unlockBodyScroll()
     }
   }, [open])
 
@@ -166,6 +166,7 @@ export default function PhotoLightbox({
       role="dialog"
       aria-modal="true"
       aria-label="Pratinjau foto rekam medis"
+      data-photo-lightbox="true"
     >
       <div
         className={`flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 sm:px-6 ${theme?.solidPanel || 'border-[#D08080]/35 bg-[#FFFDFC] text-[#221A1B]'}`}
