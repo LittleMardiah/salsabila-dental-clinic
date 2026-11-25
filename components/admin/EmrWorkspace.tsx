@@ -614,15 +614,22 @@ export default function EmrWorkspace({
           />
         </div>
 
-        <div className={`rounded-3xl border overflow-x-auto ${theme.elevatedCard}`}>
-          <table className="w-full text-left border-collapse min-w-[600px]">
+        <div className={`rounded-3xl border overflow-hidden ${theme.elevatedCard}`}>
+          <table className="w-full table-fixed text-left border-collapse text-xs sm:text-sm">
+            <colgroup>
+              <col className="w-10 sm:w-12" />
+              <col />
+              <col className="w-20 sm:w-28" />
+              <col className="hidden lg:table-column lg:w-44" />
+              <col className="w-20 sm:w-24" />
+            </colgroup>
             <thead>
-              <tr className={`border-b ${theme.hairline} text-xs font-medium ${theme.textSubtle}`}>
-                <th className="py-4 px-5 sm:px-6">No</th>
-                <th className="py-4 px-4">Nama Lengkap</th>
-                <th className="py-4 px-4">No. HP</th>
-                <th className="py-4 px-4">Email</th>
-                <th className="py-4 px-5 sm:px-6 text-right">Aksi</th>
+              <tr className={`border-b ${theme.hairline} text-[10px] sm:text-xs font-medium ${theme.textSubtle}`}>
+                <th className="py-3 px-2 sm:px-4">No</th>
+                <th className="py-3 px-2 sm:px-4">Nama Lengkap</th>
+                <th className="py-3 px-2 sm:px-4">No. HP</th>
+                <th className="hidden lg:table-cell py-3 px-2 sm:px-4">Email</th>
+                <th className="py-3 px-2 sm:px-4 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className={`divide-y ${theme.divideHairline} text-sm`}>
@@ -641,17 +648,21 @@ export default function EmrWorkspace({
               ) : (
                 filteredPatients.map((patient, index) => (
                   <tr key={patient.id} className="transition-colors hover:bg-[#D08080]/[0.04]">
-                    <td className={`py-4 px-5 sm:px-6 text-xs font-semibold ${theme.roseLabel}`}>
+                    <td className={`py-3 px-2 sm:px-4 text-[10px] sm:text-xs font-semibold ${theme.roseLabel}`}>
                       {String(index + 1).padStart(2, '0')}
                     </td>
-                    <td className="py-4 px-4 font-medium">{patient.name}</td>
-                    <td className={`py-4 px-4 text-xs ${theme.textMuted}`}>{patient.phone || '-'}</td>
-                    <td className={`py-4 px-4 text-xs ${theme.textSubtle}`}>{patient.email || '-'}</td>
-                    <td className="py-4 px-5 sm:px-6 text-right">
+                    <td className="py-3 px-2 sm:px-4 font-medium break-words">{patient.name}</td>
+                    <td className={`py-3 px-2 sm:px-4 text-[10px] sm:text-xs break-words ${theme.textMuted}`}>
+                      {patient.phone || '-'}
+                    </td>
+                    <td className={`hidden lg:table-cell py-3 px-2 sm:px-4 text-xs break-all ${theme.textSubtle}`}>
+                      {patient.email || '-'}
+                    </td>
+                    <td className="py-3 px-2 sm:px-4 text-right">
                       <button
                         type="button"
                         onClick={() => openPatient(patient)}
-                        className={`px-4 py-1.5 rounded-full border text-xs font-medium hover:border-[#D08080] transition-colors cursor-pointer ${theme.pillSurface}`}
+                        className={`min-h-10 w-full px-2 sm:w-auto sm:px-3 rounded-full border text-[10px] sm:text-xs font-medium hover:border-[#D08080] transition-colors cursor-pointer ${theme.pillSurface}`}
                       >
                         Kelola EMR
                       </button>
@@ -667,21 +678,18 @@ export default function EmrWorkspace({
   }
 
   /* ------------------------------------------------------------------ FORM */
-  const quadrantRows: {
-    leftKey: 'ur' | 'lr'
-    rightKey: 'ul' | 'll'
-    leftTitle: string
-    rightTitle: string
-  }[] = [
-    { leftKey: 'ur', leftTitle: 'Rahang Atas Kanan', rightKey: 'ul', rightTitle: 'Rahang Atas Kiri' },
-    { leftKey: 'lr', leftTitle: 'Rahang Bawah Kanan', rightKey: 'll', rightTitle: 'Rahang Bawah Kiri' },
+  const quadrantCards: { key: 'ur' | 'ul' | 'lr' | 'll'; title: string }[] = [
+    { key: 'ur', title: 'Rahang Atas Kanan' },
+    { key: 'ul', title: 'Rahang Atas Kiri' },
+    { key: 'lr', title: 'Rahang Bawah Kanan' },
+    { key: 'll', title: 'Rahang Bawah Kiri' },
   ]
 
   return (
-    <div ref={topRef} className="space-y-6 sm:space-y-8">
-      <form onSubmit={handleSaveEmr} className="space-y-6 sm:space-y-8">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
+    <div ref={topRef} className="min-w-0 space-y-5 sm:space-y-8">
+      <form onSubmit={handleSaveEmr} className="min-w-0 space-y-5 sm:space-y-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
             <button
               type="button"
               onClick={() => {
@@ -693,7 +701,7 @@ export default function EmrWorkspace({
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Kembali ke Daftar Pasien EMR</span>
             </button>
-            <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+            <h2 className="text-xl sm:text-3xl font-semibold tracking-tight break-words">
               {editingVisitId ? 'Edit EMR' : 'EMR'} —{' '}
               <span className={theme.roseAccent}>{selectedPatient?.name}</span>
             </h2>
@@ -710,7 +718,7 @@ export default function EmrWorkspace({
                   resetOdontogram()
                   setForm({ ...emptyForm('drg. Salsabila'), queueId: queueOptions[0]?.id || 0 })
                 }}
-                className={`px-4 py-2.5 rounded-full border text-xs font-medium cursor-pointer ${theme.pillSurface}`}
+                className={`min-h-11 px-4 py-2.5 rounded-full border text-xs font-medium cursor-pointer ${theme.pillSurface}`}
               >
                 Batal Edit
               </button>
@@ -719,9 +727,9 @@ export default function EmrWorkspace({
         </div>
 
         {/* ODONTOGRAM */}
-        <div className={`rounded-3xl border p-5 sm:p-7 space-y-5 ${theme.elevatedCard}`}>
+        <div className={`min-w-0 rounded-3xl border p-4 sm:p-7 space-y-4 sm:space-y-5 ${theme.elevatedCard}`}>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <span className={`text-xs font-medium ${theme.roseLabel}`}>
                 Standar FDI (32 Gigi Dewasa) &amp; Kustomisasi
               </span>
@@ -759,7 +767,7 @@ export default function EmrWorkspace({
                       setOdontoMode(mode.id as 'interactive' | 'scan')
                     }
                   }}
-                  className={`px-3.5 py-1.5 rounded-full border text-xs font-medium transition-colors cursor-pointer ${
+                  className={`min-h-10 px-3.5 py-2 rounded-full border text-xs font-medium transition-colors cursor-pointer ${
                     odontoMode === mode.id
                       ? 'bg-[#D08080] border-[#D08080] text-white'
                       : theme.pillSurface
@@ -772,7 +780,7 @@ export default function EmrWorkspace({
               <button
                 type="button"
                 onClick={() => setEditTeethStructure((prev) => !prev)}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-medium transition-colors cursor-pointer ${
+                className={`inline-flex min-h-10 items-center gap-1.5 px-3.5 py-2 rounded-full border text-xs font-medium transition-colors cursor-pointer ${
                   editTeethStructure
                     ? 'bg-[#8B4F4F] border-[#8B4F4F] text-white'
                     : `${theme.pillSurface} hover:border-[#D08080]`
@@ -785,8 +793,8 @@ export default function EmrWorkspace({
           </div>
 
           {editTeethStructure && (
-            <div className={`rounded-2xl border p-4 flex flex-wrap items-center justify-between gap-3 ${theme.inputBg}`}>
-              <div className="text-xs max-w-lg">
+            <div className={`rounded-2xl border p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 ${theme.inputBg}`}>
+              <div className="min-w-0 text-xs max-w-lg">
                 <span className="font-semibold text-[#D08080]">Mode Edit Susunan Gigi Aktif:</span>{' '}
                 Tambah nomor gigi baru (misal: 19, 29, atau gigi susu 51–85) atau klik tanda{' '}
                 <strong>×</strong> pada kotak gigi untuk menghapus.
@@ -796,7 +804,7 @@ export default function EmrWorkspace({
                 <select
                   value={newToothQuadrant}
                   onChange={(e) => setNewToothQuadrant(e.target.value as typeof newToothQuadrant)}
-                  className={`px-3 py-1.5 rounded-xl border text-xs ${theme.inputBg}`}
+                  className={`min-h-10 max-w-full min-w-0 flex-1 px-3 py-2 rounded-xl border text-xs sm:flex-none ${theme.inputBg}`}
                   aria-label="Pilih kuadran gigi"
                 >
                   <option value="ur">Rahang Atas Kanan (11–18)</option>
@@ -810,12 +818,12 @@ export default function EmrWorkspace({
                   value={newToothInput}
                   onChange={(e) => setNewToothInput(e.target.value)}
                   placeholder="No. Gigi"
-                  className={`w-28 px-3 py-1.5 rounded-xl border text-xs ${theme.inputBg}`}
+                  className={`w-full min-w-0 px-3 py-2 rounded-xl border text-xs sm:w-28 ${theme.inputBg}`}
                 />
                 <button
                   type="button"
                   onClick={handleAddToothNumber}
-                  className="px-3.5 py-1.5 rounded-xl bg-[#D08080] text-white text-xs font-medium cursor-pointer"
+                  className="min-h-10 px-3.5 py-2 rounded-xl bg-[#D08080] text-white text-xs font-medium cursor-pointer"
                 >
                   + Tambah Gigi
                 </button>
@@ -825,7 +833,7 @@ export default function EmrWorkspace({
 
           {odontoMode === 'scan' && (
             <div className="space-y-4">
-              <label className="flex flex-col items-center justify-center py-7 px-6 rounded-2xl border border-dashed border-[#D08080]/50 cursor-pointer hover:bg-[#D08080]/5 transition-colors">
+              <label className="flex min-h-32 flex-col items-center justify-center py-7 px-6 rounded-2xl border border-dashed border-[#D08080]/50 cursor-pointer hover:bg-[#D08080]/5 transition-colors">
                 <Upload className="w-6 h-6 text-[#D08080]" />
                 <span className="mt-2 text-xs font-medium">
                   Unggah Foto Intraoral / Scan Rontgen Rahang
@@ -876,10 +884,10 @@ export default function EmrWorkspace({
                         },
                       })
                     }
-                    className="absolute top-2 right-2 p-1.5 rounded-full bg-rose-600 text-white shadow cursor-pointer"
+                    className="absolute top-2 right-2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-rose-600 text-white shadow cursor-pointer"
                     aria-label="Hapus scan rahang"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               )}
@@ -900,15 +908,15 @@ export default function EmrWorkspace({
                 <button
                   type="button"
                   onClick={requestClearLegends}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-rose-500/40 text-[11px] font-medium text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                  className="inline-flex min-h-10 items-center gap-1.5 px-3 py-2 rounded-full border border-rose-500/40 text-[11px] font-medium text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
                 >
-                  <Trash2 className="w-3 h-3" />
+                  <Trash2 className="w-3.5 h-3.5" />
                   <span>Hapus Semua Template</span>
                 </button>
               )}
             </div>
 
-            <div className="max-h-40 sm:max-h-44 overflow-y-auto overscroll-contain pr-1 space-y-2">
+            <div className="max-h-48 sm:max-h-44 overflow-y-auto overscroll-contain pr-1 space-y-2">
               {legendItems.length === 0 ? (
                 <p className={`text-xs py-2 ${theme.textSubtle}`}>
                   Belum ada template. Tambahkan tanda baru untuk mulai memetakan kondisi gigi.
@@ -945,18 +953,18 @@ export default function EmrWorkspace({
                       onClick={() => openLegendEditor(leg)}
                       aria-label={`Edit template ${leg.label}`}
                       title={`Edit nama/warna ${leg.label}`}
-                      className="p-1.5 rounded-full text-[#D08080] hover:bg-[#D08080]/15 transition-colors cursor-pointer"
+                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#D08080] hover:bg-[#D08080]/15 transition-colors cursor-pointer"
                     >
-                      <Edit3 className="w-3.5 h-3.5" />
+                      <Edit3 className="w-4 h-4" />
                     </button>
                     <button
                       type="button"
                       onClick={() => requestRemoveLegend(leg)}
                       aria-label={`Hapus template ${leg.label}`}
                       title={`Hapus ${leg.label}`}
-                      className="p-1.5 rounded-full text-rose-500 hover:bg-rose-500/15 transition-colors cursor-pointer"
+                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-rose-500 hover:bg-rose-500/15 transition-colors cursor-pointer"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 ))
@@ -968,7 +976,7 @@ export default function EmrWorkspace({
                 type="color"
                 value={newTagColor}
                 onChange={(e) => setNewTagColor(e.target.value)}
-                className="w-7 h-7 rounded-full border-0 bg-transparent cursor-pointer"
+                className="h-10 w-10 shrink-0 rounded-full border-0 bg-transparent cursor-pointer"
                 aria-label="Warna tanda baru"
               />
               <input
@@ -976,84 +984,66 @@ export default function EmrWorkspace({
                 value={newTagLabel}
                 onChange={(e) => setNewTagLabel(e.target.value)}
                 placeholder="Nama template tanda baru..."
-                className={`px-3 py-1.5 rounded-full border text-xs focus:outline-none focus:border-[#D08080] ${theme.inputBg}`}
+                className={`min-h-10 min-w-0 flex-1 px-3 py-2 rounded-full border text-xs focus:outline-none focus:border-[#D08080] ${theme.inputBg}`}
               />
               <button
                 type="button"
                 onClick={handleAddCustomLegend}
-                className="px-3.5 py-1.5 rounded-full bg-[#D08080] text-white text-xs font-medium cursor-pointer"
+                className="min-h-10 px-3.5 py-2 rounded-full bg-[#D08080] text-white text-xs font-medium cursor-pointer"
               >
                 + Tambah Tanda
               </button>
             </div>
 
-            <div className="space-y-4 overflow-x-auto pb-1">
-              {quadrantRows.map((row) => (
-                <div
-                  key={row.leftKey}
-                  className="grid grid-cols-[1fr_auto_1fr] items-end gap-4 min-w-[660px]"
-                >
-                  {[row.leftKey, 'divider', row.rightKey].map((key, idx) => {
-                    if (key === 'divider') {
-                      return <div key="divider" className="w-[1px] h-12 bg-[#D08080]/40" />
-                    }
-                    const isLeft = key === row.leftKey
-                    const teeth = teethQuadrants[key as 'ur' | 'ul' | 'lr' | 'll']
-                    return (
-                      <div key={key} className="space-y-1.5">
-                        <div
-                          className={`text-[11px] font-medium ${theme.textSubtle} ${
-                            isLeft ? 'text-right' : 'text-left'
-                          }`}
-                        >
-                          {isLeft ? row.leftTitle : row.rightTitle}
-                        </div>
-                        <div className={`flex gap-1.5 ${isLeft ? 'justify-end' : 'justify-start'}`}>
-                          {teeth.map((t) => {
-                            const mark = toothMarks[t]
-                            return (
-                              <div key={t} className="relative shrink-0">
-                                <button
-                                  type="button"
-                                  onClick={() => handleToothClick(t)}
-                                  style={
-                                    mark
-                                      ? {
-                                          backgroundColor: `${mark.color}28`,
-                                          borderColor: mark.color,
-                                        }
-                                      : undefined
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {quadrantCards.map((quadrant) => (
+                <div key={quadrant.key} className={`min-w-0 rounded-2xl border p-3 ${theme.inputBg}`}>
+                  <div className={`mb-2 text-[11px] font-medium ${theme.textSubtle}`}>
+                    {quadrant.title}
+                  </div>
+                  <div className="grid grid-cols-4 justify-items-center gap-2">
+                    {teethQuadrants[quadrant.key].map((t) => {
+                      const mark = toothMarks[t]
+                      return (
+                        <div key={t} className="relative">
+                          <button
+                            type="button"
+                            onClick={() => handleToothClick(t)}
+                            style={
+                              mark
+                                ? {
+                                    backgroundColor: `${mark.color}28`,
+                                    borderColor: mark.color,
                                   }
-                                  className={`w-9 h-11 rounded-xl border flex flex-col items-center justify-center text-xs font-medium transition-transform hover:-translate-y-0.5 cursor-pointer ${
-                                    mark ? 'font-semibold' : theme.pillSurface
-                                  }`}
-                                  aria-label={`Gigi ${t}${mark ? `, ${mark.label}` : ''}`}
-                                >
-                                  <span>{t}</span>
-                                  {mark && (
-                                    <span
-                                      className="w-2 h-2 rounded-full mt-1"
-                                      style={{ backgroundColor: mark.color }}
-                                    />
-                                  )}
-                                </button>
-                                {editTeethStructure && (
-                                  <button
-                                    type="button"
-                                    onClick={() => requestRemoveToothNumber(key as 'ur' | 'ul' | 'lr' | 'll', t)}
-                                    className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white text-[10px] flex items-center justify-center shadow cursor-pointer"
-                                    aria-label={`Hapus gigi ${t}`}
-                                  >
-                                    ×
-                                  </button>
-                                )}
-                              </div>
-                            )
-                          })}
+                                : undefined
+                            }
+                            className={`flex h-11 w-10 flex-col items-center justify-center rounded-xl border text-xs font-medium transition-transform hover:-translate-y-0.5 cursor-pointer sm:w-9 ${
+                              mark ? 'font-semibold' : theme.pillSurface
+                            }`}
+                            aria-label={`Gigi ${t}${mark ? `, ${mark.label}` : ''}`}
+                          >
+                            <span>{t}</span>
+                            {mark && (
+                              <span
+                                className="mt-1 h-2 w-2 rounded-full"
+                                style={{ backgroundColor: mark.color }}
+                              />
+                            )}
+                          </button>
+                          {editTeethStructure && (
+                            <button
+                              type="button"
+                              onClick={() => requestRemoveToothNumber(quadrant.key, t)}
+                              className="absolute -right-2 -top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-rose-600 text-sm text-white shadow cursor-pointer"
+                              aria-label={`Hapus gigi ${t}`}
+                            >
+                              ×
+                            </button>
+                          )}
                         </div>
-                      </div>
-                    )
-                  })}
+                      )
+                    })}
+                  </div>
                 </div>
               ))}
             </div>
@@ -1070,7 +1060,7 @@ export default function EmrWorkspace({
               <button
                 type="button"
                 onClick={copyFindingsToDiagnosis}
-                className="inline-flex items-center gap-1.5 text-[#D08080] font-medium hover:underline cursor-pointer"
+                className="inline-flex min-h-10 items-center gap-1.5 text-[#D08080] font-medium hover:underline cursor-pointer"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Salin Temuan ke Diagnosa</span>
@@ -1081,7 +1071,7 @@ export default function EmrWorkspace({
 
         {/* VISIT DETAILS */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
-          <div className={`rounded-3xl border p-5 sm:p-6 space-y-4 ${theme.elevatedCard}`}>
+          <div className={`min-w-0 rounded-3xl border p-4 sm:p-6 space-y-3 sm:space-y-4 ${theme.elevatedCard}`}>
             <h3 className="font-semibold text-sm text-[#D08080]">Informasi Kunjungan</h3>
 
             <div>
@@ -1142,7 +1132,7 @@ export default function EmrWorkspace({
             </div>
           </div>
 
-          <div className={`rounded-3xl border p-5 sm:p-6 space-y-4 ${theme.elevatedCard}`}>
+          <div className={`min-w-0 rounded-3xl border p-4 sm:p-6 space-y-3 sm:space-y-4 ${theme.elevatedCard}`}>
             <h3 className="font-semibold text-sm text-[#D08080]">Diagnosa, Tindakan &amp; Dokter</h3>
 
             <div>
@@ -1179,7 +1169,7 @@ export default function EmrWorkspace({
                     key={chip}
                     type="button"
                     onClick={() => setForm({ ...form, procedure: chip })}
-                    className={`px-2.5 py-1 rounded-full border text-xs hover:border-[#D08080] transition-colors cursor-pointer ${theme.pillSurface}`}
+                    className={`min-h-9 px-3 py-1.5 rounded-full border text-xs hover:border-[#D08080] transition-colors cursor-pointer ${theme.pillSurface}`}
                   >
                     {chip}
                   </button>
@@ -1205,7 +1195,7 @@ export default function EmrWorkspace({
 
         {/* PRESCRIPTION / NOTES / PHOTOS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
-          <div className={`rounded-3xl border p-5 sm:p-6 space-y-3 ${theme.elevatedCard}`}>
+          <div className={`min-w-0 rounded-3xl border p-4 sm:p-6 space-y-3 ${theme.elevatedCard}`}>
             <label htmlFor="emr-prescription" className="block font-semibold text-sm text-[#D08080]">
               Resep Obat
             </label>
@@ -1219,7 +1209,7 @@ export default function EmrWorkspace({
             />
           </div>
 
-          <div className={`rounded-3xl border p-5 sm:p-6 space-y-3 ${theme.elevatedCard}`}>
+          <div className={`min-w-0 rounded-3xl border p-4 sm:p-6 space-y-3 ${theme.elevatedCard}`}>
             <label htmlFor="emr-notes" className="block font-semibold text-sm text-[#D08080]">
               Catatan Tambahan
             </label>
@@ -1233,9 +1223,9 @@ export default function EmrWorkspace({
             />
           </div>
 
-          <div className={`rounded-3xl border p-5 sm:p-6 space-y-3 ${theme.elevatedCard}`}>
+          <div className={`min-w-0 rounded-3xl border p-4 sm:p-6 space-y-3 ${theme.elevatedCard}`}>
             <span className="block font-semibold text-sm text-[#D08080]">Dokumentasi Foto</span>
-            <label className="flex flex-col items-center justify-center py-5 px-3 rounded-2xl border border-dashed border-[#D08080]/50 text-xs cursor-pointer hover:bg-[#D08080]/5 transition-colors">
+            <label className="flex min-h-28 flex-col items-center justify-center py-5 px-3 rounded-2xl border border-dashed border-[#D08080]/50 text-xs cursor-pointer hover:bg-[#D08080]/5 transition-colors">
               <Upload className="w-4 h-4 text-[#D08080]" />
               <span className="mt-1.5 font-medium">Unggah Foto Klinis</span>
               <input
@@ -1289,10 +1279,10 @@ export default function EmrWorkspace({
                           },
                         })
                       }
-                      className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white flex items-center justify-center shadow cursor-pointer"
+                      className="absolute -top-2 -right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-rose-600 text-white shadow cursor-pointer"
                       aria-label="Hapus foto"
                     >
-                      <X className="w-2.5 h-2.5" />
+                      <X className="h-4 w-4" />
                     </button>
                   </div>
                 ))}
@@ -1328,10 +1318,10 @@ export default function EmrWorkspace({
                           },
                         })
                       }
-                      className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white flex items-center justify-center shadow cursor-pointer"
+                      className="absolute -top-2 -right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-rose-600 text-white shadow cursor-pointer"
                       aria-label="Hapus foto baru"
                     >
-                      <X className="w-2.5 h-2.5" />
+                      <X className="h-4 w-4" />
                     </button>
                   </div>
                 ))}
@@ -1345,7 +1335,7 @@ export default function EmrWorkspace({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
+        <div className="flex flex-col items-stretch justify-between gap-3 pt-2 sm:flex-row sm:items-center sm:gap-4">
           {savedToast ? (
             <span className="inline-flex items-center gap-2 text-xs text-emerald-500 font-medium">
               <CheckCircle2 className="w-4 h-4" />
@@ -1357,18 +1347,18 @@ export default function EmrWorkspace({
             </span>
           )}
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
             <button
               type="button"
               onClick={() => setHistoryOpen(true)}
-              className={`px-5 sm:px-6 py-3.5 rounded-full border text-xs font-medium hover:border-[#D08080] transition-colors cursor-pointer ${theme.pillSurface}`}
+              className={`min-h-11 w-full px-5 py-3 rounded-full border text-xs font-medium hover:border-[#D08080] transition-colors cursor-pointer sm:w-auto sm:px-6 sm:py-3.5 ${theme.pillSurface}`}
             >
               Riwayat Kunjungan
             </button>
             <button
               type="submit"
               disabled={saving || loadingContext || !form.queueId}
-              className="px-7 sm:px-8 py-3.5 rounded-full bg-gradient-to-r from-[#D08080] to-[#8B4F4F] text-white text-xs font-medium shadow-[0_12px_28px_-10px_rgba(139,79,79,0.5)] hover:opacity-95 transition-opacity cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="min-h-11 w-full px-7 py-3 rounded-full bg-gradient-to-r from-[#D08080] to-[#8B4F4F] text-white text-xs font-medium shadow-[0_12px_28px_-10px_rgba(139,79,79,0.5)] hover:opacity-95 transition-opacity cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto sm:px-8 sm:py-3.5"
             >
               {saving ? 'Menyimpan...' : editingVisitId ? 'Update EMR' : 'Simpan EMR'}
             </button>
@@ -1381,21 +1371,21 @@ export default function EmrWorkspace({
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
         theme={theme}
-        className="max-w-xl p-6 sm:p-8 space-y-6"
+        className="max-w-xl p-5 sm:p-8 space-y-5 sm:space-y-6"
       >
-        <div className="sticky top-0 z-20 -mx-6 -mt-6 flex items-start justify-between gap-4 border-b border-[#D08080]/20 bg-[#FFFDFC] px-6 pb-4 pt-6 dark:bg-[#1C1417] sm:-mx-8 sm:-mt-8 sm:px-8 sm:pt-8">
-          <div>
+        <div className="sticky top-0 z-20 -mx-5 -mt-5 flex items-start justify-between gap-3 border-b border-[#D08080]/20 bg-[#FFFDFC] px-5 pb-4 pt-5 dark:bg-[#1C1417] sm:-mx-8 sm:-mt-8 sm:gap-4 sm:px-8 sm:pt-8">
+          <div className="min-w-0">
             <span className="inline-block px-3 py-1 rounded-full bg-[#D08080]/15 text-xs font-medium text-[#D08080]">
               Arsip Rekam Medis Terpadu
             </span>
-            <h3 className="mt-2 text-lg sm:text-2xl font-semibold tracking-tight">
+            <h3 className="mt-2 break-words text-base sm:text-2xl font-semibold tracking-tight">
               Riwayat Kunjungan — {selectedPatient?.name}
             </h3>
           </div>
           <button
             type="button"
             onClick={() => setHistoryOpen(false)}
-            className="p-2 rounded-full bg-[#D08080]/15 text-[#D08080] hover:bg-[#D08080] hover:text-white transition-colors cursor-pointer"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#D08080]/15 text-[#D08080] hover:bg-[#D08080] hover:text-white transition-colors cursor-pointer"
             aria-label="Tutup Riwayat"
           >
             <X className="w-4 h-4" />
@@ -1440,9 +1430,9 @@ export default function EmrWorkspace({
                         visit
                       )
                     }}
-                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#D08080] to-[#8B4F4F] text-white text-xs font-medium shadow-sm hover:opacity-95 transition-opacity cursor-pointer"
+                    className="inline-flex min-h-11 items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-r from-[#D08080] to-[#8B4F4F] text-white text-xs font-medium shadow-sm hover:opacity-95 transition-opacity cursor-pointer"
                   >
-                    <Edit3 className="w-3 h-3" />
+                    <Edit3 className="w-3.5 h-3.5" />
                     <span>Edit</span>
                   </button>
                 </div>
@@ -1483,7 +1473,7 @@ export default function EmrWorkspace({
                           alt={photo.fileName || `Foto ${photoIdx + 1}`}
                           className="h-full w-full object-cover"
                         />
-                        <span className="absolute inset-0 flex items-center justify-center bg-black/35 text-white opacity-0 transition group-hover:opacity-100">
+                        <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/35 text-white opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
                           <ZoomIn className="h-4 w-4" />
                         </span>
                       </button>
@@ -1501,7 +1491,7 @@ export default function EmrWorkspace({
         open={!!editingLegend}
         onClose={() => setEditingLegend(null)}
         theme={theme}
-        className="max-w-sm p-6 sm:p-7 space-y-5"
+        className="max-w-sm p-5 sm:p-7 space-y-5"
       >
         <div>
           <span className={`text-xs font-medium ${theme.roseLabel}`}>Edit Template Tanda</span>
@@ -1544,18 +1534,18 @@ export default function EmrWorkspace({
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 pt-1">
+        <div className="flex flex-col gap-2.5 pt-1 sm:flex-row">
           <button
             type="button"
             onClick={() => setEditingLegend(null)}
-            className={`flex-1 py-2.5 rounded-full border text-xs font-medium cursor-pointer ${theme.pillSurface}`}
+            className={`min-h-11 flex-1 py-3 rounded-full border text-xs font-medium cursor-pointer ${theme.pillSurface}`}
           >
             Batal
           </button>
           <button
             type="button"
             onClick={saveLegendEdit}
-            className="flex-1 py-2.5 rounded-full bg-[#D08080] text-white text-xs font-medium cursor-pointer"
+            className="min-h-11 flex-1 py-3 rounded-full bg-[#D08080] text-white text-xs font-medium cursor-pointer"
           >
             Simpan Perubahan
           </button>

@@ -226,12 +226,12 @@ export default function EMRForm({
 
   return (
     <>
-      <form onSubmit={handleSubmit(onSubmit)} className="w-full space-y-8">
+      <form onSubmit={handleSubmit(onSubmit)} className="w-full min-w-0 space-y-5 sm:space-y-8">
         {/* Grid utama */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Kolom kiri: Informasi Kunjungan (span 2) */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="diamond-glass rounded-3xl p-6 md:p-8 transition-all hover:shadow-xl">
+          <div className="min-w-0 space-y-4 sm:space-y-6 lg:col-span-2">
+            <div className="diamond-glass rounded-3xl p-4 sm:p-8 transition-all hover:shadow-xl">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shadow-inner">
                   <span className="material-symbols-outlined text-primary">person_search</span>
@@ -299,8 +299,8 @@ export default function EMRForm({
           </div>
 
           {/* Kolom kanan: Diagnosa & Tindakan, Dokter PJ */}
-          <div className="space-y-6">
-            <div className="diamond-glass rounded-3xl p-6 md:p-8 transition-all hover:shadow-xl">
+          <div className="min-w-0 space-y-4 sm:space-y-6">
+            <div className="diamond-glass rounded-3xl p-4 sm:p-8 transition-all hover:shadow-xl">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center shadow-inner">
                   <span className="material-symbols-outlined text-secondary">stethoscope</span>
@@ -333,7 +333,7 @@ export default function EMRForm({
               </div>
             </div>
 
-            <div className="diamond-glass rounded-3xl p-6 md:p-8 transition-all hover:shadow-xl">
+            <div className="diamond-glass rounded-3xl p-4 sm:p-8 transition-all hover:shadow-xl">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shadow-inner">
                   <span className="material-symbols-outlined text-primary">person</span>
@@ -352,8 +352,8 @@ export default function EMRForm({
           </div>
 
           {/* Resep Obat dan Catatan Tambahan */}
-          <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="diamond-glass rounded-3xl p-6 md:p-8 transition-all hover:shadow-xl">
+          <div className="min-w-0 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            <div className="diamond-glass min-w-0 rounded-3xl p-4 sm:p-8 transition-all hover:shadow-xl">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-tertiary/10 flex items-center justify-center shadow-inner">
                   <span className="material-symbols-outlined text-tertiary">prescriptions</span>
@@ -367,7 +367,7 @@ export default function EMRForm({
                 placeholder="Tuliskan detail resep obat..."
               />
             </div>
-            <div className="diamond-glass rounded-3xl p-6 md:p-8 transition-all hover:shadow-xl">
+            <div className="diamond-glass min-w-0 rounded-3xl p-4 sm:p-8 transition-all hover:shadow-xl">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-outline/10 flex items-center justify-center shadow-inner">
                   <span className="material-symbols-outlined text-outline">note_alt</span>
@@ -384,15 +384,15 @@ export default function EMRForm({
           </div>
 
           {/* Dokumentasi Foto */}
-          <div className="lg:col-span-3">
-            <div className="diamond-glass rounded-3xl p-6 md:p-8 transition-all hover:shadow-xl">
+          <div className="min-w-0 lg:col-span-3">
+            <div className="diamond-glass min-w-0 rounded-3xl p-4 sm:p-8 transition-all hover:shadow-xl">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center shadow-inner">
                   <span className="material-symbols-outlined text-secondary">add_a_photo</span>
                 </div>
                 <h3 className="text-lg font-headline font-bold text-primary">Dokumentasi Foto</h3>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-5">
                 {existingPhotoList.map((photo, idx) => {
                   const imageUrl = photo.fileId ? getProxyUrl(photo.fileId) : (photo.url || photo.fileUrl || '')
                   return (
@@ -434,19 +434,17 @@ export default function EMRForm({
                           </div>
                         </div>
                       )}
-                      {/* Tombol delete */}
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            removeExistingPhoto(photo.id)
-                          }}
-                          className="bg-white rounded-full p-2 text-error hover:scale-110 transition"
-                        >
-                          <span className="material-symbols-outlined text-sm">delete</span>
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        aria-label={`Hapus foto ${photo.fileName || idx + 1}`}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          removeExistingPhoto(photo.id)
+                        }}
+                        className="absolute right-1.5 top-1.5 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-error shadow-md transition hover:scale-110 cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-lg">delete</span>
+                      </button>
                     </div>
                   )
                 })}
@@ -462,21 +460,20 @@ export default function EMRForm({
                     className="relative aspect-square rounded-2xl overflow-hidden group shadow-md ring-2 ring-white/50 transition-all hover:scale-105 cursor-zoom-in"
                   >
                     <img src={src} alt="preview" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          removeFile(idx)
-                        }}
-                        className="bg-white rounded-full p-2 text-error hover:scale-110 transition"
-                      >
-                        <span className="material-symbols-outlined text-sm">delete</span>
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      aria-label={`Hapus foto baru ${idx + 1}`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        removeFile(idx)
+                      }}
+                      className="absolute right-1.5 top-1.5 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-error shadow-md transition hover:scale-110 cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-lg">delete</span>
+                    </button>
                   </div>
                 ))}
-                <label className="relative aspect-square rounded-2xl border-2 border-dashed border-outline-variant/50 bg-white/30 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-white/50 transition-all hover:shadow-md">
+                <label className="relative flex min-h-28 aspect-square flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-outline-variant/50 bg-white/30 cursor-pointer hover:bg-white/50 transition-all hover:shadow-md">
                   <input
                     type="file"
                     multiple
@@ -496,13 +493,13 @@ export default function EMRForm({
         </div>
 
         {/* Bottom Actions */}
-        <div className="flex justify-center mt-8">
-          <div className="flex flex-col sm:flex-row items-center gap-4 bg-white/60 backdrop-blur-md rounded-full px-6 py-2 shadow-xl border border-white/60">
+        <div className="flex justify-center mt-6 sm:mt-8">
+          <div className="flex w-full flex-col items-stretch gap-3 rounded-3xl bg-white/60 px-4 py-3 shadow-xl backdrop-blur-md border border-white/60 sm:w-auto sm:flex-row sm:items-center sm:gap-4 sm:rounded-full sm:px-6 sm:py-2">
             {onHistoryClick && (
               <button
                 type="button"
                 onClick={onHistoryClick}
-                className="px-6 py-2 rounded-full border border-primary/30 text-primary font-label font-bold text-sm hover:bg-white/60 transition-all shadow-sm"
+                className="min-h-11 w-full px-6 py-2.5 rounded-full border border-primary/30 text-primary font-label font-bold text-sm hover:bg-white/60 transition-all shadow-sm sm:w-auto"
               >
                 Riwayat Kunjungan
               </button>
@@ -510,7 +507,7 @@ export default function EMRForm({
             <button
               type="submit"
               disabled={loading}
-              className="px-8 py-3 rounded-full bg-gradient-to-r from-primary to-[#623738] text-white font-label font-bold text-sm shadow-lg shadow-primary/30 hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="min-h-11 w-full px-8 py-2.5 rounded-full bg-gradient-to-r from-primary to-[#623738] text-white font-label font-bold text-sm shadow-lg shadow-primary/30 hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto sm:py-3"
             >
               {loading ? 'Menyimpan...' : visitId ? 'Update EMR' : 'Simpan EMR'}
             </button>

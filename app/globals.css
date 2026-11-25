@@ -326,3 +326,17 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .dark input[type='date']::-webkit-calendar-picker-indicator {
   filter: invert(1);
 }
+
+[data-sonner-toaster] {
+  z-index: 40 !important;
+}
+
+[data-sonner-toast] {
+  touch-action: pan-y;
+}
+
+@media (max-width: 639px) {
+  [data-sonner-toaster][data-y-position='top'] {
+    top: max(calc(env(safe-area-inset-top) + 1rem), 7.5rem) !important;
+  }
+}

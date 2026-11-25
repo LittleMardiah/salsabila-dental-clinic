@@ -822,7 +822,7 @@ export default function AdminDashboardPage() {
         onClick={() => setActiveTab(tab.id)}
         className={
           compact
-            ? `shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
+            ? `shrink-0 inline-flex min-h-10 items-center gap-1.5 px-3.5 py-2 rounded-full border text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
                 active
                   ? 'bg-gradient-to-r from-[#D08080] to-[#8B4F4F] border-transparent text-white shadow-sm'
                   : `${theme.pillSurface} hover:border-[#D08080]`
@@ -852,7 +852,7 @@ export default function AdminDashboardPage() {
         onClick={() => updateClinicStatus(true)}
         disabled={savingClinicStatus}
         aria-pressed={clinicOpen}
-        className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
+        className={`inline-flex min-h-9 items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
           clinicOpen
             ? 'bg-emerald-700 text-white'
             : 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10'
@@ -866,7 +866,7 @@ export default function AdminDashboardPage() {
         onClick={() => updateClinicStatus(false)}
         disabled={savingClinicStatus}
         aria-pressed={!clinicOpen}
-        className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
+        className={`inline-flex min-h-9 items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
           clinicOpen
             ? 'text-rose-600 dark:text-rose-400 hover:bg-rose-500/10'
             : 'bg-rose-700 text-white'
@@ -909,7 +909,7 @@ export default function AdminDashboardPage() {
               type="button"
               onClick={switchOperator}
               title={`Login sebagai ${adminUsername}. Klik untuk ganti operator aktif.`}
-              className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-full border text-[11px] sm:text-xs font-medium transition-all hover:border-[#D08080] cursor-pointer shrink-0 ${theme.pillSurface}`}
+              className={`inline-flex min-h-10 items-center gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-full border text-[11px] sm:text-xs font-medium transition-all hover:border-[#D08080] cursor-pointer shrink-0 ${theme.pillSurface}`}
             >
               <UserCheck className="w-3.5 h-3.5 text-[#D08080] shrink-0" />
               <span className="hidden sm:inline max-w-[140px] truncate">{activeOperator}</span>
@@ -921,7 +921,7 @@ export default function AdminDashboardPage() {
               type="button"
               onClick={handleLogout}
               aria-label="Keluar"
-              className={`inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border text-[11px] sm:text-xs font-normal tracking-[0.02em] transition-all duration-300 hover:border-[#D08080] cursor-pointer shrink-0 whitespace-nowrap ${theme.pillSurface}`}
+              className={`inline-flex min-h-10 items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-full border text-[11px] sm:text-xs font-normal tracking-[0.02em] transition-all duration-300 hover:border-[#D08080] cursor-pointer shrink-0 whitespace-nowrap ${theme.pillSurface}`}
             >
               <LogOut className="w-3.5 h-3.5 text-[#D08080] shrink-0" />
               <span className="hidden sm:inline">Keluar</span>
@@ -1013,16 +1013,24 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              <div className={`rounded-3xl border overflow-x-auto ${theme.elevatedCard}`}>
-                <table className="w-full text-left border-collapse min-w-[720px]">
+              <div className={`rounded-3xl border overflow-hidden ${theme.elevatedCard}`}>
+                <table className="w-full table-fixed text-left border-collapse text-xs md:text-sm">
+                  <colgroup>
+                    <col className="w-20 sm:w-24" />
+                    <col />
+                    <col className="hidden md:table-column md:w-28" />
+                    <col className="hidden md:table-column md:w-24" />
+                    <col className="w-20 sm:w-24" />
+                    <col className="w-28 sm:w-36" />
+                  </colgroup>
                   <thead>
-                    <tr className={`border-b ${theme.hairline} text-xs font-medium ${theme.textSubtle}`}>
-                      <th className="py-4 px-5 sm:px-6">No. Antrian (Klik Tiket)</th>
-                      <th className="py-4 px-4">Nama Pasien</th>
-                      <th className="py-4 px-4">Kontak</th>
-                      <th className="py-4 px-4">Waktu Daftar</th>
-                      <th className="py-4 px-4">Status</th>
-                      <th className="py-4 px-5 sm:px-6 text-right">Aksi</th>
+                    <tr className={`border-b ${theme.hairline} text-[10px] md:text-xs font-medium ${theme.textSubtle}`}>
+                      <th className="py-3 px-2 sm:px-4">No. Antrian</th>
+                      <th className="py-3 px-2 sm:px-4">Nama Pasien</th>
+                      <th className="hidden md:table-cell py-3 px-2 sm:px-4">Kontak</th>
+                      <th className="hidden md:table-cell py-3 px-2 sm:px-4">Waktu Daftar</th>
+                      <th className="py-3 px-2 sm:px-4">Status</th>
+                      <th className="py-3 px-2 sm:px-4 text-right">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className={`divide-y ${theme.divideHairline} text-sm`}>
@@ -1050,7 +1058,7 @@ export default function AdminDashboardPage() {
                     ) : (
                       queues.map((item) => (
                         <tr key={item.id} className="transition-colors duration-200 hover:bg-[#D08080]/[0.05]">
-                          <td className="py-4 px-5 sm:px-6">
+                          <td className="py-3 px-2 sm:px-4">
                             <button
                               type="button"
                               onClick={() =>
@@ -1060,21 +1068,25 @@ export default function AdminDashboardPage() {
                                   code: item.patientCode,
                                 })
                               }
-                              className={`text-lg font-semibold ${theme.roseAccent} hover:underline cursor-pointer`}
+                              className={`text-sm sm:text-lg font-semibold ${theme.roseAccent} hover:underline cursor-pointer`}
                               title="Buka tiket antrean"
                             >
                               {formatQueueNumber(item.queueNumber)}
                             </button>
                           </td>
-                          <td className="py-4 px-4">
-                            <div className="font-medium">{item.patientName}</div>
-                            <div className={`text-xs ${theme.textSubtle}`}>{item.keluhan || 'Konsultasi umum'}</div>
+                          <td className="py-3 px-2 sm:px-4 font-medium break-words">
+                            <div>{item.patientName}</div>
+                            <div className={`text-[10px] sm:text-xs font-normal ${theme.textSubtle}`}>
+                              {item.keluhan || 'Konsultasi umum'}
+                            </div>
                           </td>
-                          <td className={`py-4 px-4 text-xs ${theme.textMuted}`}>{item.phone || '-'}</td>
-                          <td className={`py-4 px-4 text-xs tabular-nums ${theme.textSubtle}`}>
+                          <td className={`hidden md:table-cell py-3 px-2 sm:px-4 text-xs ${theme.textMuted}`}>
+                            {item.phone || '-'}
+                          </td>
+                          <td className={`hidden md:table-cell py-3 px-2 sm:px-4 text-xs tabular-nums ${theme.textSubtle}`}>
                             {formatTime(item.createdAt)}
                           </td>
-                          <td className="py-4 px-4">
+                          <td className="py-3 px-2 sm:px-4">
                             <span
                               className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-medium whitespace-nowrap ${
                                 item.status === 'CALLED'
@@ -1090,32 +1102,34 @@ export default function AdminDashboardPage() {
                               <span>{QUEUE_STATUS_LABEL[item.status]}</span>
                             </span>
                           </td>
-                          <td className="py-4 px-5 sm:px-6 text-right space-x-2 whitespace-nowrap">
-                            {item.status === 'WAITING' && (
+                          <td className="py-3 px-2 sm:px-4">
+                            <div className="flex flex-wrap justify-end gap-1.5">
+                              {item.status === 'WAITING' && (
+                                <button
+                                  type="button"
+                                  onClick={() => callQueue(item)}
+                                  className={`min-h-10 px-3 rounded-full border text-[10px] sm:text-xs font-medium hover:border-[#D08080] transition-colors cursor-pointer ${theme.pillSurface}`}
+                                >
+                                  Panggil
+                                </button>
+                              )}
+                              {item.status === 'CALLED' && (
+                                <button
+                                  type="button"
+                                  onClick={() => completeQueue(item)}
+                                  className="min-h-10 px-3 rounded-full bg-emerald-600 text-white text-[10px] sm:text-xs font-medium cursor-pointer"
+                                >
+                                  Selesai
+                                </button>
+                              )}
                               <button
                                 type="button"
-                                onClick={() => callQueue(item)}
-                                className={`px-3.5 py-1.5 rounded-full border text-xs font-medium hover:border-[#D08080] transition-colors cursor-pointer ${theme.pillSurface}`}
+                                onClick={() => openEmrForQueue(item)}
+                                className="min-h-10 px-3 rounded-full bg-[#D08080]/15 text-[#D08080] text-[10px] sm:text-xs font-medium hover:bg-[#D08080] hover:text-white transition-colors cursor-pointer"
                               >
-                                Panggil
+                                EMR
                               </button>
-                            )}
-                            {item.status === 'CALLED' && (
-                              <button
-                                type="button"
-                                onClick={() => completeQueue(item)}
-                                className="px-3.5 py-1.5 rounded-full bg-emerald-600 text-white text-xs font-medium cursor-pointer"
-                              >
-                                Selesai
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => openEmrForQueue(item)}
-                              className="px-3.5 py-1.5 rounded-full bg-[#D08080]/15 text-[#D08080] text-xs font-medium hover:bg-[#D08080] hover:text-white transition-colors cursor-pointer"
-                            >
-                              EMR
-                            </button>
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -1209,15 +1223,22 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
 
-              <div className={`rounded-3xl border overflow-x-auto ${theme.elevatedCard}`}>
-                <table className="w-full text-left border-collapse min-w-[640px]">
+              <div className={`rounded-3xl border overflow-hidden ${theme.elevatedCard}`}>
+                <table className="w-full table-fixed text-left border-collapse text-xs sm:text-sm">
+                  <colgroup>
+                    <col className="w-20 sm:w-24" />
+                    <col />
+                    <col className="hidden md:table-column md:w-36" />
+                    <col className="w-24 sm:w-32" />
+                    <col className="w-28 sm:w-36" />
+                  </colgroup>
                   <thead>
-                    <tr className={`border-b ${theme.hairline} text-xs font-medium ${theme.textSubtle}`}>
-                      <th className="py-4 px-5 sm:px-6">No Antrian</th>
-                      <th className="py-4 px-4">Nama Pasien</th>
-                      <th className="py-4 px-4">Tanggal</th>
-                      <th className="py-4 px-4">Total Tagihan</th>
-                      <th className="py-4 px-5 sm:px-6 text-right">Aksi</th>
+                    <tr className={`border-b ${theme.hairline} text-[10px] sm:text-xs font-medium ${theme.textSubtle}`}>
+                      <th className="py-3 px-2 sm:px-4">No Antrian</th>
+                      <th className="py-3 px-2 sm:px-4">Nama Pasien</th>
+                      <th className="hidden md:table-cell py-3 px-2 sm:px-4">Tanggal</th>
+                      <th className="py-3 px-2 sm:px-4">Total Tagihan</th>
+                      <th className="py-3 px-2 sm:px-4 text-right">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className={`divide-y ${theme.divideHairline} text-sm`}>
@@ -1236,30 +1257,30 @@ export default function AdminDashboardPage() {
                     ) : (
                       (financeTab === 'pending' ? pendingTrx : confirmedTrx).map((trx) => (
                         <tr key={trx.id} className="transition-colors hover:bg-[#D08080]/[0.04]">
-                          <td className={`py-4 px-5 sm:px-6 text-xs font-semibold ${theme.roseLabel}`}>
+                          <td className={`py-3 px-2 sm:px-4 text-[10px] sm:text-xs font-semibold ${theme.roseLabel}`}>
                             {formatQueueNumber(trx.queue.queueNumber)}
                           </td>
-                          <td className="py-4 px-4">
-                            <div className="font-medium">{trx.patient.name}</div>
-                            <div className={`text-xs ${theme.textSubtle}`}>
+                          <td className="py-3 px-2 sm:px-4 font-medium break-words">
+                            <div>{trx.patient.name}</div>
+                            <div className={`text-[10px] sm:text-xs font-normal ${theme.textSubtle}`}>
                               {trx.paymentMethod === 'CASH' ? 'Cash' : trx.paymentMethod === 'TRANSFER' ? 'Digital / Transfer' : 'Metode belum dipilih'}
                             </div>
                           </td>
-                          <td className={`py-4 px-4 text-xs tabular-nums ${theme.textSubtle}`}>
+                          <td className={`hidden md:table-cell py-3 px-2 sm:px-4 text-xs tabular-nums ${theme.textSubtle}`}>
                             {formatDateTime(trx.createdAt)}
                           </td>
-                          <td className="py-4 px-4 font-semibold tabular-nums">{formatRupiah(trx.amount)}</td>
-                          <td className="py-4 px-5 sm:px-6 text-right">
+                          <td className="py-3 px-2 sm:px-4 font-semibold tabular-nums">{formatRupiah(trx.amount)}</td>
+                          <td className="py-3 px-2 sm:px-4 text-right">
                             {trx.status === 'PENDING' ? (
                               <button
                                 type="button"
                                 onClick={() => openPayment(trx)}
-                                className="px-4 py-1.5 rounded-full bg-emerald-600 text-white text-xs font-medium cursor-pointer whitespace-nowrap"
+                                className="min-h-10 w-full px-2 sm:w-auto sm:px-3 rounded-full bg-emerald-600 text-white text-[10px] sm:text-xs font-medium cursor-pointer"
                               >
                                 Konfirmasi Bayar
                               </button>
                             ) : (
-                              <span className="text-xs font-medium text-emerald-500">Lunas</span>
+                              <span className="text-[10px] sm:text-xs font-medium text-emerald-500">Lunas</span>
                             )}
                           </td>
                         </tr>
@@ -1368,14 +1389,20 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              <div className={`rounded-3xl border overflow-x-auto ${theme.elevatedCard}`}>
-                <table className="w-full text-left border-collapse min-w-[520px]">
+              <div className={`rounded-3xl border overflow-hidden ${theme.elevatedCard}`}>
+                <table className="w-full table-fixed text-left border-collapse text-xs sm:text-sm">
+                  <colgroup>
+                    <col className="w-24 sm:w-32" />
+                    <col />
+                    <col className="hidden md:table-column md:w-40" />
+                    <col className="w-24 sm:w-28" />
+                  </colgroup>
                   <thead>
-                    <tr className={`border-b ${theme.hairline} text-xs font-medium ${theme.textSubtle}`}>
-                      <th className="py-4 px-5 sm:px-6">Tanggal</th>
-                      <th className="py-4 px-4">Jumlah Rekonsiliasi</th>
-                      <th className="py-4 px-4">Editor</th>
-                      <th className="py-4 px-5 sm:px-6 text-right">Status</th>
+                    <tr className={`border-b ${theme.hairline} text-[10px] sm:text-xs font-medium ${theme.textSubtle}`}>
+                      <th className="py-3 px-2 sm:px-4">Tanggal</th>
+                      <th className="py-3 px-2 sm:px-4">Jumlah Rekonsiliasi</th>
+                      <th className="hidden md:table-cell py-3 px-2 sm:px-4">Editor</th>
+                      <th className="py-3 px-2 sm:px-4 text-right">Status</th>
                     </tr>
                   </thead>
                   <tbody className={`divide-y ${theme.divideHairline} text-sm`}>
@@ -1388,7 +1415,7 @@ export default function AdminDashboardPage() {
                     ) : (
                       reconcileHistory.map((rec) => (
                         <tr key={rec.id}>
-                          <td className="py-4 px-5 sm:px-6 text-xs tabular-nums">
+                          <td className="py-3 px-2 sm:px-4 text-[10px] sm:text-xs tabular-nums">
                             {new Date(rec.date).toLocaleDateString('id-ID', {
                               timeZone: 'Asia/Jakarta',
                               day: '2-digit',
@@ -1396,12 +1423,12 @@ export default function AdminDashboardPage() {
                               year: 'numeric',
                             })}
                           </td>
-                          <td className="py-4 px-4 font-semibold tabular-nums">
+                          <td className="py-3 px-2 sm:px-4 font-semibold tabular-nums">
                             {formatRupiah(rec.totalRecorded)}
                           </td>
-                          <td className="py-4 px-4 text-xs">{rec.adminId}</td>
-                          <td className="py-4 px-5 sm:px-6 text-right">
-                            <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-500 text-xs font-medium">
+                          <td className="hidden md:table-cell py-3 px-2 sm:px-4 text-xs break-all">{rec.adminId}</td>
+                          <td className="py-3 px-2 sm:px-4 text-right">
+                            <span className="px-2 sm:px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-500 text-[10px] sm:text-xs font-medium">
                               Tersimpan
                             </span>
                           </td>
@@ -1471,15 +1498,22 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              <div className={`rounded-3xl border overflow-x-auto ${theme.elevatedCard}`}>
-                <table className="w-full text-left border-collapse min-w-[760px]">
+              <div className={`rounded-3xl border overflow-hidden ${theme.elevatedCard}`}>
+                <table className="w-full table-fixed text-left border-collapse text-xs sm:text-sm">
+                  <colgroup>
+                    <col className="w-20 sm:w-28" />
+                    <col className="w-20 sm:w-28" />
+                    <col className="w-24 sm:w-32" />
+                    <col className="hidden lg:table-column" />
+                    <col className="w-16 sm:w-20" />
+                  </colgroup>
                   <thead>
-                    <tr className={`border-b ${theme.hairline} text-xs font-medium ${theme.textSubtle}`}>
-                      <th className="py-4 px-5 sm:px-6">Waktu</th>
-                      <th className="py-4 px-4">Akun</th>
-                      <th className="py-4 px-4">Aksi</th>
-                      <th className="py-4 px-4">Detail Aktivitas</th>
-                      <th className="py-4 px-5 sm:px-6 text-right">Status</th>
+                    <tr className={`border-b ${theme.hairline} text-[10px] sm:text-xs font-medium ${theme.textSubtle}`}>
+                      <th className="py-3 px-2 sm:px-4">Waktu</th>
+                      <th className="py-3 px-2 sm:px-4">Akun</th>
+                      <th className="py-3 px-2 sm:px-4">Aksi</th>
+                      <th className="hidden lg:table-cell py-3 px-2 sm:px-4">Detail Aktivitas</th>
+                      <th className="py-3 px-2 sm:px-4 text-right">Status</th>
                     </tr>
                   </thead>
                   <tbody className={`divide-y ${theme.divideHairline} text-sm`}>
@@ -1498,13 +1532,13 @@ export default function AdminDashboardPage() {
                     ) : (
                       filteredAudit.map((log) => (
                         <tr key={log.id} className="transition-colors hover:bg-[#D08080]/[0.04]">
-                          <td className={`py-4 px-5 sm:px-6 text-xs tabular-nums ${theme.textMuted}`}>
+                          <td className={`py-3 px-2 sm:px-4 text-[10px] sm:text-xs tabular-nums ${theme.textMuted}`}>
                             {formatDateTime(log.timestamp)}
                           </td>
-                          <td className="py-4 px-4 font-medium">{log.admin}</td>
-                          <td className="py-4 px-4">
+                          <td className="py-3 px-2 sm:px-4 font-medium break-words">{log.admin}</td>
+                          <td className="py-3 px-2 sm:px-4">
                             <span
-                              className={`inline-block px-3 py-1 rounded-full border text-xs font-medium whitespace-nowrap ${
+                              className={`inline-block px-2 sm:px-3 py-1 rounded-full border text-[10px] sm:text-xs font-medium break-words whitespace-normal ${
                                 darkMode
                                   ? 'bg-[#D08080]/15 border-[#D08080]/30 text-[#E5A6A6]'
                                   : 'bg-[#F3DEDE]/75 border-[#D08080]/30 text-[#8B4F4F]'
@@ -1513,9 +1547,11 @@ export default function AdminDashboardPage() {
                               {log.action}
                             </span>
                           </td>
-                          <td className={`py-4 px-4 text-xs ${theme.textMuted}`}>{log.detail}</td>
-                          <td className="py-4 px-5 sm:px-6 text-right">
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/12 text-emerald-500 text-xs font-medium">
+                          <td className={`hidden lg:table-cell py-3 px-2 sm:px-4 text-xs ${theme.textMuted}`}>
+                            {log.detail}
+                          </td>
+                          <td className="py-3 px-2 sm:px-4 text-right">
+                            <span className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-full bg-emerald-500/12 text-emerald-500 text-[10px] sm:text-xs font-medium">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                               <span>Sukses</span>
                             </span>
@@ -1718,7 +1754,7 @@ export default function AdminDashboardPage() {
           <button
             type="button"
             onClick={() => setRegType(null)}
-            className="p-2 rounded-full bg-[#D08080]/15 text-[#D08080] hover:bg-[#D08080] hover:text-white transition-colors cursor-pointer"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#D08080]/15 text-[#D08080] hover:bg-[#D08080] hover:text-white transition-colors cursor-pointer"
             aria-label="Tutup"
           >
             <X className="w-4 h-4" />
@@ -1780,7 +1816,7 @@ export default function AdminDashboardPage() {
         <button
           type="button"
           onClick={() => setTicket(null)}
-          className="absolute top-5 right-5 p-2 rounded-full bg-[#D08080]/15 text-[#D08080] hover:bg-[#D08080] hover:text-white transition-colors cursor-pointer"
+          className="absolute top-4 right-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#D08080]/15 text-[#D08080] hover:bg-[#D08080] hover:text-white transition-colors cursor-pointer sm:top-5 sm:right-5"
           aria-label="Tutup tiket"
         >
           <X className="w-4 h-4" />
@@ -1809,7 +1845,7 @@ export default function AdminDashboardPage() {
                 setCopiedToken(true)
                 setTimeout(() => setCopiedToken(false), 1800)
               }}
-              className="mt-5 w-full py-3 rounded-full bg-gradient-to-r from-[#D08080] to-[#8B4F4F] text-white text-xs font-medium inline-flex items-center justify-center gap-2 cursor-pointer"
+              className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#D08080] to-[#8B4F4F] py-3 text-xs font-medium cursor-pointer"
             >
               {copiedToken ? (
                 <>
@@ -1853,7 +1889,7 @@ export default function AdminDashboardPage() {
           <button
             type="button"
             onClick={() => setPaymentTarget(null)}
-            className="p-2 rounded-full bg-[#D08080]/15 text-[#D08080] hover:bg-[#D08080] hover:text-white transition-colors cursor-pointer"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#D08080]/15 text-[#D08080] hover:bg-[#D08080] hover:text-white transition-colors cursor-pointer"
             aria-label="Tutup"
           >
             <X className="w-4 h-4" />
@@ -1948,11 +1984,11 @@ export default function AdminDashboardPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 pt-1">
+        <div className="flex flex-col gap-2.5 pt-1 sm:flex-row sm:items-center sm:gap-3">
           <button
             type="button"
             onClick={() => setReconcileConfirmOpen(false)}
-            className={`flex-1 py-3 rounded-full border text-xs font-medium cursor-pointer ${theme.pillSurface}`}
+            className={`min-h-11 flex-1 py-3 rounded-full border text-xs font-medium cursor-pointer ${theme.pillSurface}`}
           >
             Batal
           </button>
@@ -1979,7 +2015,7 @@ export default function AdminDashboardPage() {
         <button
           type="button"
           onClick={() => setRestoreOpen(false)}
-          className="absolute top-5 right-5 p-2 rounded-full bg-[#D08080]/15 text-[#D08080] hover:bg-[#D08080] hover:text-white transition-colors cursor-pointer"
+          className="absolute top-4 right-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#D08080]/15 text-[#D08080] hover:bg-[#D08080] hover:text-white transition-colors cursor-pointer sm:top-5 sm:right-5"
           aria-label="Tutup"
         >
           <X className="w-4 h-4" />
@@ -2024,7 +2060,7 @@ export default function AdminDashboardPage() {
           type="button"
           onClick={submitRestore}
           disabled={restoring}
-          className="w-full py-3 rounded-full bg-amber-600 text-white text-xs font-medium cursor-pointer disabled:opacity-60 inline-flex items-center justify-center gap-2"
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-amber-600 py-3 text-xs font-medium text-white cursor-pointer disabled:opacity-60"
         >
           {restoring && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
           <span>{restoring ? 'Memulihkan...' : 'Verifikasi & Restore'}</span>

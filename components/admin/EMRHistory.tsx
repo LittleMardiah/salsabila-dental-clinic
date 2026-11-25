@@ -82,9 +82,9 @@ export default function EMRHistory({ patientId }: EMRHistoryProps) {
         <div className="text-center py-12 text-on-surface-variant/60 font-body">Belum ada riwayat kunjungan</div>
       )}
       {visits.map((visit) => (
-        <div key={visit.id} className="diamond-glass rounded-3xl p-6 transition-all hover:shadow-xl hover:translate-y-[-2px] duration-300">
+        <div key={visit.id} className="diamond-glass min-w-0 rounded-3xl p-4 sm:p-6 transition-all hover:shadow-xl hover:translate-y-[-2px] duration-300">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-            <div className="flex-1 space-y-3">
+            <div className="min-w-0 flex-1 space-y-3">
               <p className="font-headline font-bold text-xl text-primary">
                 {format(new Date(visit.createdAt), 'dd MMMM yyyy', { locale: id })}
               </p>
@@ -144,7 +144,7 @@ export default function EMRHistory({ patientId }: EMRHistoryProps) {
             <Button
               type="button"
               onClick={() => handleEditClick(visit.id)}
-              className="rounded-full border border-primary/40 text-primary bg-white/50 hover:bg-white/80 shadow-sm transition-all px-5 py-1.5 text-sm font-label font-bold"
+              className="min-h-11 w-full rounded-full border border-primary/40 text-primary bg-white/50 hover:bg-white/80 shadow-sm transition-all px-5 py-2 text-sm font-label font-bold sm:w-auto"
             >
               Edit
             </Button>

@@ -197,7 +197,7 @@ export function ThemeToggle({ theme }: { theme: ThemeTokens }) {
       onClick={toggle}
       aria-label={darkMode ? 'Aktifkan Mode Terang' : 'Aktifkan Mode Gelap'}
       title={darkMode ? 'Mode Terang' : 'Mode Gelap'}
-      className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full border inline-flex items-center justify-center transition-all duration-300 hover:border-[#D08080] hover:scale-105 cursor-pointer shrink-0 ${theme.pillSurface}`}
+      className={`w-10 h-10 sm:w-9 sm:h-9 rounded-full border inline-flex items-center justify-center transition-all duration-300 hover:border-[#D08080] hover:scale-105 cursor-pointer shrink-0 ${theme.pillSurface}`}
     >
       {darkMode ? (
         <Sun className="w-4 h-4 text-[#E5A6A6]" />
@@ -241,14 +241,23 @@ export function SolidModal({
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 animate-view-enter">
-      <div onClick={onClose} className="fixed inset-0 bg-black/60" aria-hidden="true" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-6 animate-view-enter">
+      <div
+        onClick={onClose}
+        className="fixed inset-0 bg-black/60"
+        aria-hidden="true"
+        data-modal-backdrop="true"
+      />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
-        className={`relative z-10 w-full max-h-[min(90dvh,900px)] overflow-y-auto overscroll-contain rounded-3xl border ${theme.solidPanel} ${className}`}
-        style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+        className={`relative z-10 w-full min-w-0 max-h-[min(90dvh,900px)] overflow-y-auto overscroll-contain rounded-3xl border ${theme.solidPanel} ${className}`}
+        style={{
+          WebkitOverflowScrolling: 'touch',
+          touchAction: 'pan-y pinch-zoom',
+          overscrollBehavior: 'contain',
+        }}
       >
         {children}
       </div>
@@ -273,24 +282,24 @@ export function DangerConfirmModal({
   theme: ThemeTokens
 }) {
   return (
-    <SolidModal open={!!state} onClose={onClose} theme={theme} className="max-w-sm p-6 sm:p-7 text-center space-y-4">
+    <SolidModal open={!!state} onClose={onClose} theme={theme} className="max-w-sm p-5 sm:p-7 text-center space-y-4">
       <div className="w-12 h-12 mx-auto rounded-full bg-rose-500/15 border border-rose-500/35 flex items-center justify-center text-rose-500">
         <AlertTriangle className="w-5 h-5" />
       </div>
-      <h3 className="text-lg font-semibold">{state?.title}</h3>
+      <h3 className="text-base sm:text-lg font-semibold break-words">{state?.title}</h3>
       <p className={`text-xs leading-relaxed ${theme.textMuted}`}>{state?.message}</p>
-      <div className="pt-2 flex items-center gap-2.5">
+      <div className="pt-2 flex flex-col sm:flex-row items-stretch gap-2.5">
         <button
           type="button"
           onClick={onClose}
-          className={`flex-1 py-2.5 rounded-full border text-xs font-medium cursor-pointer ${theme.pillSurface}`}
+          className={`flex-1 min-h-11 py-3 rounded-full border text-xs font-medium cursor-pointer ${theme.pillSurface}`}
         >
           Batal
         </button>
         <button
           type="button"
           onClick={() => state?.onConfirm()}
-          className="flex-1 py-2.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium transition-colors cursor-pointer"
+          className="flex-1 min-h-11 py-3 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium transition-colors cursor-pointer"
         >
           {state?.confirmLabel || 'Hapus'}
         </button>
@@ -313,7 +322,7 @@ export function WhatsAppHelpFab({
   return (
     <div className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-30 flex flex-col items-end">
       {open && (
-        <div className={`mb-3 w-72 sm:w-80 rounded-3xl border p-5 ${theme.solidPanel}`}>
+        <div className={`mb-3 w-[min(20rem,calc(100vw-2.5rem))] sm:w-80 rounded-3xl border p-5 ${theme.solidPanel}`}>
           <div className="flex items-start justify-between gap-3">
             <div>
               <span className="text-xs font-medium text-[#D08080]">WhatsApp Clinic</span>
@@ -322,7 +331,7 @@ export function WhatsAppHelpFab({
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="p-1.5 rounded-full bg-[#D08080]/15 text-[#D08080] hover:bg-[#D08080] hover:text-white transition-colors cursor-pointer"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#D08080]/15 text-[#D08080] hover:bg-[#D08080] hover:text-white transition-colors cursor-pointer"
               aria-label="Tutup bantuan"
             >
               <X className="w-4 h-4" />
@@ -346,7 +355,7 @@ export function WhatsAppHelpFab({
                 setCopiedWa(true)
                 setTimeout(() => setCopiedWa(false), 1800)
               }}
-              className="text-xs font-medium text-[#D08080] inline-flex items-center gap-1 cursor-pointer"
+              className="min-h-11 px-2 text-xs font-medium text-[#D08080] inline-flex items-center gap-1 cursor-pointer"
             >
               {copiedWa ? (
                 <>
@@ -379,7 +388,7 @@ export function WhatsAppHelpFab({
         type="button"
         onClick={() => setOpen(!open)}
         aria-expanded={open}
-        className={`inline-flex items-center gap-2.5 px-4 sm:px-5 py-3 rounded-full border text-xs font-medium tracking-[0.02em] transition-all hover:border-[#D08080] cursor-pointer ${theme.pillSurface}`}
+        className={`inline-flex min-h-11 items-center gap-2.5 px-4 sm:px-5 py-3 rounded-full border text-xs font-medium tracking-[0.02em] transition-all hover:border-[#D08080] cursor-pointer ${theme.pillSurface}`}
       >
         <MessageCircle className="w-4 h-4 text-[#D08080]" />
         <span>Butuh Bantuan?</span>
