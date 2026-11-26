@@ -216,17 +216,20 @@ export default function EmrWorkspace({
     setJawScanPreview(null)
   }
 
+  const photoSrc = (photo: VisitItem['photos'][number] | undefined) =>
+    photo?.url || (photo?.fileId ? `/api/drive/image/${photo.fileId}` : '')
+
   const toLightboxPhotos = (photos: VisitItem['photos']): LightboxPhoto[] =>
     photos
       .map((photo, idx) => ({
-        src: photo.url || (photo.fileId ? `/api/drive/image/${photo.fileId}` : ''),
+        src: photoSrc(photo),
         name: photo.fileName || `Foto ${idx + 1}`,
       }))
       .filter((photo) => photo.src.length > 0)
 
   const openPhotoViewer = (photos: VisitItem['photos'], index: number) => {
     const selected = photos[index]
-    const selectedSrc = selected?.url || (selected?.fileId ? `/api/drive/image/${selected.fileId}` : '')
+    const selectedSrc = photoSrc(selected)
     const list = toLightboxPhotos(photos)
     if (list.length === 0) {
       toast.warning('Tidak ada foto yang bisa ditampilkan')
@@ -321,7 +324,12 @@ export default function EmrWorkspace({
         toast.error('Gagal memuat data rekam medis pasien')
       } finally {
         setLoadingContext(false)
-        requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+        requestAnimationFrame(() =>
+          topRef.current?.scrollIntoView({
+            behavior: window.matchMedia('(max-width: 639px)').matches ? 'auto' : 'smooth',
+            block: 'start',
+          })
+        )
       }
     },
     [activeOperator, queues, loadQueueOptions, loadHistory]
@@ -614,7 +622,7 @@ export default function EmrWorkspace({
           />
         </div>
 
-        <div className={`rounded-3xl border overflow-hidden ${theme.elevatedCard}`}>
+        <div className={`hidden overflow-hidden rounded-3xl border sm:block ${theme.elevatedCard}`}>
           <table className="w-full table-fixed text-left border-collapse text-xs sm:text-sm">
             <colgroup>
               <col className="w-10 sm:w-12" />
@@ -672,6 +680,41 @@ export default function EmrWorkspace({
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile: cards keep the list readable and tappable on small screens. */}
+        <div className={`sm:hidden overflow-hidden rounded-3xl border ${theme.elevatedCard}`}>
+          {loadingPatients ? (
+            <p className={`py-10 text-center text-xs ${theme.textMuted}`}>Memuat data pasien...</p>
+          ) : filteredPatients.length === 0 ? (
+            <p className={`py-10 text-center text-xs ${theme.textMuted}`}>Tidak ada pasien ditemukan.</p>
+          ) : (
+            <div className={`divide-y ${theme.divideHairline}`}>
+              {filteredPatients.map((patient, index) => (
+                <div key={patient.id} className="space-y-2.5 p-4">
+                  <div className="flex items-baseline gap-2">
+                    <span className={`text-[11px] font-semibold tabular-nums ${theme.roseLabel}`}>
+                      {String(index + 1).padStart(2, '0')}
+                    </span>
+                    <span className="min-w-0 break-words text-sm font-medium">{patient.name}</span>
+                  </div>
+                  <div className="space-y-0.5 pl-6">
+                    <p className={`break-all text-xs ${theme.textMuted}`}>{patient.phone || '-'}</p>
+                    {patient.email && (
+                      <p className={`break-all text-[11px] ${theme.textSubtle}`}>{patient.email}</p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openPatient(patient)}
+                    className={`min-h-11 w-full touch-manipulation rounded-full border px-3 text-xs font-medium transition-colors hover:border-[#D08080] cursor-pointer ${theme.pillSurface}`}
+                  >
+                    Kelola EMR
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     )
@@ -916,7 +959,7 @@ export default function EmrWorkspace({
               )}
             </div>
 
-            <div className="max-h-48 sm:max-h-44 overflow-y-auto overscroll-contain pr-1 space-y-2">
+            <div className="space-y-2 pr-1 sm:max-h-44 sm:overflow-y-auto sm:overscroll-contain">
               {legendItems.length === 0 ? (
                 <p className={`text-xs py-2 ${theme.textSubtle}`}>
                   Belum ada template. Tambahkan tanda baru untuk mulai memetakan kondisi gigi.
@@ -1252,11 +1295,11 @@ export default function EmrWorkspace({
                       type="button"
                       onClick={() => openPhotoViewer(existingPhotos, idx)}
                       aria-label={`Perbesar ${photo.fileName || `Foto ${idx + 1}`}`}
-                      className="block h-20 w-20 overflow-hidden rounded-xl border border-[#D08080]/40 cursor-zoom-in transition hover:border-[#D08080] hover:shadow-md"
+                      className="block h-20 w-20 overflow-hidden rounded-xl border border-[#D08080]/40 cursor-zoom-in transition hover:border-[#D08080] hover:shadow-md touch-manipulation"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={photo.url}
+                        src={photoSrc(photo)}
                         alt={photo.fileName || `Foto ${idx + 1}`}
                         className="h-full w-full object-cover"
                       />
@@ -1279,7 +1322,7 @@ export default function EmrWorkspace({
                           },
                         })
                       }
-                      className="absolute -top-2 -right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-rose-600 text-white shadow cursor-pointer"
+                      className="absolute -top-2.5 -right-2.5 z-10 flex h-9 w-9 touch-manipulation items-center justify-center rounded-full bg-rose-600 text-white shadow cursor-pointer"
                       aria-label="Hapus foto"
                     >
                       <X className="h-4 w-4" />
@@ -1318,7 +1361,7 @@ export default function EmrWorkspace({
                           },
                         })
                       }
-                      className="absolute -top-2 -right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-rose-600 text-white shadow cursor-pointer"
+                      className="absolute -top-2.5 -right-2.5 z-10 flex h-9 w-9 touch-manipulation items-center justify-center rounded-full bg-rose-600 text-white shadow cursor-pointer"
                       aria-label="Hapus foto baru"
                     >
                       <X className="h-4 w-4" />
@@ -1465,11 +1508,11 @@ export default function EmrWorkspace({
                         type="button"
                         onClick={() => openPhotoViewer(visit.photos, photoIdx)}
                         aria-label={`Perbesar foto ${photo.fileName || photoIdx + 1}`}
-                        className="group relative h-16 w-16 overflow-hidden rounded-xl border border-[#D08080]/40 cursor-zoom-in transition hover:border-[#D08080] hover:shadow-md"
+                        className="group relative h-16 w-16 overflow-hidden rounded-xl border border-[#D08080]/40 cursor-zoom-in transition hover:border-[#D08080] hover:shadow-md touch-manipulation"
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={photo.url}
+                          src={photoSrc(photo)}
                           alt={photo.fileName || `Foto ${photoIdx + 1}`}
                           className="h-full w-full object-cover"
                         />

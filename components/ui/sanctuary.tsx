@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useRef, useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import {
   ArrowUpRight,
@@ -223,12 +224,20 @@ export function SolidModal({
   children: React.ReactNode
   labelledBy?: string
 }) {
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => setMounted(true), [])
+
+  // Only `open` may re-trigger the effect: an inline `onClose` would otherwise
+  // unlock and re-lock the body on every parent render (scroll jumps, stuck page).
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
       if (document.querySelector('[data-photo-lightbox="true"]')) return
-      onClose()
+      onCloseRef.current()
     }
     document.addEventListener('keydown', onKey)
     lockBodyScroll()
@@ -236,15 +245,20 @@ export function SolidModal({
       document.removeEventListener('keydown', onKey)
       unlockBodyScroll()
     }
-  }, [open, onClose])
+  }, [open])
 
-  if (!open) return null
+  if (!open || !mounted) return null
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-6 animate-view-enter">
+  // Rendered through a portal so ancestors with transforms/filters (the animated
+  // dashboard tab wrapper) can never trap the fixed overlay inside the content box.
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[200] flex items-end justify-center p-0 pb-[env(safe-area-inset-bottom)] sm:items-center sm:p-6 animate-view-enter"
+      data-modal-root="true"
+    >
       <div
-        onClick={onClose}
-        className="fixed inset-0 bg-black/60"
+        onClick={() => onCloseRef.current()}
+        className="absolute inset-0 bg-black/60"
         aria-hidden="true"
         data-modal-backdrop="true"
       />
@@ -252,7 +266,7 @@ export function SolidModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
-        className={`relative z-10 w-full min-w-0 max-h-[min(90dvh,900px)] overflow-y-auto overscroll-contain rounded-3xl border ${theme.solidPanel} ${className}`}
+        className={`relative z-10 w-full min-w-0 max-h-[88dvh] overflow-y-auto overscroll-contain rounded-t-3xl border sm:max-h-[min(90dvh,900px)] sm:rounded-3xl ${theme.solidPanel} ${className}`}
         style={{
           WebkitOverflowScrolling: 'touch',
           touchAction: 'pan-y pinch-zoom',
@@ -261,7 +275,8 @@ export function SolidModal({
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 

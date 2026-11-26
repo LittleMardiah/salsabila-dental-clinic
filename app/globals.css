@@ -316,7 +316,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .animate-view-enter {
-  animation: viewFadeSlide 0.36s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  /* `backwards` (not `forwards`) so no transform is kept after the animation:
+     a retained transform makes this wrapper the containing block of every
+     position:fixed overlay inside it. */
+  animation: viewFadeSlide 0.36s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -328,7 +331,28 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 [data-sonner-toaster] {
-  z-index: 40 !important;
+  /* Above modal (200) and lightbox (300) layers so feedback stays visible. */
+  z-index: 400 !important;
+}
+
+/* While an overlay owns the viewport, block background bounce/scroll chaining. */
+body[data-scroll-lock='true'] {
+  overscroll-behavior: none;
+}
+
+/* Overlays must not inherit horizontal page scroll or double-tap zoom jank. */
+[data-modal-root='true'],
+[data-photo-lightbox='true'] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 639px) {
+  /* 16px keeps iOS from zooming the layout when a field gets focus. */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
 }
 
 [data-sonner-toast] {
