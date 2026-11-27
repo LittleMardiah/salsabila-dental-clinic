@@ -27,7 +27,8 @@ function parseCookies(cookieHeader: string): Record<string, string> {
 export async function verifyAdminToken(request: Request): Promise<{ valid: boolean; error?: string; status?: number; username?: string }> {
   const jwtSecret = process.env.JWT_SECRET
   if (!jwtSecret) {
-    throw new Error('JWT_SECRET is not defined in environment')
+    console.error('[verifyAdminToken] JWT_SECRET belum dikonfigurasi')
+    return { valid: false, error: 'Server configuration error', status: 503 }
   }
 
   // Ambil cookie dari header request
@@ -46,7 +47,10 @@ export async function verifyAdminToken(request: Request): Promise<{ valid: boole
     }
     return { valid: true, username: decoded.username }
   } catch (error) {
-    console.error('[verifyAdminToken] JWT verification error:', error)
+    console.error(
+      '[verifyAdminToken] JWT verification error:',
+      error instanceof Error ? error.message : 'unknown error'
+    )
     return { valid: false, error: 'Invalid or expired token', status: 401 }
   }
 }

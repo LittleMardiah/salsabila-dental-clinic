@@ -9,12 +9,17 @@ import { v4 as uuidv4 } from 'uuid'
 import { addAuditLog } from '@/lib/services/audit.service'
 import sharp from 'sharp'
 import path from 'path'
+import { parsePositiveIntParam } from '@/lib/validation'
+
+const MAX_PROOF_BYTES = 5 * 1024 * 1024
 
 // Schema validasi
-const confirmSchema = z.object({
-  amount: z.number().positive('Amount harus lebih dari 0'),
-  paymentMethod: z.enum(['CASH', 'TRANSFER']),
-})
+const confirmSchema = z
+  .object({
+    amount: z.number().finite().positive('Amount harus lebih dari 0').max(1_000_000_000_000),
+    paymentMethod: z.enum(['CASH', 'TRANSFER']),
+  })
+  .strict('Data konfirmasi tidak valid')
 
 /**
  * @openapi
@@ -74,8 +79,8 @@ export async function POST(
     }
     const adminUsername = auth.username || 'unknown' 
 
-    const transactionId = parseInt(params.id)
-    if (isNaN(transactionId)) {
+    const transactionId = parsePositiveIntParam(params.id)
+    if (!transactionId) {
       return NextResponse.json(
         { success: false, error: 'Invalid transaction ID' },
         { status: 400 }
@@ -109,31 +114,40 @@ export async function POST(
 
     let receiptUrl: string | null = null
     if (paymentMethodStr === 'TRANSFER') {
-      if (!proofFile) {
+      if (!proofFile || proofFile.size === 0) {
         return NextResponse.json(
           { success: false, error: 'Bukti transfer wajib diupload untuk metode TRANSFER' },
           { status: 400 }
         )
       }
+      if (proofFile.size > MAX_PROOF_BYTES) {
+        return NextResponse.json(
+          { success: false, error: 'Ukuran bukti transfer maksimal 5MB' },
+          { status: 413 }
+        )
+      }
+
+      const bytes = await proofFile.arrayBuffer()
+      let bufferToWrite: Buffer
+      try {
+        // Decode with sharp so the bytes are a real raster image, then always
+        // re-encode to JPEG. The stored extension is fixed, not user-controlled.
+        bufferToWrite = await sharp(Buffer.from(bytes))
+          .rotate()
+          .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+          .jpeg({ quality: 70 })
+          .toBuffer()
+      } catch {
+        return NextResponse.json(
+          { success: false, error: 'Bukti transfer harus berupa gambar JPG/PNG yang valid' },
+          { status: 400 }
+        )
+      }
+
       const uploadDir = path.join(process.cwd(), 'public/uploads/finance')
       await mkdir(uploadDir, { recursive: true })
-      const fileExtension = proofFile.name.split('.').pop()
-      const fileName = `${uuidv4()}.${fileExtension}`
+      const fileName = `${uuidv4()}.jpg`
       const filePath = path.join(uploadDir, fileName)
-      const bytes = await proofFile.arrayBuffer()
-      let bufferToWrite: Buffer | Uint8Array = Buffer.from(bytes)
-      
-      if (proofFile.type.startsWith('image/')) {
-        try {
-          bufferToWrite = await sharp(bufferToWrite)
-            .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
-            .jpeg({ quality: 70 })
-            .toBuffer()
-        } catch (compressError) {
-          console.error('Compression failed, using original:', compressError)
-        }
-      }
-      
       await writeFile(filePath, bufferToWrite)
       receiptUrl = `/uploads/finance/${fileName}`
     }

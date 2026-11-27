@@ -124,6 +124,15 @@ export async function getLastVisitSummary(patientId: number) {
   }
 }
 
+const DEMO_PHOTO_PATH = /^\/demo\/[A-Za-z0-9][A-Za-z0-9._-]*$/
+
+/** Only expose public seed assets directly; every clinical file goes through
+ *  the patient-scoped proxy, never a raw Drive/webViewLink URL. */
+function portalPhotoUrl(photo: { id: number; fileId: string | null; fileUrl: string }): string {
+  if (!photo.fileId && DEMO_PHOTO_PATH.test(photo.fileUrl)) return photo.fileUrl
+  return `/api/portal/photos/${photo.id}`
+}
+
 export type PortalVisit = {
   id: number
   queueId: number
@@ -172,7 +181,7 @@ export async function getPatientVisits(patientId: number): Promise<PortalVisit[]
       name: photo.fileName,
       uploadedAt: photo.uploadedAt.toISOString(),
       // Demo/seed photos live in /public; clinical uploads stream from Drive.
-      url: photo.fileId ? `/api/portal/photos/${photo.id}` : photo.fileUrl,
+      url: portalPhotoUrl(photo),
     })),
   }))
 }

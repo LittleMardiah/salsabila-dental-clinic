@@ -1,11 +1,18 @@
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/ServerAuth'
 import { sendNotification } from '@/lib/services/WebpushService'
 import { addAuditLog } from '@/lib/services/audit.service'
 import { clinicDateOnly } from '@/lib/clinic-date'
+
+const callQueueSchema = z
+  .object({
+    queueId: z.number().int().positive().max(2_147_483_647),
+  })
+  .strict()
 
 /**
  * @openapi
@@ -44,9 +51,14 @@ export async function POST(request: Request) {
   let requestedQueueId: number | null = null
   try {
     const body = await request.json()
-    if (body && Number.isInteger(Number(body.queueId))) {
-      requestedQueueId = Number(body.queueId)
+    const parsed = callQueueSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: 'queueId tidak valid' },
+        { status: 400 }
+      )
     }
+    requestedQueueId = parsed.data.queueId
   } catch {
     // No body: call the next waiting queue (legacy behaviour).
   }

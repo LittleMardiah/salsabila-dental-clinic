@@ -3,7 +3,8 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/ServerAuth'
-import { addAuditLog } from '@/lib/services/audit.service' 
+import { addAuditLog } from '@/lib/services/audit.service'
+import { parsePositiveIntParam } from '@/lib/validation'
 
 /**
  * @openapi
@@ -45,8 +46,8 @@ export async function PATCH(
   const adminUsername = authResult.username || 'unknown' 
 
   const { id } = await params
-  const queueId = parseInt(id)
-  if (isNaN(queueId)) {
+  const queueId = parsePositiveIntParam(id)
+  if (!queueId) {
     return NextResponse.json({ success: false, error: 'Invalid queue ID' }, { status: 400 })
   }
 

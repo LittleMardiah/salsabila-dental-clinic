@@ -122,12 +122,14 @@ export async function GET(request: Request) {
       if (error) throw new Error(error.message)
 
       sent++
-      console.log(`[CRON] Email sent to ${patientEmail} for visit ${visit.id}`)
-    } catch (err: any) {
+      console.log(`[CRON] Follow-up email sent for visit ${visit.id}`)
+    } catch (err) {
       failed++
-      const errorMsg = `Failed for visit ${visit.id}: ${err.message}`
-      errors.push(errorMsg)
-      console.error(`[CRON] ${errorMsg}`)
+      errors.push(`Failed for visit ${visit.id}`)
+      console.error(
+        `[CRON] Failed for visit ${visit.id}:`,
+        err instanceof Error ? err.message : 'unknown error'
+      )
     }
   }
 
@@ -145,6 +147,5 @@ export async function GET(request: Request) {
     message: 'Follow-up emails processed',
     sent,
     failed,
-    errors: errors.length > 0 ? errors : undefined,
   })
 }

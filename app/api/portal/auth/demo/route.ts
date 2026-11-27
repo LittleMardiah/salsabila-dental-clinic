@@ -1,18 +1,20 @@
 export const dynamic = 'force-dynamic'
+// First click may provision the demo patient + EMR on a fresh database.
+export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { prisma } from '@/lib/prisma'
+import { DEMO_ACCOUNTS, DEMO_PASSWORD, ensureDemoAccount, isDemoEnabled } from '@/lib/portal-demo'
 import {
-  DEMO_ACCOUNTS,
-  DEMO_PASSWORD,
-  ensureDemoAccount,
-  isDemoEnabled,
-} from '@/lib/portal-demo'
-import {
+  isPortalAuthConfigured,
   patientCookieOptions,
   PATIENT_SESSION_COOKIE,
   signPatientSession,
 } from '@/lib/portal-auth'
+import { consumeRateLimit, ipRateLimitKey, tooManyRequests } from '@/lib/rate-limit'
+
+const DEMO_IP_RULE = { limit: 10, windowSeconds: 10 * 60 }
 
 const demoSchema = z.object({
   persona: z.enum(['new', 'history']),
@@ -30,12 +32,35 @@ export async function GET() {
   })
 }
 
+function withSession(
+  account: { id: number; email: string; sessionVersion: number },
+  patient: { id: number; name: string }
+) {
+  const response = NextResponse.json({
+    success: true,
+    patient: { id: patient.id, name: patient.name, email: account.email },
+  })
+  response.cookies.set(
+    PATIENT_SESSION_COOKIE,
+    signPatientSession(account.id, patient.id, account.sessionVersion),
+    patientCookieOptions()
+  )
+  return response
+}
+
 export async function POST(request: Request) {
-  if (!isDemoEnabled()) {
+  if (!isPortalAuthConfigured()) {
     return NextResponse.json(
-      { success: false, error: 'Akun demo dinonaktifkan pada lingkungan ini.' },
-      { status: 403 }
+      { success: false, error: 'Layanan autentikasi belum siap. Hubungi Admin klinik.' },
+      { status: 503, headers: { 'Cache-Control': 'no-store' } }
     )
+  }
+
+  const ipLimit = await consumeRateLimit(ipRateLimitKey('demo', request), DEMO_IP_RULE)
+  if (!ipLimit.allowed) return tooManyRequests(ipLimit)
+
+  if (!isDemoEnabled()) {
+    return NextResponse.json({ success: false, error: 'Akun demo dinonaktifkan pada lingkungan ini.' }, { status: 403 })
   }
 
   let body: unknown
@@ -50,22 +75,33 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: 'Persona demo tidak valid' }, { status: 400 })
   }
 
+  const persona = parsed.data.persona
+  const definition = DEMO_ACCOUNTS.find((item) => item.persona === persona)!
+
   try {
-    const { account, patient } = await ensureDemoAccount(parsed.data.persona)
-    const response = NextResponse.json({
-      success: true,
-      patient: { id: patient.id, name: patient.name, email: account.email },
-    })
-    response.cookies.set(
-      PATIENT_SESSION_COOKIE,
-      signPatientSession(account.id, patient.id),
-      patientCookieOptions()
-    )
-    return response
+    const { account, patient } = await ensureDemoAccount(persona)
+    return withSession(account, patient)
   } catch (error) {
     console.error('[POST /api/portal/auth/demo] gagal menyiapkan akun demo:', error)
+
+    // The seeded account usually still exists even when a demo-data refresh
+    // failed; signing in keeps "Isi cepat akun demo" usable.
+    const fallback = await prisma.patientAccount
+      .findUnique({
+        where: { email: definition.email },
+        include: { patient: true },
+      })
+      .catch(() => null)
+
+    if (fallback?.patient) {
+      return withSession(fallback, fallback.patient)
+    }
+
     return NextResponse.json(
-      { success: false, error: 'Akun demo belum siap. Coba lagi beberapa saat lagi.' },
+      {
+        success: false,
+        error: 'Akun demo belum siap. Jalankan seed data lalu coba lagi.',
+      },
       { status: 500 }
     )
   }

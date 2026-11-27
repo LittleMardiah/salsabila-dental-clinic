@@ -12,15 +12,17 @@ import {
   isVaultTokenPayload,
 } from '@/lib/admin-auth'
 
-// Fallback bcrypt (cost 10) untuk kredensial awal admin/Meiharti_2490.
-// Produksi tetap dapat menimpa lewat ADMIN_PASSWORD_HASH_BASE64.
+// Local-development fallback only. Production must configure
+// ADMIN_PASSWORD_HASH_BASE64 (or ADMIN_PASSWORD_HASH) and fails closed otherwise.
 const DEFAULT_ADMIN_PASSWORD_HASH_BASE64 =
   'JDJiJDEwJFBwenRXS1U1cmhOTDNlRS9yaUZkd3VhQXlCUnNwdVpUSVRNa0ZVb2RITmJwNXVyejVweDc2'
 
-const loginSchema = z.object({
-  username: z.string().trim().min(3, 'Username minimal 3 karakter'),
-  password: z.string().min(6, 'Password minimal 6 karakter'),
-})
+const loginSchema = z
+  .object({
+    username: z.string().trim().min(3, 'Username minimal 3 karakter').max(64),
+    password: z.string().min(6, 'Password minimal 6 karakter').max(128),
+  })
+  .strict('Data login tidak valid')
 
 function parseCookies(cookieHeader: string): Record<string, string> {
   const cookies: Record<string, string> = {}
@@ -54,6 +56,9 @@ function resolvePasswordHash(): string {
     return raw
   }
 
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('ADMIN_PASSWORD_HASH belum dikonfigurasi')
+  }
   return Buffer.from(DEFAULT_ADMIN_PASSWORD_HASH_BASE64, 'base64').toString('utf8')
 }
 

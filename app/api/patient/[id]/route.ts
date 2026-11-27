@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/ServerAuth'
+import { parsePositiveIntParam } from '@/lib/validation'
 
 /**
  * @openapi
@@ -42,18 +43,23 @@ export async function GET(
     return NextResponse.json({ error: auth.error }, { status: auth.status || 401 })
   }
 
-  const id = parseInt(params.id)
-  if (isNaN(id)) {
+  const id = parsePositiveIntParam(params.id)
+  if (!id) {
     return NextResponse.json({ error: 'Invalid patient ID' }, { status: 400 })
   }
 
-  const patient = await prisma.patient.findUnique({
-    where: { id },
-  })
+  try {
+    const patient = await prisma.patient.findUnique({
+      where: { id },
+    })
 
-  if (!patient) {
-    return NextResponse.json({ error: 'Patient not found' }, { status: 404 })
+    if (!patient) {
+      return NextResponse.json({ error: 'Patient not found' }, { status: 404 })
+    }
+
+    return NextResponse.json(patient, { headers: { 'Cache-Control': 'no-store' } })
+  } catch (error) {
+    console.error('[GET /api/patient/:id] gagal memuat pasien:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-
-  return NextResponse.json(patient)
 }

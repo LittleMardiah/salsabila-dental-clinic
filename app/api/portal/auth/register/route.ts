@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { hashPassword } from '@/lib/ServerAuth'
 import {
   isPasswordAcceptable,
+  isPortalAuthConfigured,
   normalizeEmail,
   normalizePhone,
   patientCookieOptions,
@@ -13,28 +14,49 @@ import {
   signPatientSession,
 } from '@/lib/portal-auth'
 import { generateNoRm } from '@/lib/patient-id'
+import {
+  consumeRateLimit,
+  identifierRateLimitKey,
+  ipRateLimitKey,
+  tooManyRequests,
+} from '@/lib/rate-limit'
+import { emailInputSchema, phoneInputSchema } from '@/lib/validation'
 
-const registerSchema = z.object({
-  name: z.string().trim().min(2, 'Nama minimal 2 karakter').max(120),
-  email: z.string().trim().email('Format email tidak valid'),
-  phone: z
-    .string()
-    .trim()
-    .min(8, 'Nomor WhatsApp minimal 8 digit')
-    .max(20)
-    .regex(/^[0-9+\-\s()]+$/, 'Nomor WhatsApp tidak valid'),
-  birthDate: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Tanggal lahir wajib diisi')
-    .refine((value) => {
-      const date = new Date(`${value}T00:00:00.000Z`)
-      return !Number.isNaN(date.getTime()) && date.getTime() < Date.now()
-    }, 'Tanggal lahir tidak valid'),
-  password: z.string().min(8, 'Password minimal 8 karakter').max(72),
-  allergies: z.string().trim().max(200).optional(),
-})
+const registerSchema = z
+  .object({
+    name: z.string().trim().min(2, 'Nama minimal 2 karakter').max(120),
+    email: emailInputSchema,
+    phone: phoneInputSchema,
+    birthDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Tanggal lahir wajib diisi')
+      .refine((value) => {
+        const date = new Date(`${value}T00:00:00.000Z`)
+        return (
+          !Number.isNaN(date.getTime()) &&
+          date.toISOString().slice(0, 10) === value &&
+          date.getTime() < Date.now()
+        )
+      }, 'Tanggal lahir tidak valid'),
+    password: z.string().min(8, 'Password minimal 8 karakter').max(72),
+    allergies: z.string().trim().max(200).optional(),
+  })
+  .strict('Data pendaftaran tidak valid')
+
+const REGISTER_IP_RULE = { limit: 10, windowSeconds: 60 * 60 }
+const REGISTER_IDENTIFIER_RULE = { limit: 5, windowSeconds: 60 * 60 }
 
 export async function POST(request: Request) {
+  if (!isPortalAuthConfigured()) {
+    return NextResponse.json(
+      { success: false, error: 'Layanan autentikasi belum siap. Hubungi Admin klinik.' },
+      { status: 503, headers: { 'Cache-Control': 'no-store' } }
+    )
+  }
+
+  const ipLimit = await consumeRateLimit(ipRateLimitKey('register', request), REGISTER_IP_RULE)
+  if (!ipLimit.allowed) return tooManyRequests(ipLimit)
+
   let body: unknown
   try {
     body = await request.json()
@@ -65,6 +87,12 @@ export async function POST(request: Request) {
   const phone = normalizePhone(parsed.data.phone)
   const name = parsed.data.name.trim()
   const dateOfBirth = new Date(`${parsed.data.birthDate}T00:00:00.000Z`)
+
+  const emailLimit = await consumeRateLimit(
+    identifierRateLimitKey('register', email),
+    REGISTER_IDENTIFIER_RULE
+  )
+  if (!emailLimit.allowed) return tooManyRequests(emailLimit)
 
   const existingAccount = await prisma.patientAccount.findUnique({ where: { email } })
   if (existingAccount) {
@@ -107,7 +135,7 @@ export async function POST(request: Request) {
       where: { id: existingPatient.id },
       data: {
         name,
-        phone: parsed.data.phone.trim(),
+        phone,
         dateOfBirth,
         allergies: parsed.data.allergies || null,
         noRm,
@@ -120,7 +148,7 @@ export async function POST(request: Request) {
       data: {
         name,
         email,
-        phone: parsed.data.phone.trim(),
+        phone,
         dateOfBirth,
         allergies: parsed.data.allergies || null,
         noRm,
@@ -144,7 +172,7 @@ export async function POST(request: Request) {
   )
   response.cookies.set(
     PATIENT_SESSION_COOKIE,
-    signPatientSession(account.id, patientId),
+    signPatientSession(account.id, patientId, account.sessionVersion),
     patientCookieOptions()
   )
   return response

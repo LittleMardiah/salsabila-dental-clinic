@@ -36,12 +36,27 @@ model PatientAccount {
   resetTokenHash      String?   @unique
   resetTokenExpiresAt DateTime?
   resetAttempts       Int       @default(0)
+  /// Incremented on logout / password reset to revoke every issued JWT.
+  sessionVersion      Int       @default(0)
   lastLoginAt         DateTime?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
   patient             Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
   @@index([resetTokenHash])
+}
+
+/// Fixed-window counters shared by every serverless instance. Keys are hashed
+/// IP/identifier values so the table never stores raw credentials or contact data.
+model RateLimitBucket {
+  id          Int      @id @default(autoincrement())
+  key         String
+  windowStart DateTime
+  count       Int      @default(0)
+  expiresAt   DateTime
+
+  @@unique([key, windowStart])
+  @@index([expiresAt])
 }
 
 model Queue {

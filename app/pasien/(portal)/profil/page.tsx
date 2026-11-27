@@ -175,17 +175,18 @@ export default function PasienProfilPage() {
   const patient = profile?.patient
 
   return (
-    <div className="pp-reveal space-y-6 px-6 py-5">
+    <div className="pp-reveal space-y-6 px-6 py-5 md:px-0 md:py-8 lg:space-y-8">
       <div className="space-y-1">
         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--pp-accent)]">
           Identitas Pasien
         </p>
-        <h1 className="font-editorial text-[30px] font-semibold leading-none tracking-tight text-[var(--pp-text)]">
+        <h1 className="font-editorial text-[30px] font-semibold leading-none tracking-tight text-[var(--pp-text)] md:text-[40px]">
           Profil Saya
         </h1>
       </div>
 
-      <section className="pp-card space-y-4 rounded-[28px] p-5">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.2fr)] xl:items-start">
+      <section className="pp-card space-y-4 rounded-[28px] p-5 md:p-6 xl:col-start-1 xl:row-start-1">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--pp-muted)]">
@@ -224,7 +225,7 @@ export default function PasienProfilPage() {
         </div>
       </section>
 
-      <section className="pp-card space-y-4 rounded-[26px] p-5">
+      <section className="pp-card space-y-4 rounded-[26px] p-5 md:p-6 xl:col-start-2 xl:row-span-5 xl:row-start-1">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-semibold text-[var(--pp-text)]">Data Pribadi</h3>
           <button
@@ -339,7 +340,7 @@ export default function PasienProfilPage() {
         )}
       </section>
 
-      <section className="pp-card flex items-center justify-between gap-3 rounded-2xl p-4">
+      <section className="pp-card flex items-center justify-between gap-3 rounded-2xl p-4 xl:col-start-1 xl:row-start-2">
         <div>
           <p className="text-xs font-semibold text-[var(--pp-text)]">Tema Tampilan</p>
           <p className="text-[11px] text-[var(--pp-secondary)]">Nyaman untuk mata, siang maupun malam</p>
@@ -347,7 +348,7 @@ export default function PasienProfilPage() {
         <PatientThemeButton />
       </section>
 
-      <section className="pp-card flex items-center justify-between gap-3 rounded-2xl p-4">
+      <section className="pp-card flex items-center justify-between gap-3 rounded-2xl p-4 xl:col-start-1 xl:row-start-3">
         <div>
           <p className="text-xs font-semibold text-[var(--pp-text)]">Pasang ke Layar Utama HP</p>
           <p className="text-[11px] text-[var(--pp-secondary)]">
@@ -367,7 +368,7 @@ export default function PasienProfilPage() {
         </button>
       </section>
 
-      <section className="rounded-2xl border border-[var(--pp-hairline)] bg-[var(--pp-soft)] p-4 text-[11px] leading-relaxed text-[var(--pp-secondary)]">
+      <section className="rounded-2xl border border-[var(--pp-hairline)] bg-[var(--pp-soft)] p-4 text-[11px] leading-relaxed text-[var(--pp-secondary)] xl:col-start-1 xl:row-start-4">
         <p className="mb-1 flex items-center gap-1.5 font-semibold text-[var(--pp-text)]">
           <ShieldCheck className="h-3.5 w-3.5 text-[var(--pp-accent)]" />
           Privasi data klinis
@@ -379,21 +380,22 @@ export default function PasienProfilPage() {
       <button
         type="button"
         onClick={logout}
-        className="tactile flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--pp-hairline)] bg-[var(--pp-elevated)] py-3 text-xs font-semibold text-rose-500"
+        className="tactile flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--pp-hairline)] bg-[var(--pp-elevated)] py-3 text-xs font-semibold text-rose-500 xl:col-start-1 xl:row-start-5"
       >
         <LogOut className="h-4 w-4" />
         Keluar Akun
       </button>
+      </div>
 
       {installSheet ? (
-        <div className="fixed inset-0 z-[300] flex items-end justify-center bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[300] flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center sm:p-6">
           <button
             type="button"
             aria-label="Tutup panduan pasang"
             onClick={() => setInstallSheet(false)}
             className="absolute inset-0"
           />
-          <div className="pp-sheet-safe relative w-full max-w-[480px] space-y-4 rounded-t-[30px] border-t border-[var(--pp-hairline)] bg-[var(--pp-elevated)] p-6 shadow-2xl">
+          <div className="pp-sheet-safe relative w-full max-w-[480px] space-y-4 rounded-t-[30px] border-t border-[var(--pp-hairline)] bg-[var(--pp-elevated)] p-6 shadow-2xl sm:rounded-[30px] sm:border">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--pp-accent)]">

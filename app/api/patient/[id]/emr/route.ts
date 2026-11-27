@@ -13,25 +13,63 @@ import {
   deleteFileFromDriveWithAdmin,
   getOrCreateEmrFolderWithAdmin,
 } from '@/lib/googleDrive';
+import { isValidDateOnly, parsePositiveIntParam } from '@/lib/validation';
 
-const emrSchema = z.object({
-  queueId: z.coerce.number().int().positive('queueId harus berupa angka'),
-  keluhanUtama: z.string().optional(),
-  diagnosa: z.string().min(1, 'Diagnosa wajib diisi'),
-  tindakan: z.string().min(1, 'Tindakan wajib diisi'),
-  resepObat: z.string().optional(),
-  catatanTambahan: z.string().optional(),
-  dokterPenanggungJawab: z.string().min(1, 'Dokter penanggung jawab wajib diisi'),
-  followUpDate: z.string().optional().transform(val => (val ? new Date(val) : undefined)),
-  followUpTime: z.string().max(40).optional(),
-});
+const MAX_FILE_BYTES = 50 * 1024 * 1024;
+const MAX_FILES = 10;
+const MAX_BODY_BYTES = 120 * 1024 * 1024;
+
+const boundedOptionalText = (max: number) => z.string().trim().max(max).optional();
+
+const emrSchema = z
+  .object({
+    queueId: z.coerce.number().int().positive('queueId harus berupa angka').max(2_147_483_647),
+    keluhanUtama: boundedOptionalText(2000),
+    diagnosa: z.string().trim().min(1, 'Diagnosa wajib diisi').max(4000),
+    tindakan: z.string().trim().min(1, 'Tindakan wajib diisi').max(4000),
+    resepObat: boundedOptionalText(4000),
+    catatanTambahan: boundedOptionalText(8000),
+    dokterPenanggungJawab: z
+      .string()
+      .trim()
+      .min(1, 'Dokter penanggung jawab wajib diisi')
+      .max(120),
+    followUpDate: z
+      .string()
+      .refine(isValidDateOnly, 'Tanggal kontrol tidak valid')
+      .transform((value) => new Date(`${value}T00:00:00.000Z`))
+      .optional(),
+    followUpTime: z.string().trim().max(40).optional(),
+  })
+  .strict('Field rekam medis tidak dikenal');
+
+class MultipartPayloadError extends Error {
+  constructor(public readonly kind: 'too_large' | 'too_many_files' | 'invalid') {
+    super(kind);
+  }
+}
 
 async function parseMultipartForm(req: NextRequest): Promise<{ fields: any; files: any[] }> {
+  const declaredLength = Number(req.headers.get('content-length') || 0);
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) {
+    throw new MultipartPayloadError('too_large');
+  }
+
   return new Promise((resolve, reject) => {
     const headers = Object.fromEntries(req.headers);
-    const bb = busboy({ headers });
+    const bb = busboy({
+      headers,
+      limits: {
+        fileSize: MAX_FILE_BYTES,
+        files: MAX_FILES,
+        fields: 30,
+        fieldSize: 100_000,
+        parts: 40,
+      },
+    });
     const fields: any = {};
     const files: any[] = [];
+    let rejected = false;
 
     bb.on('field', (name, value) => {
       fields[name] = value;
@@ -41,26 +79,41 @@ async function parseMultipartForm(req: NextRequest): Promise<{ fields: any; file
       const { filename, mimeType } = info;
       const chunks: Buffer[] = [];
       file.on('data', (chunk) => chunks.push(chunk));
+      file.on('limit', () => {
+        rejected = true;
+      });
       file.on('end', () => {
         files.push({
           fieldname: name,
-          originalname: filename,
+          originalname: String(filename || 'foto').slice(0, 255),
           mimetype: mimeType,
           buffer: Buffer.concat(chunks),
         });
       });
     });
 
+    bb.on('filesLimit', () => {
+      rejected = true;
+    });
+
     bb.on('close', () => {
+      if (rejected) {
+        reject(new MultipartPayloadError(files.length > MAX_FILES ? 'too_many_files' : 'too_large'));
+        return;
+      }
       resolve({ fields, files });
     });
     bb.on('error', (err) => reject(err));
 
     req.arrayBuffer()
-      .then(buffer => {
+      .then((buffer) => {
+        if (buffer.byteLength > MAX_BODY_BYTES) {
+          reject(new MultipartPayloadError('too_large'));
+          return;
+        }
         bb.end(Buffer.from(buffer));
       })
-      .catch(err => reject(err));
+      .catch((err) => reject(err));
   });
 }
 
@@ -77,24 +130,29 @@ function validateImageFormat(buffer: Buffer): { valid: boolean; mime: string | n
   return { valid: false, mime: null };
 }
 
-async function compressImage(buffer: Buffer, mimetype: string): Promise<Buffer> {
+async function compressImage(
+  buffer: Buffer
+): Promise<{ buffer: Buffer; mime: 'image/jpeg' | 'image/png' }> {
   const { valid, mime } = validateImageFormat(buffer);
-  if (!valid) {
+  if (!valid || !mime) {
     throw new Error('File bukan PNG atau JPEG yang valid (magic number mismatch)');
   }
-  const actualMime = mime || mimetype;
-  if (actualMime === 'image/jpeg' || actualMime === 'image/png') {
-    try {
-      return await sharp(buffer)
+  const confirmedMime = mime as 'image/jpeg' | 'image/png';
+  try {
+    return {
+      buffer: await sharp(buffer)
         .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 80 })
-        .toBuffer();
-    } catch (err) {
-      console.error('Compression failed, using original', err);
-      return buffer;
-    }
+        .toBuffer(),
+      mime: 'image/jpeg',
+    };
+  } catch (err) {
+    console.error(
+      'Compression failed, using original:',
+      err instanceof Error ? err.message : 'unknown error'
+    );
+    return { buffer, mime: confirmedMime };
   }
-  return buffer; 
 }
 
 export async function POST(
@@ -107,8 +165,8 @@ export async function POST(
   }
   const adminUsername = authResult.username || 'unknown'; 
 
-  const patientId = parseInt(params.id);
-  if (isNaN(patientId)) {
+  const patientId = parsePositiveIntParam(params.id);
+  if (!patientId) {
     return NextResponse.json({ success: false, error: 'Invalid patient ID' }, { status: 400 });
   }
 
@@ -118,7 +176,22 @@ export async function POST(
     fields = parsed.fields;
     files = parsed.files;
   } catch (err) {
-    console.error(err);
+    if (err instanceof MultipartPayloadError && err.kind === 'too_large') {
+      return NextResponse.json(
+        { success: false, error: 'Ukuran unggahan terlalu besar' },
+        { status: 413 }
+      );
+    }
+    if (err instanceof MultipartPayloadError && err.kind === 'too_many_files') {
+      return NextResponse.json(
+        { success: false, error: 'Jumlah foto melebihi batas' },
+        { status: 400 }
+      );
+    }
+    console.error(
+      '[EMR Upload] gagal membaca form:',
+      err instanceof Error ? err.message : 'unknown error'
+    );
     return NextResponse.json({ success: false, error: 'Failed to parse form data' }, { status: 400 });
   }
 
@@ -140,10 +213,12 @@ export async function POST(
     return NextResponse.json({ success: false, error: 'Queue not found for this patient' }, { status: 400 });
   }
 
-  const maxFileSize = 50 * 1024 * 1024;
   for (const file of files) {
-    if (file.buffer.length > maxFileSize) {
-      return NextResponse.json({ success: false, error: `File ${file.originalname} melebihi 50MB` }, { status: 400 });
+    if (file.buffer.length > MAX_FILE_BYTES) {
+      return NextResponse.json(
+        { success: false, error: 'Ukuran foto melebihi 50MB' },
+        { status: 413 }
+      );
     }
   }
 
@@ -195,28 +270,17 @@ export async function POST(
   const uploadedPhotos = [];
   for (const file of files) {
     try {
-      console.log(`[EMR Upload] Processing file: ${file.originalname}`);
-      const { valid, mime: detectedMime } = validateImageFormat(file.buffer);
-      if (!valid) {
-        throw new Error(`File ${file.originalname} tidak dikenali sebagai PNG/JPEG yang valid`);
-      }
-      console.log(`[EMR Upload] Valid image format: ${detectedMime}`);
-      const compressedBuffer = await compressImage(file.buffer, file.mimetype);
-      const fileExt = file.originalname.split('.').pop();
+      const compressed = await compressImage(file.buffer);
+      const fileExt = compressed.mime === 'image/png' ? 'png' : 'jpg';
       const fileName = `${randomUUID()}.${fileExt}`;
-      console.log(`[EMR Upload] Getting folder for patient ${patientId}, visit ${visit.id}`);
-      // Fungsi OAuth2 admin untuk folder
       const folderId = await getOrCreateEmrFolderWithAdmin(patientId, visit.id, adminUsername);
-      console.log(`[EMR Upload] Folder ID: ${folderId}`);
-      // Fungsi OAuth2 admin untuk upload
       const { fileId, webViewLink } = await uploadFileToDriveWithAdmin(
-        compressedBuffer,
+        compressed.buffer,
         fileName,
-        file.mimetype,
+        compressed.mime,
         folderId,
         adminUsername
       );
-      console.log(`[EMR Upload] Uploaded fileId: ${fileId}`);
       const photo = await prisma.medicalPhoto.create({
         data: {
           visitId: visit.id,
@@ -226,16 +290,17 @@ export async function POST(
         },
       });
       uploadedPhotos.push(photo);
-    } catch (err: any) {
-      console.error(`[EMR Upload] Error for file ${file.originalname}:`, err);
+    } catch (err) {
+      console.error(
+        '[EMR Upload] gagal mengunggah foto:',
+        err instanceof Error ? err.message : 'unknown error'
+      );
       return NextResponse.json(
-        { success: false, error: `Upload failed for ${file.originalname}: ${err.message}` },
-        { status: 500 }
+        { success: false, error: 'Foto gagal diunggah. Silakan coba lagi.' },
+        { status: 502 }
       );
     }
   }
-
-  console.log(`[Audit] Admin ${adminUsername} upserted medical visit for patient ${patientId} (visit ${visit.id}) with ${uploadedPhotos.length} photos`);
 
   return NextResponse.json({
     success: true,
@@ -252,79 +317,91 @@ export async function GET(
   if (!authResult.valid) {
     return NextResponse.json({ success: false, error: authResult.error }, { status: authResult.status || 401 });
   }
-  const adminUsername = authResult.username || 'unknown';
 
-  const patientId = parseInt(params.id);
-  if (isNaN(patientId)) {
+  const patientId = parsePositiveIntParam(params.id);
+  if (!patientId) {
     return NextResponse.json({ success: false, error: 'Invalid patient ID' }, { status: 400 });
   }
 
   const url = new URL(req.url);
   const visitIdParam = url.searchParams.get('visitId');
 
-  let visits;
-  if (visitIdParam) {
-    const visitId = parseInt(visitIdParam);
-    if (isNaN(visitId)) {
-      return NextResponse.json({ success: false, error: 'Invalid visitId' }, { status: 400 });
+  try {
+    let visits;
+    if (visitIdParam) {
+      const visitId = parsePositiveIntParam(visitIdParam);
+      if (!visitId) {
+        return NextResponse.json({ success: false, error: 'Invalid visitId' }, { status: 400 });
+      }
+      visits = await prisma.medicalVisit.findMany({
+        where: { id: visitId, patientId },
+        include: {
+          photos: { orderBy: { uploadedAt: 'asc' } },
+          queue: { select: { queueNumber: true, date: true } },
+        },
+      });
+    } else {
+      visits = await prisma.medicalVisit.findMany({
+        where: { patientId },
+        include: {
+          photos: { orderBy: { uploadedAt: 'asc' } },
+          queue: { select: { queueNumber: true, date: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
     }
-    visits = await prisma.medicalVisit.findMany({
-      where: { id: visitId, patientId },
-      include: {
-        photos: { orderBy: { uploadedAt: 'asc' } },
-        queue: { select: { queueNumber: true, date: true } },
-      },
-    });
-  } else {
-    visits = await prisma.medicalVisit.findMany({
-      where: { patientId },
-      include: {
-        photos: { orderBy: { uploadedAt: 'asc' } },
-        queue: { select: { queueNumber: true, date: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+
+    const formattedVisits = visits.map((visit: any) => ({
+      id: visit.id,
+      queueId: visit.queueId,
+      queueNumber: visit.queue?.queueNumber ?? null,
+      queueDate: visit.queue?.date ?? null,
+      keluhanUtama: visit.keluhanUtama,
+      diagnosa: visit.diagnosa,
+      tindakan: visit.tindakan,
+      resepObat: visit.resepObat,
+      catatanTambahan: visit.catatanTambahan,
+      dokterPenanggungJawab: visit.dokterPenanggungJawab,
+      followUpDate: visit.followUpDate,
+      followUpTime: visit.followUpTime,
+      createdAt: visit.createdAt,
+      updatedAt: visit.updatedAt,
+      photos: visit.photos.map((photo: any) => ({
+        id: photo.id,
+        fileId: photo.fileId,
+        fileName: photo.fileName,
+        uploadedAt: photo.uploadedAt,
+        // FIX: URL proxy untuk ditampilkan di frontend
+        url: `/api/drive/image/${photo.fileId}`,
+      })),
+    }));
+
+    return NextResponse.json(
+      { success: true, data: formattedVisits },
+      { headers: { 'Cache-Control': 'no-store' } }
+    );
+  } catch (error) {
+    console.error(
+      '[GET /api/patient/:id/emr] gagal memuat rekam medis:',
+      error instanceof Error ? error.message : 'unknown error'
+    );
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
+    );
   }
-
-  const formattedVisits = await Promise.all(visits.map(async (visit: any) => ({
-    id: visit.id,
-    queueId: visit.queueId,
-    queueNumber: visit.queue?.queueNumber ?? null,
-    queueDate: visit.queue?.date ?? null,
-    keluhanUtama: visit.keluhanUtama,
-    diagnosa: visit.diagnosa,
-    tindakan: visit.tindakan,
-    resepObat: visit.resepObat,
-    catatanTambahan: visit.catatanTambahan,
-    dokterPenanggungJawab: visit.dokterPenanggungJawab,
-    followUpDate: visit.followUpDate,
-    followUpTime: visit.followUpTime,
-    createdAt: visit.createdAt,
-    updatedAt: visit.updatedAt,
-    photos: visit.photos.map((photo: any) => ({
-      id: photo.id,
-      fileId: photo.fileId,
-      fileName: photo.fileName,
-      uploadedAt: photo.uploadedAt,
-      // FIX: URL proxy untuk ditampilkan di frontend
-      url: `/api/drive/image/${photo.fileId}`,
-    })),
-  })));
-
-  return NextResponse.json({ success: true, data: formattedVisits });
 }
 
-const updateEmrSchema = z.object({
-  queueId: z.coerce.number().int().positive('queueId harus berupa angka'),
-  keluhanUtama: z.string().optional(),
-  diagnosa: z.string().min(1, 'Diagnosa wajib diisi'),
-  tindakan: z.string().min(1, 'Tindakan wajib diisi'),
-  resepObat: z.string().optional(),
-  catatanTambahan: z.string().optional(),
-  dokterPenanggungJawab: z.string().min(1, 'Dokter penanggung jawab wajib diisi'),
-  followUpDate: z.string().optional().transform(val => (val ? new Date(val) : undefined)),
-  followUpTime: z.string().max(40).optional(),
-  deletePhotoIds: z.string().optional(),
+const updateEmrSchema = emrSchema.extend({
+  deletePhotoIds: z
+    .string()
+    .trim()
+    .max(1000)
+    .optional()
+    .refine(
+      (value) => !value || value.split(',').every((id) => /^\d{1,10}$/.test(id.trim())),
+      'ID foto tidak valid'
+    ),
 });
 
 // Ubah fungsi deletePhotoFromDrive menggunakan deleteFileFromDriveWithAdmin
@@ -332,9 +409,11 @@ async function deletePhotoFromDrive(fileId: string, adminUsername: string) {
   if (!fileId) return;
   try {
     await deleteFileFromDriveWithAdmin(fileId, adminUsername);
-    console.log(`Deleted file from Drive: ${fileId}`);
   } catch (err) {
-    console.error(`Failed to delete file from Drive: ${fileId}`, err);
+    console.error(
+      '[EMR Upload] gagal menghapus foto dari Drive:',
+      err instanceof Error ? err.message : 'unknown error'
+    );
   }
 }
 
@@ -348,8 +427,8 @@ export async function PUT(
   }
   const adminUsername = authResult.username || 'unknown'; 
 
-  const patientId = parseInt(params.id);
-  if (isNaN(patientId)) {
+  const patientId = parsePositiveIntParam(params.id);
+  if (!patientId) {
     return NextResponse.json({ success: false, error: 'Invalid patient ID' }, { status: 400 });
   }
 
@@ -358,8 +437,8 @@ export async function PUT(
   if (!visitIdParam) {
     return NextResponse.json({ success: false, error: 'Missing visitId query parameter' }, { status: 400 });
   }
-  const visitId = parseInt(visitIdParam);
-  if (isNaN(visitId)) {
+  const visitId = parsePositiveIntParam(visitIdParam);
+  if (!visitId) {
     return NextResponse.json({ success: false, error: 'Invalid visitId' }, { status: 400 });
   }
 
@@ -369,7 +448,22 @@ export async function PUT(
     fields = parsed.fields;
     files = parsed.files;
   } catch (err) {
-    console.error(err);
+    if (err instanceof MultipartPayloadError && err.kind === 'too_large') {
+      return NextResponse.json(
+        { success: false, error: 'Ukuran unggahan terlalu besar' },
+        { status: 413 }
+      );
+    }
+    if (err instanceof MultipartPayloadError && err.kind === 'too_many_files') {
+      return NextResponse.json(
+        { success: false, error: 'Jumlah foto melebihi batas' },
+        { status: 400 }
+      );
+    }
+    console.error(
+      '[EMR Upload] gagal membaca form:',
+      err instanceof Error ? err.message : 'unknown error'
+    );
     return NextResponse.json({ success: false, error: 'Failed to parse form data' }, { status: 400 });
   }
 
@@ -430,7 +524,10 @@ export async function PUT(
   );
 
   if (validated.deletePhotoIds) {
-    const idsToDelete = validated.deletePhotoIds.split(',').map((id: string) => parseInt(id.trim()));
+    const idsToDelete = validated.deletePhotoIds
+      .split(',')
+      .map((id: string) => parsePositiveIntParam(id.trim()))
+      .filter((id): id is number => id !== null);
     for (const id of idsToDelete) {
       const photo = existingVisit.photos.find((p: any) => p.id === id);
       if (photo && photo.fileId) {
@@ -443,20 +540,14 @@ export async function PUT(
   const uploadedPhotos = [];
   for (const file of files) {
     try {
-      const { valid, mime: detectedMime } = validateImageFormat(file.buffer);
-      if (!valid) {
-        throw new Error(`File ${file.originalname} tidak dikenali sebagai PNG/JPEG yang valid`);
-      }
-      const compressedBuffer = await compressImage(file.buffer, file.mimetype);
-      const fileExt = file.originalname.split('.').pop();
+      const compressed = await compressImage(file.buffer);
+      const fileExt = compressed.mime === 'image/png' ? 'png' : 'jpg';
       const fileName = `${randomUUID()}.${fileExt}`;
-      // Fungsi OAuth2 admin untuk folder
       const folderId = await getOrCreateEmrFolderWithAdmin(patientId, updatedVisit.id, adminUsername);
-      // Fungsi OAuth2 admin untuk upload
       const { fileId, webViewLink } = await uploadFileToDriveWithAdmin(
-        compressedBuffer,
+        compressed.buffer,
         fileName,
-        file.mimetype,
+        compressed.mime,
         folderId,
         adminUsername
       );
@@ -469,16 +560,17 @@ export async function PUT(
         },
       });
       uploadedPhotos.push(photo);
-    } catch (err: any) {
-      console.error(`[EMR Upload] Error updating file ${file.originalname}:`, err);
+    } catch (err) {
+      console.error(
+        '[EMR Upload] gagal mengunggah foto:',
+        err instanceof Error ? err.message : 'unknown error'
+      );
       return NextResponse.json(
-        { success: false, error: `Upload failed for ${file.originalname}: ${err.message}` },
-        { status: 500 }
+        { success: false, error: 'Foto gagal diunggah. Silakan coba lagi.' },
+        { status: 502 }
       );
     }
   }
-
-  console.log(`[Audit] Admin ${adminUsername} updated medical visit ${visitId} for patient ${patientId}, added ${uploadedPhotos.length} photos`);
 
   return NextResponse.json({
     success: true,

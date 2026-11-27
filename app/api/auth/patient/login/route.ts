@@ -111,7 +111,5 @@ export async function POST(request: Request) {
     path: '/',                 
   })
 
-  console.log('[Patient Login] Cookie set. Token length:', token.length, 'Queue ID:', queue.id)
-
   return response
 }

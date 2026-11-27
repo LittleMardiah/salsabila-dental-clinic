@@ -8,7 +8,16 @@
 export const ADMIN_AUTH_LEVEL = 2
 
 export const DEFAULT_ADMIN_USERNAME = 'admin'
+
+// Local-development convenience only. Production must provide
+// ADMIN_ACCESS_CODE explicitly; a missing secret fails closed.
 export const DEFAULT_ADMIN_ACCESS_CODE = '18052506'
+
+export function resolveAdminAccessCode(): string | null {
+  const configured = process.env.ADMIN_ACCESS_CODE?.trim()
+  if (configured) return configured
+  return process.env.NODE_ENV === 'production' ? null : DEFAULT_ADMIN_ACCESS_CODE
+}
 
 export type AdminTokenPayload = {
   username: string

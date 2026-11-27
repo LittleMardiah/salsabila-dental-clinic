@@ -31,8 +31,7 @@ export async function sendNotification(queueId: number, patientName: string, que
       vibrate: [200, 100, 200],
     })
 
-    console.log(`[sendNotification] Mengirim notifikasi ke endpoint: ${subscription.endpoint}`)
-    const result = await webpush.sendNotification(
+    await webpush.sendNotification(
       {
         endpoint: subscription.endpoint,
         keys: {
@@ -42,13 +41,20 @@ export async function sendNotification(queueId: number, patientName: string, que
       },
       payload
     )
-    console.log(`[sendNotification] Berhasil untuk queue ${queueId}`, result)
+    console.log(`[sendNotification] Berhasil untuk queue ${queueId}`)
     return true
   } catch (err: any) {
     console.error(`[sendNotification] Gagal untuk queue ${queueId}:`, err.message)
     if (err.statusCode === 410) {
       console.log(`[sendNotification] Menghapus subscription invalid untuk queue ${queueId}`)
-      await prisma.webPushSubscription.delete({ where: { queueId } }).catch((e: any) => console.error(e))
+      await prisma.webPushSubscription
+        .delete({ where: { queueId } })
+        .catch((error) =>
+          console.error(
+            '[sendNotification] gagal menghapus subscription:',
+            error instanceof Error ? error.message : 'unknown error'
+          )
+        )
     }
     return false
   }

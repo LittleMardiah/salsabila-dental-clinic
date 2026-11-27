@@ -7,11 +7,20 @@ import { verifyAdminToken } from '@/lib/middleware/auth'
 import { addAuditLog } from '@/lib/services/audit.service'
 import { dateOnlyFromInput } from '@/lib/clinic-date'
 
-const reconcileSchema = z.object({
-  date: z.string().date(),
-  totalRecorded: z.number().positive(),
-  notes: z.string().optional(),
-})
+const reconcileSchema = z
+  .object({
+    date: z.string().date(),
+    totalRecorded: z.number().finite().positive().max(1_000_000_000_000),
+    notes: z.string().trim().max(1000, 'Catatan terlalu panjang').optional(),
+  })
+  .strict('Data rekonsiliasi tidak valid')
+
+const reconcileQuerySchema = z
+  .object({
+    page: z.coerce.number().int().min(1).max(10_000).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(10),
+  })
+  .strict('Parameter query tidak dikenal')
 
 /**
  * @openapi
@@ -59,8 +68,17 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url)
-    const limit = parseInt(searchParams.get('limit') || '10')
-    const page = parseInt(searchParams.get('page') || '1')
+    const parsedQuery = reconcileQuerySchema.safeParse(
+      Object.fromEntries(searchParams.entries())
+    )
+    if (!parsedQuery.success) {
+      return NextResponse.json(
+        { error: parsedQuery.error.errors[0]?.message || 'Parameter tidak valid' },
+        { status: 400 }
+      )
+    }
+
+    const { page, limit } = parsedQuery.data
     const skip = (page - 1) * limit
 
     const [reconciliations, total] = await Promise.all([
@@ -77,12 +95,12 @@ export async function GET(request: Request) {
       data: reconciliations,
       pagination: { page, limit, total }
     })
-  } catch (error: any) {
-    console.error('[GET /api/finance/reconcile] Error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
-      { status: 500 }
+  } catch (error) {
+    console.error(
+      '[GET /api/finance/reconcile] Error:',
+      error instanceof Error ? error.message : 'unknown error'
     )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
@@ -171,11 +189,11 @@ export async function POST(request: Request) {
       message: 'Reconciliation saved',
       data: reconciliation,
     })
-  } catch (error: any) {
-    console.error('[POST /api/finance/reconcile] Error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
-      { status: 500 }
+  } catch (error) {
+    console.error(
+      '[POST /api/finance/reconcile] Error:',
+      error instanceof Error ? error.message : 'unknown error'
     )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

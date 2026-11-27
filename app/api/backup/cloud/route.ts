@@ -6,6 +6,7 @@ import { verifyAdminToken } from '@/lib/middleware/auth'
 import archiver from 'archiver'
 import fs from 'fs'
 import path from 'path'
+import { sanitizeAdminPreferences } from '@/lib/backup-sanitize'
 
 /**
  * @openapi
@@ -121,7 +122,7 @@ export async function POST(request: Request) {
       transactions,
       dailyReconciliations,
       auditLogs,
-      adminPreferences,
+      adminPreferences: sanitizeAdminPreferences(adminPreferences),
       webPushSubscriptions,
     },
   }

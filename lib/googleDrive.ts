@@ -21,7 +21,10 @@ function getGoogleAuth() {
       console.log('[GoogleDrive] Auth using GOOGLE_CREDENTIALS_BASE64');
       return auth;
     } catch (err) {
-      console.error('[GoogleDrive] Failed to parse GOOGLE_CREDENTIALS_BASE64, falling back to legacy vars', err);
+      console.error(
+        '[GoogleDrive] Failed to parse GOOGLE_CREDENTIALS_BASE64, falling back to legacy vars:',
+        err instanceof Error ? err.message : 'unknown error'
+      );
     }
   }
 
@@ -101,7 +104,10 @@ export async function getOAuth2ClientForAdmin(adminUsername: string) {
       oauth2Client.setCredentials(credentials);
       console.log('[GoogleDrive OAuth] Token refreshed successfully');
     } catch (err) {
-      console.error('[GoogleDrive OAuth] Failed to refresh token:', err);
+      console.error(
+        '[GoogleDrive OAuth] Failed to refresh token:',
+        err instanceof Error ? err.message : 'unknown error'
+      );
       throw new Error('Token Google Drive expired dan gagal di-refresh. Silakan hubungkan ulang di Pengaturan.');
     }
   }
@@ -168,7 +174,11 @@ export async function getFileUrlWithAdmin(fileId: string, adminUsername: string)
     });
   } catch (err: any) {
     if (!err.message?.includes('duplicate')) {
-      console.error('[GoogleDrive OAuth] Failed to create permission for file:', fileId, err);
+      console.error(
+        '[GoogleDrive OAuth] Failed to create permission for file:',
+        fileId,
+        err instanceof Error ? err.message : 'unknown error'
+      );
     } else {
       console.log(`[GoogleDrive OAuth] Permission already exists for file: ${fileId}`);
     }
@@ -233,11 +243,12 @@ export async function testDriveConnection(): Promise<{ success: boolean; error?:
     console.log('[GoogleDrive] Connection test successful');
     return { success: true };
   } catch (err: any) {
-    console.error('[GoogleDrive] Connection test failed:', err.message);
-    if (err.message && err.message.includes('DECODER routines')) {
+    const message = err instanceof Error ? err.message : 'unknown error';
+    console.error('[GoogleDrive] Connection test failed:', message);
+    if (message.includes('DECODER routines')) {
       console.error('[GoogleDrive] DECODER error indicates corrupted private key format.');
     }
-    return { success: false, error: err.message };
+    return { success: false, error: message };
   }
 }
 
@@ -307,7 +318,11 @@ export async function getFileUrl(fileId: string): Promise<string> {
     })
   } catch (err: any) {
     if (!err.message?.includes('duplicate')) {
-      console.error('[GoogleDrive] Failed to create permission for file:', fileId, err)
+      console.error(
+        '[GoogleDrive] Failed to create permission for file:',
+        fileId,
+        err instanceof Error ? err.message : 'unknown error'
+      )
     } else {
       console.log(`[GoogleDrive] Permission already exists for file: ${fileId}`);
     }

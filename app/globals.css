@@ -370,6 +370,7 @@ body[data-scroll-lock='true'] {
    Scoped tokens so Admin/Landing keep their existing Model 08 palette.
 ============================================================================ */
 .patient-portal {
+  overflow-x: clip;
   --pp-bg: #FAF7F5;
   --pp-elevated: #FFFDFC;
   --pp-soft: #F4ECE8;
@@ -480,10 +481,11 @@ html.dark .pp-accent-btn {
   animation: ppSplashBar 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-/* The patient portal is a phone-first surface; keep it centered on desktop. */
+/* Phone-first on mobile, but a proportional web canvas on desktop. Pages own
+   their inner grid; the shell only prevents edge-to-edge text on wide screens. */
 .patient-portal-shell {
   width: 100%;
-  max-width: 480px;
+  max-width: 1200px;
   margin-left: auto;
   margin-right: auto;
 }

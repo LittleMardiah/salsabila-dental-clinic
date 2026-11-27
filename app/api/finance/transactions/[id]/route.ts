@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/middleware/auth'
+import { parsePositiveIntParam } from '@/lib/validation'
 
 /**
  * @openapi
@@ -47,22 +48,30 @@ export async function GET(
   }
 
   const { id } = await params
-  const transactionId = parseInt(id)
-  if (isNaN(transactionId)) {
+  const transactionId = parsePositiveIntParam(id)
+  if (!transactionId) {
     return NextResponse.json({ error: 'Invalid transaction ID' }, { status: 400 })
   }
 
-  const transaction = await prisma.transaction.findUnique({
-    where: { id: transactionId },
-    include: {
-      patient: { select: { id: true, name: true, phone: true, email: true } },
-      queue: { select: { queueNumber: true, date: true } },
-    },
-  })
+  try {
+    const transaction = await prisma.transaction.findUnique({
+      where: { id: transactionId },
+      include: {
+        patient: { select: { id: true, name: true, phone: true, email: true } },
+        queue: { select: { queueNumber: true, date: true } },
+      },
+    })
 
-  if (!transaction) {
-    return NextResponse.json({ error: 'Transaction not found' }, { status: 404 })
+    if (!transaction) {
+      return NextResponse.json({ error: 'Transaction not found' }, { status: 404 })
+    }
+
+    return NextResponse.json({ success: true, transaction })
+  } catch (error) {
+    console.error(
+      '[GET /api/finance/transactions/:id] gagal memuat transaksi:',
+      error instanceof Error ? error.message : 'unknown error'
+    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-
-  return NextResponse.json({ success: true, transaction })
 }

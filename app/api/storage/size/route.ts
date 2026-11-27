@@ -29,8 +29,11 @@ export async function GET(req: Request) {
     const totalSizeMB = totalSize / (1024 * 1024);
 
     return NextResponse.json({ sizeMB: totalSizeMB, fileCount: data.length });
-  } catch (error: any) {
-    console.error('[Storage Size] Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    console.error(
+      '[Storage Size] Error:',
+      error instanceof Error ? error.message : 'unknown error'
+    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

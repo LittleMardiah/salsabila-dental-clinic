@@ -69,25 +69,27 @@ export default function PasienJadwalPage() {
 
   if (loading && !overview) {
     return (
-      <div className="space-y-5 px-6 py-6">
-        <div className="h-24 animate-pulse rounded-2xl bg-[var(--pp-soft)]" />
-        <div className="h-40 animate-pulse rounded-2xl bg-[var(--pp-soft)]" />
+      <div className="space-y-5 px-6 py-6 md:px-0 md:py-8 lg:grid lg:grid-cols-2 lg:gap-5 lg:space-y-0">
+        <div className="h-24 animate-pulse rounded-2xl bg-[var(--pp-soft)] lg:col-span-2" />
+        <div className="h-56 animate-pulse rounded-2xl bg-[var(--pp-soft)]" />
+        <div className="h-56 animate-pulse rounded-2xl bg-[var(--pp-soft)]" />
       </div>
     )
   }
 
   return (
-    <div className="pp-reveal space-y-6 px-6 py-5">
+    <div className="pp-reveal space-y-6 px-6 py-5 md:px-0 md:py-8 lg:space-y-8">
       <div className="space-y-1">
         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--pp-accent)]">
           Sinkronisasi Klinik
         </p>
-        <h1 className="font-editorial text-[30px] font-semibold leading-none tracking-tight text-[var(--pp-text)]">
+        <h1 className="font-editorial text-[30px] font-semibold leading-none tracking-tight text-[var(--pp-text)] md:text-[40px]">
           Jadwal &amp; Antrean
         </h1>
       </div>
 
-      <section className="pp-card space-y-4 rounded-[26px] p-5">
+      <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
+      <section className="pp-card space-y-4 rounded-[26px] p-5 md:p-6">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--pp-muted)]">
             Antrean Hari Ini
@@ -167,13 +169,14 @@ export default function PasienJadwalPage() {
           noRm={patient?.noRm}
         />
       </section>
+      </div>
 
       <section className="space-y-2.5 pb-2">
         <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--pp-muted)]">
           <Stethoscope className="h-3.5 w-3.5" />
           Panduan Perawatan Pasca-Tindakan
         </h2>
-        <div className="space-y-2">
+        <div className="grid gap-2 lg:grid-cols-3 lg:items-start">
           {AFTERCARE.map((guide) => {
             const isOpen = openGuide === guide.id
             return (

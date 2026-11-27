@@ -15,7 +15,10 @@ export async function verifyTokenEdge(token: string): Promise<{ username: string
     if (!isAdminTokenPayload(payload)) return null;
     return { username: payload.username, role: 'admin' };
   } catch (error) {
-    console.error('Token verification failed (Edge):', error);
+    console.error(
+      'Token verification failed (Edge):',
+      error instanceof Error ? error.message : 'unknown error'
+    );
     return null;
   }
 }

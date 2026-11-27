@@ -7,24 +7,29 @@ import { verifyAdminToken } from '@/lib/ServerAuth'
 import { addAuditLog } from '@/lib/services/audit.service'
 import { generateQueueNumber, generatePatientCode } from '@/lib/utils/QueueUtils'
 import { generateNoRm } from '@/lib/patient-id'
-import { addDays, clinicDateOnly, dateOnlyFromInput } from '@/lib/clinic-date'
+import { clinicDateOnly, dateOnlyFromInput } from '@/lib/clinic-date'
+import { dateOnlyInputSchema, emailInputSchema, phoneInputSchema } from '@/lib/validation'
 
-// Schema validasi untuk request body POST
-const addPatientSchema = z.object({
-  name: z.string().min(1, 'Nama wajib diisi'),
-  phone: z.string().optional(),
-  email: z.string().email('Email tidak valid').optional(),
-  keluhan: z.string().optional(),
-  mode: z.enum(['ONLINE', 'MANUAL']),
-})
+// Schema validasi untuk request body POST.
+const addPatientSchema = z
+  .object({
+    name: z.string().trim().min(2, 'Nama minimal 2 karakter').max(120, 'Nama terlalu panjang'),
+    phone: phoneInputSchema.optional(),
+    email: emailInputSchema.optional(),
+    keluhan: z.string().trim().max(1000, 'Keluhan terlalu panjang').optional(),
+    mode: z.enum(['ONLINE', 'MANUAL']),
+  })
+  .strict('Field tidak dikenal pada pendaftaran antrean')
 
 // Schema untuk query parameters GET
-const querySchema = z.object({
-  date: z.string().optional(),
-  status: z.enum(['WAITING', 'CALLED', 'COMPLETED']).optional(),
-  page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(50),
-})
+const querySchema = z
+  .object({
+    date: dateOnlyInputSchema.optional(),
+    status: z.enum(['WAITING', 'CALLED', 'COMPLETED']).optional(),
+    page: z.coerce.number().int().min(1).max(10_000).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(50),
+  })
+  .strict('Parameter query tidak dikenal')
 
 /**
  * @openapi
@@ -206,62 +211,19 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  // Parse query parameters dengan aman
-  const searchParams = request.nextUrl.searchParams
-  const dateParam = searchParams.get('date')
-  const statusParam = searchParams.get('status')
-  const pageParam = searchParams.get('page')
-  const limitParam = searchParams.get('limit')
-
-  // Validasi date
-  let date: string | undefined = undefined
-  if (dateParam) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
-      return NextResponse.json(
-        { success: false, error: 'Format tanggal harus YYYY-MM-DD' },
-        { status: 400 }
-      )
-    }
-    date = dateParam
+  // Parse query parameters dengan skema ketat.
+  const parsedQuery = querySchema.safeParse(
+    Object.fromEntries(request.nextUrl.searchParams.entries())
+  )
+  if (!parsedQuery.success) {
+    return NextResponse.json(
+      { success: false, error: parsedQuery.error.errors[0]?.message || 'Parameter tidak valid' },
+      { status: 400 }
+    )
   }
 
-  // Validasi status
-  let status: 'WAITING' | 'CALLED' | 'COMPLETED' | undefined = undefined
-  if (statusParam) {
-    if (!['WAITING', 'CALLED', 'COMPLETED'].includes(statusParam)) {
-      return NextResponse.json(
-        { success: false, error: 'Status tidak valid' },
-        { status: 400 }
-      )
-    }
-    status = statusParam as any
-  }
-
-  // Validasi page dan limit
-  let page = 1
-  if (pageParam) {
-    const p = parseInt(pageParam)
-    if (!isNaN(p) && p > 0) page = p
-  }
-  let limit = 50
-  if (limitParam) {
-    const l = parseInt(limitParam)
-    if (!isNaN(l) && l > 0) limit = Math.min(l, 100)
-  }
-
-  // Tentukan tanggal filter (default hari ini)
-  let filterDate: Date
-  if (date) {
-    filterDate = dateOnlyFromInput(date)
-    if (isNaN(filterDate.getTime())) {
-      return NextResponse.json(
-        { success: false, error: 'Tanggal tidak valid' },
-        { status: 400 }
-      )
-    }
-  } else {
-    filterDate = clinicDateOnly()
-  }
+  const { date, status, page, limit } = parsedQuery.data
+  const filterDate = date ? dateOnlyFromInput(date) : clinicDateOnly()
 
   // Bangun where clause
   const where: any = { date: filterDate }

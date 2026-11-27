@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminToken } from '@/lib/ServerAuth';
 import { getDriveClientForAdmin } from '@/lib/googleDrive';
+import { safeImageMimeType, secureImageHeaders } from '@/lib/secure-image';
 
 export async function GET(
   req: NextRequest,
@@ -19,8 +20,8 @@ export async function GET(
     const adminUsername = auth.username || 'unknown';
     const { fileId } = await params;
 
-    if (!fileId) {
-      return NextResponse.json({ error: 'File ID required' }, { status: 400 });
+    if (!fileId || !/^[A-Za-z0-9_-]{10,200}$/.test(fileId)) {
+      return NextResponse.json({ error: 'File ID tidak valid' }, { status: 400 });
     }
 
     // Dapatkan drive client untuk admin
@@ -32,20 +33,23 @@ export async function GET(
       { responseType: 'stream' }
     );
 
-    const contentType = response.headers['content-type'] || 'image/jpeg';
+    const contentType = safeImageMimeType(response.headers?.['content-type']);
+    if (!contentType) {
+      const stream = response.data as { destroy?: () => void } | undefined;
+      stream?.destroy?.();
+      console.error('[Drive Image Proxy] upstream mengembalikan tipe konten yang tidak diizinkan');
+      return NextResponse.json({ error: 'Gagal memuat gambar' }, { status: 502 });
+    }
 
-    // Kembalikan stream sebagai response
+    // Kembalikan stream sebagai response. Clinical images must not land in a
+    // shared cache, and nosniff/CSP keep a mislabelled file from executing.
     return new NextResponse(response.data as any, {
-      headers: {
-        'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=86400', 
-      },
+      headers: secureImageHeaders(contentType),
     });
-  } catch (error: any) {
-    console.error('[Drive Image Proxy] Error:', error);
-    return NextResponse.json(
-      { error: error.message || 'Failed to fetch image' },
-      { status: 500 }
-    );
+  } catch (error) {
+    // Never echo upstream/OAuth messages to the client.
+    const message = error instanceof Error ? error.message : 'unknown error';
+    console.error('[Drive Image Proxy] Error:', message);
+    return NextResponse.json({ error: 'Gagal memuat gambar' }, { status: 502 });
   }
 }

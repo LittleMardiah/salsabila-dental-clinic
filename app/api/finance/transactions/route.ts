@@ -1,9 +1,19 @@
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/middleware/auth'
 import { clinicDayRangeFromInput } from '@/lib/clinic-date'
+import { dateOnlyInputSchema } from '@/lib/validation'
+
+const transactionQuerySchema = z
+  .object({
+    date: dateOnlyInputSchema.optional(),
+    status: z.enum(['PENDING', 'CONFIRMED']).optional(),
+    page: z.coerce.number().int().min(1).max(10_000).default(1),
+  })
+  .strict('Parameter query tidak dikenal')
 
 /**
  * @openapi
@@ -57,40 +67,51 @@ export async function GET(request: Request) {
   }
 
   const url = new URL(request.url)
-  const date = url.searchParams.get('date')
-  const status = url.searchParams.get('status')
-  const page = parseInt(url.searchParams.get('page') || '1')
+  const parsedQuery = transactionQuerySchema.safeParse(
+    Object.fromEntries(url.searchParams.entries())
+  )
+  if (!parsedQuery.success) {
+    return NextResponse.json(
+      { error: parsedQuery.error.errors[0]?.message || 'Parameter tidak valid' },
+      { status: 400 }
+    )
+  }
+
+  const { date, status, page } = parsedQuery.data
   const limit = 50
 
   const where: any = {}
   if (date) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return NextResponse.json({ error: 'Format tanggal harus YYYY-MM-DD' }, { status: 400 })
-    }
     const { start, end } = clinicDayRangeFromInput(date)
     where.createdAt = { gte: start, lt: end }
   }
-  if (status && ['PENDING', 'CONFIRMED'].includes(status)) {
-    where.status = status
+  if (status) where.status = status
+
+  try {
+    const [transactions, total] = await Promise.all([
+      prisma.transaction.findMany({
+        where,
+        include: {
+          patient: { select: { name: true } },
+          queue: { select: { queueNumber: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.transaction.count({ where }),
+    ])
+
+    return NextResponse.json({
+      success: true,
+      data: transactions,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    })
+  } catch (error) {
+    console.error(
+      '[GET /api/finance/transactions] gagal memuat transaksi:',
+      error instanceof Error ? error.message : 'unknown error'
+    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-
-  const [transactions, total] = await Promise.all([
-    prisma.transaction.findMany({
-      where,
-      include: {
-        patient: { select: { name: true } },
-        queue: { select: { queueNumber: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * limit,
-      take: limit,
-    }),
-    prisma.transaction.count({ where }),
-  ])
-
-  return NextResponse.json({
-    success: true,
-    data: transactions,
-    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
-  })
 }

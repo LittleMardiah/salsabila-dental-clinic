@@ -8,6 +8,11 @@ import PatientAuthShell from '@/components/patient/PatientAuthShell'
 
 type DemoPersona = 'history' | 'new'
 
+const DEMO_CREDENTIALS: Record<DemoPersona, { email: string; label: string }> = {
+  history: { email: 'rina@demo.salsabila.clinic', label: 'Rina Marlina' },
+  new: { email: 'budi@demo.salsabila.clinic', label: 'Budi Santoso' },
+}
+
 export default function PasienMasukPage() {
   const router = useRouter()
   const [identifier, setIdentifier] = useState('')
@@ -51,12 +56,20 @@ export default function PasienMasukPage() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setError(data.error || 'Akun demo belum siap. Coba lagi.')
+        // Still make the demo usable: prefill the form so the patient can
+        // press "Masuk ke Portal" themselves instead of hitting a dead end.
+        setIdentifier(DEMO_CREDENTIALS[persona].email)
+        setPassword('SalsaPatient2026')
+        setError(
+          `${data.error || 'Akun demo belum siap.'} Kredensial ${DEMO_CREDENTIALS[persona].label} sudah diisi — tekan “Masuk ke Portal”.`
+        )
         return
       }
       router.replace('/pasien/beranda')
     } catch {
-      setError('Koneksi terputus saat menyiapkan akun demo.')
+      setIdentifier(DEMO_CREDENTIALS[persona].email)
+      setPassword('SalsaPatient2026')
+      setError('Koneksi terputus saat menyiapkan akun demo. Kredensial demo sudah diisi — tekan “Masuk ke Portal”.')
     } finally {
       setDemoLoading(null)
     }
@@ -78,16 +91,20 @@ export default function PasienMasukPage() {
         </p>
       }
     >
-      <div className="mb-5 space-y-2.5 rounded-2xl border border-[var(--pp-hairline)] bg-[var(--pp-elevated)] p-3.5">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--pp-muted)]">
-          Isi cepat akun demo
-        </p>
+      <div className="mb-5 space-y-2.5 rounded-2xl border border-[var(--pp-hairline)] bg-[var(--pp-elevated)] p-3.5 sm:p-4">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--pp-muted)]">
+            Isi cepat akun demo
+          </p>
+          <span className="text-[10px] text-[var(--pp-muted)]">Langsung masuk</span>
+        </div>
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => enterDemo('history')}
             disabled={demoLoading !== null}
-            className="tactile rounded-xl bg-[var(--pp-accent-soft)] p-2.5 text-left disabled:opacity-60"
+            aria-busy={demoLoading === 'history'}
+            className="tactile rounded-xl bg-[var(--pp-accent-soft)] p-2.5 text-left transition-opacity disabled:opacity-60"
           >
             <p className="text-[11px] font-semibold text-[var(--pp-accent)]">
               {demoLoading === 'history' ? 'Menyiapkan...' : 'Rina Marlina'}
@@ -98,7 +115,8 @@ export default function PasienMasukPage() {
             type="button"
             onClick={() => enterDemo('new')}
             disabled={demoLoading !== null}
-            className="tactile rounded-xl border border-[var(--pp-hairline)] bg-[var(--pp-soft)] p-2.5 text-left disabled:opacity-60"
+            aria-busy={demoLoading === 'new'}
+            className="tactile rounded-xl border border-[var(--pp-hairline)] bg-[var(--pp-soft)] p-2.5 text-left transition-opacity disabled:opacity-60"
           >
             <p className="text-[11px] font-semibold text-[var(--pp-text)]">
               {demoLoading === 'new' ? 'Menyiapkan...' : 'Budi Santoso'}
@@ -107,7 +125,7 @@ export default function PasienMasukPage() {
           </button>
         </div>
         <p className="text-[10px] leading-relaxed text-[var(--pp-muted)]">
-          Sandi demo: <span className="font-mono-tech">SalsaPatient2026</span> · akun uji coba
+          Sandi demo: <span className="font-mono-tech">SalsaPatient2026</span> · akun uji coba, data contoh
         </p>
       </div>
 
@@ -170,7 +188,11 @@ export default function PasienMasukPage() {
         </div>
 
         {error ? (
-          <p role="alert" className="rounded-xl bg-rose-500/10 px-3 py-2 text-[11px] font-medium text-rose-500">
+          <p
+            role="alert"
+            aria-live="polite"
+            className="rounded-xl bg-rose-500/10 px-3 py-2 text-[11px] font-medium leading-relaxed text-rose-500"
+          >
             {error}
           </p>
         ) : null}

@@ -64,7 +64,7 @@ export default function PasienRekamMedisPage() {
 
   if (error && !data) {
     return (
-      <div className="px-6 py-16 text-center">
+      <div className="px-6 py-16 text-center md:px-0 md:py-24">
         <p className="text-sm text-[var(--pp-secondary)]">{error}</p>
         <button
           type="button"
@@ -85,7 +85,7 @@ export default function PasienRekamMedisPage() {
 
   if (visits.length === 0) {
     return (
-      <div className="px-6 py-10">
+      <div className="px-6 py-10 md:px-0 md:py-16">
         <div className="pp-reveal flex flex-col items-center justify-center space-y-5 text-center">
           <div className="pp-card flex h-16 w-16 items-center justify-center rounded-full text-[var(--pp-accent)]">
             <FileText className="h-6 w-6" />
@@ -115,12 +115,12 @@ export default function PasienRekamMedisPage() {
   }
 
   return (
-    <div className="pp-reveal space-y-6 px-6 py-5">
+    <div className="pp-reveal space-y-6 px-6 py-5 md:px-0 md:py-8 lg:space-y-8">
       <div className="space-y-1">
         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--pp-accent)]">
           Arsip Klinis Pasien
         </p>
-        <h1 className="font-editorial text-[30px] font-semibold leading-none tracking-tight text-[var(--pp-text)]">
+        <h1 className="font-editorial text-[30px] font-semibold leading-none tracking-tight text-[var(--pp-text)] md:text-[40px]">
           Rekam Medis
         </h1>
         <p className="text-[11px] leading-relaxed text-[var(--pp-muted)]">
@@ -128,14 +128,17 @@ export default function PasienRekamMedisPage() {
         </p>
       </div>
 
-      <ToothChart visits={visits} />
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,400px)_minmax(0,1fr)] xl:items-start xl:gap-6">
+        <div className="space-y-5 xl:sticky xl:top-8">
+          <ToothChart visits={visits} />
 
-      <section className="space-y-2.5">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--pp-muted)]">
-          Jadwal Kontrol Berikutnya
-        </h2>
-        <FollowUpCard control={data?.nextControl || null} compact />
-      </section>
+          <section className="space-y-2.5">
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--pp-muted)]">
+              Jadwal Kontrol Berikutnya
+            </h2>
+            <FollowUpCard control={data?.nextControl || null} compact />
+          </section>
+        </div>
 
       <section className="space-y-3 pb-2">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--pp-muted)]">
@@ -183,7 +186,7 @@ export default function PasienRekamMedisPage() {
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--pp-muted)]">
                     Dokumentasi Klinis &amp; X-Ray (Ketuk untuk Zoom)
                   </p>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                     {visit.photos.map((photo, index) => (
                       <button
                         key={photo.id}
@@ -210,6 +213,7 @@ export default function PasienRekamMedisPage() {
           ))}
         </div>
       </section>
+      </div>
 
       <PhotoLightbox
         theme={theme}

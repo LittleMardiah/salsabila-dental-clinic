@@ -7,15 +7,17 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { timingSafeEqual } from 'crypto'
 import {
-  DEFAULT_ADMIN_ACCESS_CODE,
+  resolveAdminAccessCode,
   type VaultTokenPayload,
 } from '@/lib/admin-auth'
 
-const verifyCodeSchema = z.object({
-  code: z
-    .string()
-    .regex(/^\d{8}$/, { message: 'Kode vault harus 8 digit angka' }),
-})
+const verifyCodeSchema = z
+  .object({
+    code: z
+      .string()
+      .regex(/^\d{8}$/, { message: 'Kode vault harus 8 digit angka' }),
+  })
+  .strict('Data verifikasi tidak valid')
 
 function safeEqual(value: string, expected: string): boolean {
   const valueBuffer = Buffer.from(value)
@@ -29,7 +31,7 @@ function safeEqual(value: string, expected: string): boolean {
  * /api/auth/admin/verify-code:
  *   post:
  *     summary: Verifikasi kode vault 8 digit (lapis 1 login admin)
- *     description: Memverifikasi kode akses admin dari environment atau fallback 18052506. Jika benar, cookie vault bertanda tangan akan diset selama 5 menit.
+ *     description: Memverifikasi kode akses admin dari environment (wajib di production). Jika benar, cookie vault bertanda tangan akan diset selama 5 menit.
  *     requestBody:
  *       required: true
  *       content:
@@ -42,7 +44,7 @@ function safeEqual(value: string, expected: string): boolean {
  *               code:
  *                 type: string
  *                 length: 8
- *                 example: "18052506"
+ *                 example: "********"
  *     responses:
  *       200:
  *         description: Kode valid, cookie vault diset
@@ -81,8 +83,14 @@ export async function POST(request: NextRequest) {
     }
 
     const { code } = parsed.data
-    const configuredCode = process.env.ADMIN_ACCESS_CODE?.trim()
-    const adminAccessCode = configuredCode || DEFAULT_ADMIN_ACCESS_CODE
+    const adminAccessCode = resolveAdminAccessCode()
+    if (!adminAccessCode) {
+      console.error('[admin verify-code] ADMIN_ACCESS_CODE belum dikonfigurasi')
+      return NextResponse.json(
+        { success: false, error: 'Konfigurasi server error' },
+        { status: 503 }
+      )
+    }
 
     let isValid = false
     if (adminAccessCode.startsWith('$2a$') || adminAccessCode.startsWith('$2b$') || adminAccessCode.startsWith('$2y$')) {

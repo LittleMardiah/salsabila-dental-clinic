@@ -61,8 +61,11 @@ src/generated/prisma
 # OS
 Thumbs.db
 
-# Upload Foto
+# Upload Foto & berkas sementara backup
 public/uploads/
+public/temp/
+public/temp-backups/
+.backups/
 
 /docs
 .vercel
