@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/ServerAuth'
 
@@ -63,12 +64,13 @@ export async function GET(request: Request) {
   const validLimit = Math.min(100, Math.max(1, limit))
   const skip = (validPage - 1) * validLimit
 
-  const where = search
+  const where: Prisma.PatientWhereInput = search
     ? {
         OR: [
-          { name: { contains: search } },
+          { name: { contains: search, mode: 'insensitive' } },
+          { noRm: { contains: search, mode: 'insensitive' } },
           { phone: { contains: search } },
-          { email: { contains: search } },
+          { email: { contains: search, mode: 'insensitive' } },
         ],
       }
     : {}
@@ -80,6 +82,15 @@ export async function GET(request: Request) {
       orderBy: { name: 'asc' },
       skip,
       take: validLimit,
+      select: {
+        id: true,
+        noRm: true,
+        name: true,
+        phone: true,
+        email: true,
+        dateOfBirth: true,
+        allergies: true,
+      },
     }),
     prisma.patient.count({ where }),
   ])

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Lock, Plus } from 'lucide-react'
+import { Lock, Plus, UserRound } from 'lucide-react'
 import {
   FAQ_ITEMS,
 } from '@/lib/ui-theme'
@@ -88,6 +88,14 @@ export default function Home() {
           <SanctuaryBrand href="/" />
 
           <div className="flex items-center justify-end gap-1.5 sm:gap-2.5 shrink-0">
+            <Link
+              href="/pasien"
+              className={`inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border text-[11px] sm:text-xs font-normal tracking-[0.02em] transition-all duration-300 hover:border-[#D08080] cursor-pointer shrink-0 whitespace-nowrap ${theme.pillSurface}`}
+            >
+              <UserRound className="w-3.5 h-3.5 text-[#D08080] shrink-0" />
+              <span className="hidden sm:inline">Portal Pasien</span>
+              <span className="sm:hidden">Pasien</span>
+            </Link>
             <ThemeToggle theme={theme} />
             <Link
               href="/admin/login"

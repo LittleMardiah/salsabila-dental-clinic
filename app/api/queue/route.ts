@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { verifyAdminToken } from '@/lib/ServerAuth'
 import { addAuditLog } from '@/lib/services/audit.service'
 import { generateQueueNumber, generatePatientCode } from '@/lib/utils/QueueUtils'
+import { generateNoRm } from '@/lib/patient-id'
 import { addDays, clinicDateOnly, dateOnlyFromInput } from '@/lib/clinic-date'
 
 // Schema validasi untuk request body POST
@@ -146,6 +147,7 @@ export async function POST(request: Request) {
   try {
     const patient = await prisma.patient.create({
       data: {
+        noRm: await generateNoRm(),
         name,
         phone: phone || null,
         email: email || null,
@@ -273,7 +275,7 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         patient: {
-          select: { id: true, name: true, phone: true, email: true, keluhan: true },
+          select: { id: true, noRm: true, name: true, phone: true, email: true, keluhan: true },
         },
       },
       orderBy: { queueNumber: 'asc' },
@@ -286,6 +288,7 @@ export async function GET(request: NextRequest) {
       queueNumber: q.queueNumber,
       patientId: q.patientId,
       patientName: q.patient.name,
+      noRm: q.patient.noRm,
       phone: q.patient.phone,
       email: q.patient.email,
       keluhan: q.patient.keluhan,

@@ -3,6 +3,7 @@ export type QueueItem = {
   queueNumber: number
   patientId: number
   patientName: string
+  noRm?: string | null
   phone: string | null
   email: string | null
   keluhan: string | null
@@ -15,9 +16,12 @@ export type QueueItem = {
 
 export type PatientItem = {
   id: number
+  noRm?: string | null
   name: string
   phone: string | null
   email: string | null
+  dateOfBirth?: string | null
+  allergies?: string | null
 }
 
 export type VisitPhoto = {
@@ -39,6 +43,7 @@ export type VisitItem = {
   catatanTambahan: string | null
   dokterPenanggungJawab: string
   followUpDate: string | null
+  followUpTime?: string | null
   createdAt: string
   photos: VisitPhoto[]
 }

@@ -23,6 +23,7 @@ const emrSchema = z.object({
   catatanTambahan: z.string().optional(),
   dokterPenanggungJawab: z.string().min(1, 'Dokter penanggung jawab wajib diisi'),
   followUpDate: z.string().optional().transform(val => (val ? new Date(val) : undefined)),
+  followUpTime: z.string().max(40).optional(),
 });
 
 async function parseMultipartForm(req: NextRequest): Promise<{ fields: any; files: any[] }> {
@@ -162,6 +163,7 @@ export async function POST(
         catatanTambahan: validated.catatanTambahan,
         dokterPenanggungJawab: validated.dokterPenanggungJawab,
         followUpDate: validated.followUpDate,
+        followUpTime: validated.followUpTime,
       },
     });
   } else {
@@ -176,6 +178,7 @@ export async function POST(
         catatanTambahan: validated.catatanTambahan,
         dokterPenanggungJawab: validated.dokterPenanggungJawab,
         followUpDate: validated.followUpDate,
+        followUpTime: validated.followUpTime,
       },
     });
   }
@@ -295,6 +298,7 @@ export async function GET(
     catatanTambahan: visit.catatanTambahan,
     dokterPenanggungJawab: visit.dokterPenanggungJawab,
     followUpDate: visit.followUpDate,
+    followUpTime: visit.followUpTime,
     createdAt: visit.createdAt,
     updatedAt: visit.updatedAt,
     photos: visit.photos.map((photo: any) => ({
@@ -319,6 +323,7 @@ const updateEmrSchema = z.object({
   catatanTambahan: z.string().optional(),
   dokterPenanggungJawab: z.string().min(1, 'Dokter penanggung jawab wajib diisi'),
   followUpDate: z.string().optional().transform(val => (val ? new Date(val) : undefined)),
+  followUpTime: z.string().max(40).optional(),
   deletePhotoIds: z.string().optional(),
 });
 
@@ -411,6 +416,7 @@ export async function PUT(
       catatanTambahan: validated.catatanTambahan,
       dokterPenanggungJawab: validated.dokterPenanggungJawab,
       followUpDate: validated.followUpDate,
+      followUpTime: validated.followUpTime,
     },
   });
 

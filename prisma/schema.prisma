@@ -10,15 +10,38 @@ datasource db {
 
 model Patient {
   id            Int            @id @default(autoincrement())
+  /// Clinic medical record number, format RM-YYYY-XXXX. Shown in Admin and PWA.
+  noRm          String?        @unique
   name          String
   phone         String?
   email         String?
+  dateOfBirth   DateTime?      @db.Date
+  allergies     String?
   keluhan       String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   medicalVisits MedicalVisit[]
   queues        Queue[]
   transactions  Transaction[]
+  account       PatientAccount?
+}
+
+/// Login account for the patient PWA. One patient may have at most one account;
+/// walk-in patients created by the clinic stay usable before they register.
+model PatientAccount {
+  id                  Int       @id @default(autoincrement())
+  patientId           Int       @unique
+  email               String    @unique
+  passwordHash        String
+  resetTokenHash      String?   @unique
+  resetTokenExpiresAt DateTime?
+  resetAttempts       Int       @default(0)
+  lastLoginAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  patient             Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([resetTokenHash])
 }
 
 model Queue {
@@ -64,6 +87,8 @@ model MedicalVisit {
   catatanTambahan       String?
   dokterPenanggungJawab String
   followUpDate          DateTime?
+  /// Optional clinic time label for the follow-up (e.g. "16:00 – 16:30 WIB").
+  followUpTime          String?
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
   photos                MedicalPhoto[]
@@ -156,3 +181,4 @@ enum QueueStatus {
   CALLED
   COMPLETED
 }
+

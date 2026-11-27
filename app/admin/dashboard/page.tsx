@@ -138,6 +138,7 @@ export default function AdminDashboardPage() {
   })
   const [loadingQueues, setLoadingQueues] = useState(true)
   const [queueError, setQueueError] = useState('')
+  const [queueSearch, setQueueSearch] = useState('')
 
   // Registration
   const [regType, setRegType] = useState<'manual' | 'online' | null>(null)
@@ -316,6 +317,17 @@ export default function AdminDashboardPage() {
     const interval = setInterval(() => fetchQueues(true), 6000)
     return () => clearInterval(interval)
   }, [fetchQueues])
+
+  const visibleQueues = useMemo(() => {
+    const term = queueSearch.trim().toLowerCase()
+    if (!term) return queues
+    return queues.filter(
+      (item) =>
+        item.patientName.toLowerCase().includes(term) ||
+        (item.noRm || '').toLowerCase().includes(term) ||
+        formatQueueNumber(item.queueNumber).toLowerCase().includes(term)
+    )
+  }, [queues, queueSearch])
 
   const playChimeAndVoice = (queueNo: string, name: string) => {
     try {
@@ -968,7 +980,15 @@ export default function AdminDashboardPage() {
                   </h2>
                 </div>
 
-                <div className="flex flex-wrap gap-2.5">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <input
+                    type="text"
+                    value={queueSearch}
+                    onChange={(e) => setQueueSearch(e.target.value)}
+                    placeholder="Cari No. RM / nama pasien..."
+                    aria-label="Cari antrean berdasarkan No. RM atau nama"
+                    className={`w-full sm:w-56 px-4 py-2.5 rounded-full border text-xs focus:outline-none focus:border-[#D08080] ${theme.inputBg}`}
+                  />
                   <button
                     type="button"
                     onClick={() => setRegType('manual')}
@@ -1049,14 +1069,14 @@ export default function AdminDashboardPage() {
                           </button>
                         </td>
                       </tr>
-                    ) : queues.length === 0 ? (
+                    ) : visibleQueues.length === 0 ? (
                       <tr>
                         <td colSpan={6} className={`py-10 text-center text-xs ${theme.textMuted}`}>
                           Tidak ada antrian hari ini. Tambahkan pasien melalui registrasi manual atau online.
                         </td>
                       </tr>
                     ) : (
-                      queues.map((item) => (
+                      visibleQueues.map((item) => (
                         <tr key={item.id} className="transition-colors duration-200 hover:bg-[#D08080]/[0.05]">
                           <td className="py-3 px-2 sm:px-4">
                             <button
@@ -1076,6 +1096,9 @@ export default function AdminDashboardPage() {
                           </td>
                           <td className="py-3 px-2 sm:px-4 font-medium break-words">
                             <div>{item.patientName}</div>
+                            <div className={`font-mono-tech text-[10px] font-normal ${theme.textSubtle}`}>
+                              {item.noRm || 'No. RM belum diterbitkan'}
+                            </div>
                             <div className={`text-[10px] sm:text-xs font-normal ${theme.textSubtle}`}>
                               {item.keluhan || 'Konsultasi umum'}
                             </div>

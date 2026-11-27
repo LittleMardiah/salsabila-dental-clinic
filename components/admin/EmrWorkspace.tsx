@@ -65,6 +65,7 @@ function emptyForm(doctor = 'drg. Salsabila') {
   return {
     queueId: 0,
     followUp: '',
+    followUpTime: '',
     complaint: '',
     diagnosis: '',
     procedure: 'Scaling & Polishing',
@@ -299,6 +300,7 @@ export default function EmrWorkspace({
           setForm({
             queueId: editVisit.queueId,
             followUp: editVisit.followUpDate ? editVisit.followUpDate.slice(0, 10) : '',
+            followUpTime: editVisit.followUpTime || '',
             complaint: editVisit.keluhanUtama || '',
             diagnosis: editVisit.diagnosa || '',
             procedure: editVisit.tindakan || '',
@@ -541,6 +543,7 @@ export default function EmrWorkspace({
     )
     body.append('dokterPenanggungJawab', form.doctor.trim())
     if (form.followUp) body.append('followUpDate', form.followUp)
+    if (form.followUpTime.trim()) body.append('followUpTime', form.followUpTime.trim())
     if (deletedPhotoIds.length > 0) body.append('deletePhotoIds', deletedPhotoIds.join(','))
     newPhotoFiles.forEach((file) => body.append('photos', file))
     if (jawScanFile) body.append('photos', jawScanFile)
@@ -595,6 +598,7 @@ export default function EmrWorkspace({
     if (!term) return true
     return (
       p.name.toLowerCase().includes(term) ||
+      (p.noRm || '').toLowerCase().includes(term) ||
       (p.phone || '').toLowerCase().includes(term) ||
       (p.email || '').toLowerCase().includes(term)
     )
@@ -617,7 +621,7 @@ export default function EmrWorkspace({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari nama, nomor HP, atau email..."
+            placeholder="Cari nama, No. RM, nomor HP, atau email..."
             className={`w-full pl-11 pr-4 py-3.5 rounded-2xl border text-sm focus:outline-none focus:border-[#D08080] ${theme.inputBg}`}
           />
         </div>
@@ -659,7 +663,12 @@ export default function EmrWorkspace({
                     <td className={`py-3 px-2 sm:px-4 text-[10px] sm:text-xs font-semibold ${theme.roseLabel}`}>
                       {String(index + 1).padStart(2, '0')}
                     </td>
-                    <td className="py-3 px-2 sm:px-4 font-medium break-words">{patient.name}</td>
+                    <td className="py-3 px-2 sm:px-4 font-medium break-words">
+                      {patient.name}
+                      <span className={`block font-mono-tech text-[10px] font-normal ${theme.textSubtle}`}>
+                        {patient.noRm || 'No. RM belum diterbitkan'}
+                      </span>
+                    </td>
                     <td className={`py-3 px-2 sm:px-4 text-[10px] sm:text-xs break-words ${theme.textMuted}`}>
                       {patient.phone || '-'}
                     </td>
@@ -698,6 +707,9 @@ export default function EmrWorkspace({
                     </span>
                     <span className="min-w-0 break-words text-sm font-medium">{patient.name}</span>
                   </div>
+                  <p className={`pl-6 font-mono-tech text-[10px] ${theme.textSubtle}`}>
+                    {patient.noRm || 'No. RM belum diterbitkan'}
+                  </p>
                   <div className="space-y-0.5 pl-6">
                     <p className={`break-all text-xs ${theme.textMuted}`}>{patient.phone || '-'}</p>
                     {patient.email && (
@@ -748,6 +760,9 @@ export default function EmrWorkspace({
               {editingVisitId ? 'Edit EMR' : 'EMR'} —{' '}
               <span className={theme.roseAccent}>{selectedPatient?.name}</span>
             </h2>
+            <p className={`mt-1 font-mono-tech text-[10px] uppercase tracking-[0.16em] ${theme.textSubtle}`}>
+              {selectedPatient?.noRm || 'No. RM belum diterbitkan'}
+            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
@@ -1149,15 +1164,28 @@ export default function EmrWorkspace({
 
             <div>
               <label htmlFor="emr-followup" className="block text-xs font-medium mb-1.5">
-                Tanggal Follow Up
+                Jadwal Kontrol Berikutnya (tanggal &amp; jam)
               </label>
-              <input
-                id="emr-followup"
-                type="date"
-                value={form.followUp}
-                onChange={(e) => setForm({ ...form, followUp: e.target.value })}
-                className={`w-full px-4 py-3 rounded-2xl border text-sm focus:outline-none focus:border-[#D08080] ${theme.inputBg}`}
-              />
+              <div className="grid gap-2 sm:grid-cols-2">
+                <input
+                  id="emr-followup"
+                  type="date"
+                  value={form.followUp}
+                  onChange={(e) => setForm({ ...form, followUp: e.target.value })}
+                  className={`w-full px-4 py-3 rounded-2xl border text-sm focus:outline-none focus:border-[#D08080] ${theme.inputBg}`}
+                />
+                <input
+                  id="emr-followup-time"
+                  type="text"
+                  value={form.followUpTime}
+                  onChange={(e) => setForm({ ...form, followUpTime: e.target.value })}
+                  placeholder="16:00 – 16:30 WIB"
+                  className={`w-full px-4 py-3 rounded-2xl border text-sm focus:outline-none focus:border-[#D08080] ${theme.inputBg}`}
+                />
+              </div>
+              <p className={`mt-1.5 text-[11px] ${theme.textSubtle}`}>
+                Jadwal ini langsung terlihat di tab Beranda &amp; Jadwal pada PWA pasien.
+              </p>
             </div>
 
             <div>
